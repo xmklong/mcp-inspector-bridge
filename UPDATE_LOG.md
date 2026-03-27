@@ -9,6 +9,10 @@
   - 实现类似 Unity 的场景节点实时监察面板。通过插入爬虫预加载器（`runtime-crawler.js`），每秒以 JSON 序列化形式通过 IPC 推送最新的节点树结构。
   - **动态组件图标与染色支持**：增加预制体 (Prefab) 以及深层级解构支持，深度渲染不同的文本颜色以反映潜逃等级（深蓝、海蓝、紫粉等），根 Scene 节点使用专属 🌐 图标。
   - **搜索与定位增强**：新增树状结构的名称过滤（包含高亮），并在一键清除搜索时能够准确留存路径祖先（`ancestorIds`），防止列表暴力重折叠。
+- **节点属性审查器 (Node Inspector)**：
+  - **装饰器属性精准映射**：深入剖析并打通了 Cocos 2.4 原生 `@property` 注册机制。优先遍历 `__props__` 及内置 `hiddenBuiltins` 黑名单过滤 `_objFlags` 等字段，并通过读取 `__attrs__.visible` 以及检查私有下划线前缀确保暴露层的绝对安全。
+  - **基础与数组类型的跨域处理**：实现 `string`, `number`, `boolean` 的双端响应式挂载及编辑；完成对 `Array` 类型的降级只读序列化（防回环卡死），并实现了特殊资源 `[cc.Prefab]` 等格式的名字提取及可视化罗列展示。
+  - **内置隔离的控制台 Debug 日志浮窗**：在 `runtime-crawler` 前端引入静默工作制，在控制面板上加装 Checkbox 开关。开启后即可在画面左上角挂载半透绿色骇客级防刷屏输出台，实时打出 `__attrs__` 序列诊断日记，用完即关。
 - **彻底抛弃 Webview 挂载模式 (原生架构跃升)**：
   - 由于 Cocos 插件基于旧版 Chromium 内核，`<webview>` 的默认 `about:blank` 导航锁死了 `webContents.setDevToolsWebContents()`。
   - 采用了更为稳定的底层 `BrowserView` 原生框架层方案。

@@ -5,6 +5,7 @@ import * as path from 'path';
 const { createApp, ref, computed, onMounted, reactive, watch, nextTick } = require('vue');
 const { remote } = require('electron');
 const { NodeTree } = require('./components/NodeTree');
+const { NodeInspector } = require('./components/NodeInspector');
 
 const templateRaw = fs.readFileSync(path.join(__dirname, '../../src/panel/index.html'), 'utf-8');
 const preloadUrlResolved = 'file:///' + Editor.url('packages://mcp-inspector-bridge/dist/preload.js').replace(/\\/g, '/');
@@ -30,11 +31,12 @@ module.exports = Editor.Panel.extend({
             nodeTree: null as any,
             lastTreeUpdate: 0 as number,
             isFallbackMode: false as boolean,
-            devToolsError: null as string | null
+            devToolsError: null as string | null,
+            nodeDetail: null as any
         });
 
         const app = createApp({
-            components: { NodeTree },
+            components: { NodeTree, 'node-inspector': NodeInspector },
             setup() {
                 // 当前活跃的 Tab (0=main, 1=devtools, 2=cocos, 3=ext)
                 const activeTab = ref(0);
@@ -75,7 +77,44 @@ module.exports = Editor.Panel.extend({
                 // 处理节点树选中事件
                 const onNodeSelect = (node: any) => {
                     Editor.info('[Bridge] 面板选中节点:', node.name, node.id);
-                    // TOD: 侧边栏展示组件属性
+                    const wv: any = gameView.value;
+                    if (wv) {
+                        const code = `window.__mcpCrawler ? JSON.stringify(window.__mcpCrawler.getNodeDetail('${node.id}')) : null`;
+                        wv.executeJavaScript(code).then((res: string) => {
+                            if (res) {
+                                globalState.nodeDetail = JSON.parse(res);
+                            } else {
+                                globalState.nodeDetail = null;
+                            }
+                        }).catch(() => {
+                            globalState.nodeDetail = null;
+                        });
+                    }
+                };
+
+                const onUpdateNodeProp = (payload: any) => {
+                    const wv: any = gameView.value;
+                    if (wv) {
+                        const { uuid, compName, propKey, value } = payload;
+                        let valStr = value;
+                        if (typeof value === 'string') {
+                            valStr = '"' + value.replace(/"/g, '\\"') + '"';
+                        }
+                        const compStr = compName ? '"' + compName + '"' : 'null';
+                        const code = `
+                            if (window.__mcpCrawler) {
+                                window.__mcpCrawler.updateNodeProperty('${uuid}', ${compStr}, '${propKey}', ${valStr});
+                            }
+                        `;
+                        wv.executeJavaScript(code);
+                    }
+                };
+
+                const onToggleCrawlerDebug = (enabled: boolean) => {
+                    const wv: any = gameView.value;
+                    if (wv) {
+                        wv.executeJavaScript(`if(window.__mcpCrawler) window.__mcpCrawler.toggleDebugConsole(${enabled});`);
+                    }
                 };
 
                 // DevTools 幂等标志（在 onMounted 内的 dom-ready 回调中使用）
@@ -441,6 +480,8 @@ module.exports = Editor.Panel.extend({
 
                 return {
                     onNodeSelect,
+                    onUpdateNodeProp,
+                    onToggleCrawlerDebug,
                     activeTab,
                     selectedResolution,
                     isLandscape,

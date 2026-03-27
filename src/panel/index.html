@@ -122,9 +122,8 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                     <div v-if="!globalState.nodeTree" style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">(等待加载场景节点树)</div>
                     <node-tree v-else :tree-data="globalState.nodeTree" @select="onNodeSelect"></node-tree>
                 </div>
-                <div style="flex: 6; overflow-y: auto; padding: 10px; background: #202020;">
-                    <div style="font-weight: bold; margin-bottom: 5px; color: #888;">组件属性 (Properties)</div>
-                    <div style="color: #555; font-size: 12px;">选中左侧节点...</div>
+                <div style="flex: 6; overflow-y: hidden; background: #202020; border-top: 1px solid #111;">
+                    <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp" @toggle-debug="onToggleCrawlerDebug"></node-inspector>
                 </div>
             </div>
 
