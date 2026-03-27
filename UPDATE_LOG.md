@@ -24,6 +24,9 @@
 - **捕获并压制 `cc.Scene` Getter 崩溃**：
   - **症状**：Cocos 2.4 当 `node instanceof cc.Scene` 时，任何对其 `node.active` 的求值均会触发内部警告日志不断刷屏。
   - **修复策略**：在探针代码 `src/probe.ts` 与主面板 `src/panel/index.ts` 中加入双重预检防御。如果是引擎 `cc.Scene` 类型对象，直接设置其标识位为 `true`，切断危险属性嗅探，保证 Console 日志清洁无乱码。
+- **修复游戏预览区域不可控的滚动条问题**：
+  - **症状**：在部分特殊的分辨率模拟模式下（例如 iPhone X / Android 1080p），或者拖动窗口缩放导致产生浮点比例时，预览区会不自主地爆出原生水平或垂直的滚动轴，且可以直接干预游戏画面中心点。
+  - **修复策略**：重构了 `gameContainerStyle` 取回基于 `Math.floor()` 的亚像素下取整安全宽度保障；在面板 `index.html` 层级全面增加 `overflow: hidden;`；并且利用 `insertCSS` 对 `webview` 生命周期发起了跨域样式篡写，深度摧毁隐藏了原生的 `body` 以及 Cocos 测试壳底层的 `.contentWrap` 自动溢出属性与 Webkit 控制杆。
 
 ---
 

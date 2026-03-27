@@ -251,6 +251,14 @@ module.exports = Editor.Panel.extend({
                         // dom-ready 后 5 秒超时启动降级轮询（如果探针的正常数据流还没建立的话）
                         gameViewDynamic.addEventListener('dom-ready', () => {
                             Editor.info('[Bridge] Webview dom-ready 触发，5 秒后检查探针状态...');
+                            
+                            // [Fix] 强行注入 CSS 屏蔽 Webview 内部的滚动条 (加强版：涵盖 Cocos 内核的 .contentWrap 和隐藏原生 scrollbar)
+                            try {
+                                gameViewDynamic.insertCSS('html, body, .contentWrap, .content, .wrapper, #GameDiv, #GameCanvas { overflow: hidden !important; margin: 0 !important; padding: 0 !important; } ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }');
+                            } catch (e) {
+                                Editor.warn('[Bridge] Webview 注入屏蔽滚动条 CSS 失败', e);
+                            }
+
                             setTimeout(() => {
                                 if (!globalState.cocosInfo) {
                                     Editor.warn('[Bridge] 5 秒超时：探针握手仍未收到，启动降级轮询');
@@ -397,7 +405,7 @@ module.exports = Editor.Panel.extend({
 
                 const gameContainerStyle = computed(() => {
                     if (selectedResolution.value === 'FIT' || wrapperSize.value.width === 0) {
-                        return { width: '100%', height: '100%', position: 'relative' };
+                        return { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' };
                     }
                     const parts = selectedResolution.value.split('x');
                     let targetW = parseInt(parts[0]);
@@ -414,11 +422,12 @@ module.exports = Editor.Panel.extend({
                     );
                     
                     return {
-                        width: targetW + 'px',
-                        height: targetH + 'px',
+                        width: Math.floor(targetW) + 'px',
+                        height: Math.floor(targetH) + 'px',
                         left: '50%',
                         top: '50%',
                         position: 'absolute',
+                        overflow: 'hidden',
                         transform: `translate(-50%, -50%) scale(${scale})`,
                         transformOrigin: 'center center'
                     };
