@@ -1,25 +1,25 @@
-# Project Constitution (mcp-inspector-bridge)
+# 项目核心章程 (mcp-inspector-bridge)
 
-## Article I: The Artifact Mandate
-**Agents shall not perform work without a visible Artifact.**
-- Every planning step must produce a Markdown Artifact (Plan, Spec, or Checklist).
-- Never rely on "chat memory" alone. If it's important, write it to a file.
-- **Language Requirement**: MUST use **Simplified Chinese (简体中文)** for all plans, tasks, artifacts, Code comments (DocStrings, inline comments), and AI Responses/Reasoning.
+## 第一条：产物强制要求 (The Artifact Mandate)
+**AI 智能体在没有生成可见产物（文件记录）的情况下不得擅自执行工作。**
+- 每一个规划阶段都必须产出一个 Markdown 格式的实体文件 (Plan, Spec, 或 Checklist)。
+- 严禁仅仅依赖“聊天记忆”连续执行复合任务。任何重大的上下文或决定，都必须落实在文件中予以固化。
+- **语言强制约定 (绝对红线)**: 所有的开发阶段文档（项目计划、任务流、验收记录）、代码内部说明（DocStrings、行内注释）、AI 思考推理回答、以及**所有 Git 提交信息（Commit Messages，包含 feat/fix 标头）均必须且只能使用简体中文 (Simplified Chinese)**。
 
-## Article II: Tech Stack & Standards
-**Strictly adhere to the established technologies and patterns.**
-- **Tech Stack**: Cocos Creator 2.4.x extension, Electron (主进程), Vue.js (前端面板), IPC bridge.
-- **Scripting Language**: MUST use **TypeScript (`.ts`)** for all NEW scripts. Do not create new `.js` files.
-- **Documentation**: MUST ensure comprehensive comments for all handled scripts (modified or created). Use JSDoc format for classes and implementation details. Explain the *purpose* and *logic* of complex blocks.
+## 第二条：技术栈与代码规范 (Tech Stack & Standards)
+**严格遵守当前确立的技术体系与编码模式。**
+- **技术栈**: 基于 Cocos Creator 2.4.x Extension 扩展规则，Electron（主进程），Vue.js 3 / HTML 拼接（前端面板），IPC 桥接通信机制。
+- **脚本语言限定**: 所有新创建或重构的脚本**必须且只能使用 TypeScript (`.ts`)**。严厉禁止向项目中新增任何 `.js` 裸文件。
+- **注释完善性**: 必须确保所有经手的脚本无论改动大小都拥有详尽贴切的注释。类库和接口信息使用标准的 JSDoc 格式标注。复杂的逻辑块必须以人类易读的方式解释其“业务目的”与“运行逻辑”。
 
-## Article III: Architecture & Consistency
-**Follow Cocos Creator Extension Patterns.**
-- **Architectural Integrity**: MUST strictly follow the existing project architecture (Cocos Creator patterns).
-- **PROHIBITED**: Creating entirely new architectural patterns, frameworks, or bringing in heavy external libraries without explicit user approval.
-- **REQUIRED**: Reuse existing managers, utils, and base classes where applicable.
+## 第三条：项目架构与一致性 (Architecture & Consistency)
+**遵循 Cocos Creator 原生的插件开发范式体系。**
+- **架构完整性维持**: 必须严格遵循现有项目的预设架构思路。
+- **明令禁止**: 未经用户的最高授权批准，严禁自创所谓的“全新架构模式”、擅自变更项目基架设定、或随意通过 npm 安装引入重量级的第三方外部依赖库。
+- **必须执行**: 在实现新功能前，优先侦测并复用现有的管理器（managers）、工具类（utils）和各类基类（base classes）。
 
-## Article IV: Agent Independence
-**Build for Parallelism.**
-- Tasks must be atomic.
-- Frontend agents should mock IPC/API responses if the Backend/Main process agent isn't finished.
-- Never block a thread waiting for another agent.
+## 第四条：智能体互斥与独立性原则 (Agent Independence)
+**为并行的开发流程奠定基础。**
+- 切割派发的验证任务必须具备原子特性 (Atomic)。
+- 假若负责后端爬虫或主进程的逻辑尚未到位，前端研发部分要求使用自主构建的假数据 (Mock IPC/API) 保障顺利测试渲染脱壳。
+- 绝对不要挂起并无限期等待其它外部依赖就绪才开始开发工作。

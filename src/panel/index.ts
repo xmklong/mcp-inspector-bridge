@@ -2,9 +2,9 @@ declare const Editor: any;
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Note: 因为它是插件运行时，可以直接使用 requrie 导入 npm 模块 Vue
 const { createApp, ref, computed, onMounted, reactive, watch, nextTick } = require('vue');
 const { remote } = require('electron');
+const { NodeTree } = require('./components/NodeTree');
 
 const templateRaw = fs.readFileSync(path.join(__dirname, '../../src/panel/index.html'), 'utf-8');
 const preloadUrlResolved = 'file:///' + Editor.url('packages://mcp-inspector-bridge/dist/preload.js').replace(/\\/g, '/');
@@ -34,6 +34,7 @@ module.exports = Editor.Panel.extend({
         });
 
         const app = createApp({
+            components: { NodeTree },
             setup() {
                 // 当前活跃的 Tab (0=main, 1=devtools, 2=cocos, 3=ext)
                 const activeTab = ref(0);
@@ -71,10 +72,21 @@ module.exports = Editor.Panel.extend({
                     document.addEventListener('mouseup', onMouseUp);
                 };
 
+                // 处理节点树选中事件
+                const onNodeSelect = (node: any) => {
+                    Editor.info('[Bridge] 面板选中节点:', node.name, node.id);
+                    // TOD: 侧边栏展示组件属性
+                };
+
                 // DevTools 幂等标志（在 onMounted 内的 dom-ready 回调中使用）
                 let isDevToolsSetup = false;
 
                 onMounted(() => {
+                    // 组件挂载时首先向主进程请求最新的树数据
+                    try {
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-node-tree');
+                    } catch (e) {}
+
                     const wrap = wrapMount.value;
                     if (wrap) {
                         try {
@@ -428,6 +440,7 @@ module.exports = Editor.Panel.extend({
                 };
 
                 return {
+                    onNodeSelect,
                     activeTab,
                     selectedResolution,
                     isLandscape,

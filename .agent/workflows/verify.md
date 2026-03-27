@@ -1,17 +1,18 @@
 ---
-description: Visual and logic verification of the feature.
+description: 对功能特性进行视觉与逻辑验证（必须输出中文报告）。
 ---
 
-## Antigravity QA Instructions
+## Antigravity QA 测试指令
 
-1. **Environment**: Spin up the app in the Integrated Terminal/Browser.
-2. **Visual Audit**:
-   - Navigate to the new feature.
-   - **TAKE SCREENSHOT**.
-   - Compare screenshot to the `spec.md` requirements.
-   - Report: "Match" or "Discrepancy".
-3. **Logic Audit**:
-   - Run the "Happy Path" user journey.
-   - Check console logs for errors.
-4. **Report**:
-   - Generate a **Release Readiness Artifact**.
+1. **测试环境**: 在集成终端/浏览器中启动应用程序。
+2. **视觉审计 (Visual Audit)**:
+   - 导航至新实现的功能页面。
+   - **截取屏幕快照 (TAKE SCREENSHOT)**。
+   - 将截图与 `spec.md` 中定义的视觉需求进行对比分析。
+   - 输出报告结果: "符合 (Match)" 或 "存在差异 (Discrepancy)"。
+3. **逻辑审计 (Logic Audit)**:
+   - 执行用户的"正常使用路径 (Happy Path)"流程。
+   - 检查控制台日志是否存在报错信息。
+4. **输出报告**:
+   - 生成一份**发布就绪报告 (Release Readiness Artifact)**。
+   - **语言要求**: 该文件和最终测试报告的所有文字描述均须使用**简体中文**。

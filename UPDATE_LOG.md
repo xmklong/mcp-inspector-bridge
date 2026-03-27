@@ -5,6 +5,10 @@
 ## [0.0.1] - 2026-03-27
 
 ### ✨ 新特性与架构变更
+- **运行时节点树 (Runtime Node Tree)**:
+  - 实现类似 Unity 的场景节点实时监察面板。通过插入爬虫预加载器（`runtime-crawler.js`），每秒以 JSON 序列化形式通过 IPC 推送最新的节点树结构。
+  - **动态组件图标与染色支持**：增加预制体 (Prefab) 以及深层级解构支持，深度渲染不同的文本颜色以反映潜逃等级（深蓝、海蓝、紫粉等），根 Scene 节点使用专属 🌐 图标。
+  - **搜索与定位增强**：新增树状结构的名称过滤（包含高亮），并在一键清除搜索时能够准确留存路径祖先（`ancestorIds`），防止列表暴力重折叠。
 - **彻底抛弃 Webview 挂载模式 (原生架构跃升)**：
   - 由于 Cocos 插件基于旧版 Chromium 内核，`<webview>` 的默认 `about:blank` 导航锁死了 `webContents.setDevToolsWebContents()`。
   - 采用了更为稳定的底层 `BrowserView` 原生框架层方案。

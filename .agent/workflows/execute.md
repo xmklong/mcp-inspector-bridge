@@ -1,13 +1,14 @@
 ---
-description: Build the feature from the plan.
+description: 根据计划构建功能特性（必须使用中文输出和反馈）。
 ---
 
-## Instructions
+## 执行指令
 
-1.  **Read**: Open `specs/[feature_name]/plan.md`.
-2.  **Execute**:
-    * Look for the **Step-by-Step** section with checkboxes.
-    * Execute the unchecked items `- [ ]`.
-3.  **Vibe Check**:
-    * After every 2-3 steps, verify the code visually.
-    * Mark steps as `- [x]` in `plan.md` as you finish them.
+1.  **阅读**: 打开 `specs/[feature_name]/plan.md`。
+2.  **执行操作**:
+    * 定位到包含复选框的 **分步实施 (Step-by-Step)** 章节。
+    * 开始执行未选中的项目 `- [ ]`。
+    * **语言要求**: 执行过程中给出的任何解释、日志或反馈必须使用**简体中文**。
+3.  **初步核查 (Vibe Check)**:
+    * 每完成 2-3 个步骤后，直观地去验证代码逻辑是否正常。
+    * 当步骤完成时，将 `plan.md` 中的状态更改为 `- [x]` 以标记完成。

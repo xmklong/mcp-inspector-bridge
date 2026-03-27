@@ -1,18 +1,19 @@
 ---
-description: Create a unified implementation plan.
+description: 创建统一的实施计划（必须使用中文输出）。
 ---
 
-## User Input
+## 用户输入
 $ARGUMENTS
 
-## Instructions
+## 执行指令
 
-1.  **Read**: Load the `spec.md` provided by the user.
-2.  **Draft Plan**:
-    * Create/Update **ONE file**: `specs/[feature_name]/plan.md`.
-    * **Section 1: Architecture**: Briefly list changed files and data models.
-    * **Section 2: Step-by-Step**: List the implementation steps (Todo list) directly in this file.
-3.  **Format**:
-    * Use checkboxes `- [ ]` for the steps so they are clickable.
-    * Mark steps as `[Frontend]` or `[Backend]`.
-4.  **Constraint**: Do NOT create `tasks.md`. Keep it all in `plan.md`.
+1.  **阅读**: 加载用户提供的 `spec.md`。
+2.  **起草计划**:
+    * 仅创建/更新**一个文件**: `specs/[feature_name]/plan.md`。
+    * **第一部分: 架构设计 (Architecture)**: 简要列出需要修改的文件以及数据模型。
+    * **第二部分: 分步实施 (Step-by-Step)**: 直接在此文件内列出所有的实施步骤（待办事项列表）。
+    * **语言要求**: 整个输出及其文件均必须使用**简体中文 (Simplified Chinese)**撰写。
+3.  **格式化**:
+    * 为每一个步骤使用复选框 `- [ ]` ，以便它们是可点击的。
+    * 标记对应的步骤属于 `[Frontend]`（前端）还是 `[Backend]`（后端）。
+4.  **约束**: **严禁**创建 `tasks.md`，请将所有任务都保留在 `plan.md` 中。

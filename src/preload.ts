@@ -80,21 +80,21 @@ window.addEventListener('DOMContentLoaded', () => {
     };
     console.log('[Webview Preload] __mcpInspector 通信接口已挂载到 window');
 
-    // ===== 7. 在顶层直接注入探针 probe.js =====
+    // ===== 7. 在顶层直接注入运行树爬虫 runtime-crawler.js =====
     try {
         const fs = require('fs');
         const path = require('path');
-        const probeContent = fs.readFileSync(path.join(__dirname, 'probe.js'), 'utf-8');
-        const probeScript = document.createElement('script');
-        probeScript.textContent = probeContent;
+        const crawlerContent = fs.readFileSync(path.join(__dirname, 'inject/runtime-crawler.js'), 'utf-8');
+        const crawlerScript = document.createElement('script');
+        crawlerScript.textContent = crawlerContent;
         if (document.head) {
-            document.head.appendChild(probeScript);
-            console.log('[Webview Preload] probe.js 已成功注入到顶层 document.head');
+            document.head.appendChild(crawlerScript);
+            console.log('[Webview Preload] runtime-crawler.js 已成功注入到顶层 document.head');
         } else {
-            console.error('[Webview Preload] document.head 不存在，无法注入 probe.js');
+            console.error('[Webview Preload] document.head 不存在，无法注入 runtime-crawler.js');
         }
     } catch (err) {
-        console.error('[Webview Preload] 无法注入 probe.js:', err);
+        console.error('[Webview Preload] 无法注入 runtime-crawler.js:', err);
     }
 
     // ===== 8. 子 iframe 兼容嗅探 (旧版 Cocos 预览页) =====
@@ -123,15 +123,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 bridgeScript.textContent = subframeBootstrap;
                 gameDiv.contentWindow.document.head.appendChild(bridgeScript);
 
-                // 注入探针
+                // 注入树节点爬虫
                 const fs2 = require('fs');
                 const path2 = require('path');
-                const probeContent2 = fs2.readFileSync(path2.join(__dirname, 'probe.js'), 'utf-8');
-                const probeScript2 = gameDiv.contentWindow.document.createElement('script');
-                probeScript2.textContent = probeContent2;
-                gameDiv.contentWindow.document.head.appendChild(probeScript2);
+                const crawlerContent2 = fs2.readFileSync(path2.join(__dirname, 'inject/runtime-crawler.js'), 'utf-8');
+                const crawlerScript2 = gameDiv.contentWindow.document.createElement('script');
+                crawlerScript2.textContent = crawlerContent2;
+                gameDiv.contentWindow.document.head.appendChild(crawlerScript2);
 
-                console.log('[Webview Preload] 子框架探针注入完成');
+                console.log('[Webview Preload] 子框架 runtime-crawler 注入完成');
             }
         } catch (err) {
             console.warn('[Webview Preload] 子 iframe 嗅探/注入跳过 (非致命):', err);
