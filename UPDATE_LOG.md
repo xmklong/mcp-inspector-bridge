@@ -2,8 +2,23 @@
 
 本项目记录 `mcp-inspector-bridge` 的重大里程碑、架构变更与缺陷修复记录。
 
-## [0.0.1] - 2026-03-27
+## [0.0.2] - 2026-03-28
 
+### ✨ 新特性与架构变更
+- **纯运行时级数据注入 (Pure Runtime Data Injection)**:
+  - 彻底移除了原先基于 Editor IPC（`scene-script.js` 和 Undo Group）的属性跨进程修改架构。
+  - 现在 Inspector 的所有属性修改（包括节点 Transform 和所有 Components）将完全绕过编辑器序列化管线，通过在 `gameView` (Webview) 中原生执行 JavaScript 直接对内存中的 `cc.Node` 与 `cc.Component` 实例进行赋值。
+  - **核心收益**：大幅度提升属性同步率与真实表现一致性；彻底解决了修改属性后引发编辑器“场景已修改，是否保存”的误拦截弹窗；彻底根除撤销系统抛出的 `Unknown object to record` 致命警告。
+- **组件通用启停控制器 (Universal Component Enable/Disable Toggle)**:
+  - 在 Node Inspector 的所有组件（如 `cc.Widget`, `cc.Sprite` 等）名称旁，新增了全局统一的复选框层。
+  - 玩家现在可以实时勾选控制运行沙盒中针对该组件的 `enabled` 状态，实现运行时引擎排版或重渲染的强行唤醒与休眠，极大提升了调试时的状态流转控制能力。
+
+### 🐛 缺陷修复
+- **修复 Widget 属性修改后页面表现无响应问题**：由于绕过了同步流的副作用，目前所有的 `cc.Widget` 变更操作后，执行链会自动追猎调用 `comp.updateAlignment()` 以驱动 Cocos 的流式排版强制刷新边距，实现视觉对齐。
+
+---
+
+## [0.0.1] - 2026-03-27
 ### ✨ 新特性与架构变更
 - **运行时节点树 (Runtime Node Tree)**:
   - 实现类似 Unity 的场景节点实时监察面板。通过插入爬虫预加载器（`runtime-crawler.js`），每秒以 JSON 序列化形式通过 IPC 推送最新的节点树结构。

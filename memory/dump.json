@@ -1,0 +1,386 @@
+[
+  {
+    "type": "cc.Sprite",
+    "value": {
+      "_name": {
+        "type": "String",
+        "value": ""
+      },
+      "_objFlags": {
+        "type": "Float",
+        "value": 63488
+      },
+      "node": {
+        "value": {
+          "name": "PuzzleUI",
+          "uuid": "36OPsCXTRCZ7N+HjWhprxP"
+        },
+        "type": "cc.Node"
+      },
+      "name": {
+        "type": "String",
+        "value": "PuzzleUI<Sprite>"
+      },
+      "uuid": {
+        "type": "String",
+        "value": "41H1R1gsZMlpym/WJTOaGh"
+      },
+      "__scriptAsset": {
+        "type": "cc.Script",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "_enabled": {
+        "type": "Boolean",
+        "value": true
+      },
+      "enabled": {
+        "type": "Boolean",
+        "value": true
+      },
+      "enabledInHierarchy": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isOnLoadCalled": {
+        "type": "Float",
+        "value": 16384
+      },
+      "_materials": {
+        "type": "cc.Material",
+        "value": [
+          {
+            "type": "cc.MaterialVariant",
+            "value": {
+              "uuid": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
+            }
+          }
+        ]
+      },
+      "materials": {
+        "type": "cc.Material",
+        "value": [
+          {
+            "type": "cc.MaterialVariant",
+            "value": {
+              "uuid": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
+            }
+          }
+        ]
+      },
+      "_srcBlendFactor": {
+        "type": "Float",
+        "value": 770
+      },
+      "_dstBlendFactor": {
+        "type": "Float",
+        "value": 771
+      },
+      "srcBlendFactor": {
+        "type": "Enum",
+        "value": 770
+      },
+      "dstBlendFactor": {
+        "type": "Enum",
+        "value": 771
+      },
+      "_spriteFrame": {
+        "type": "cc.SpriteFrame",
+        "value": {
+          "uuid": "a23235d1-15db-4b95-8439-a2e005bfff91"
+        }
+      },
+      "_type": {
+        "type": "Float",
+        "value": 0
+      },
+      "_sizeMode": {
+        "type": "Float",
+        "value": 0
+      },
+      "_fillType": {
+        "type": "Float",
+        "value": 0
+      },
+      "_fillCenter": {
+        "type": "cc.Vec2",
+        "value": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "_fillStart": {
+        "type": "Float",
+        "value": 0
+      },
+      "_fillRange": {
+        "type": "Float",
+        "value": 0
+      },
+      "_isTrimmedMode": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_atlas": {
+        "type": "cc.SpriteAtlas",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "spriteFrame": {
+        "type": "cc.SpriteFrame",
+        "value": {
+          "uuid": "a23235d1-15db-4b95-8439-a2e005bfff91"
+        }
+      },
+      "type": {
+        "type": "Enum",
+        "value": 0
+      },
+      "fillType": {
+        "type": "Enum",
+        "value": 0
+      },
+      "fillCenter": {
+        "type": "cc.Vec2",
+        "value": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "fillStart": {
+        "type": "Float",
+        "value": 0
+      },
+      "fillRange": {
+        "type": "Float",
+        "value": 0
+      },
+      "trim": {
+        "type": "Boolean",
+        "value": true
+      },
+      "sizeMode": {
+        "type": "Enum",
+        "value": 0
+      },
+      "_id": {
+        "type": "string",
+        "value": "41H1R1gsZMlpym/WJTOaGh"
+      }
+    }
+  },
+  {
+    "type": "cc.Widget",
+    "value": {
+      "_name": {
+        "type": "String",
+        "value": ""
+      },
+      "_objFlags": {
+        "type": "Float",
+        "value": 57344
+      },
+      "node": {
+        "value": {
+          "name": "PuzzleUI",
+          "uuid": "36OPsCXTRCZ7N+HjWhprxP"
+        },
+        "type": "cc.Node"
+      },
+      "name": {
+        "type": "String",
+        "value": "PuzzleUI<Widget>"
+      },
+      "uuid": {
+        "type": "String",
+        "value": "c0vusWM8tNQIVMKnFdhX/d"
+      },
+      "__scriptAsset": {
+        "type": "cc.Script",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "_enabled": {
+        "type": "Boolean",
+        "value": false
+      },
+      "enabled": {
+        "type": "Boolean",
+        "value": false
+      },
+      "enabledInHierarchy": {
+        "type": "Boolean",
+        "value": false
+      },
+      "_isOnLoadCalled": {
+        "type": "Float",
+        "value": 16384
+      },
+      "target": {
+        "type": "cc.Node",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "isAlignTop": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAlignVerticalCenter": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignBottom": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignLeft": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignHorizontalCenter": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignRight": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isStretchWidth": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isStretchHeight": {
+        "type": "Boolean",
+        "value": false
+      },
+      "top": {
+        "type": "Float",
+        "value": 54.931
+      },
+      "bottom": {
+        "type": "Float",
+        "value": 0
+      },
+      "left": {
+        "type": "Float",
+        "value": 78.324
+      },
+      "right": {
+        "type": "Float",
+        "value": 0
+      },
+      "horizontalCenter": {
+        "type": "Float",
+        "value": -67.176
+      },
+      "verticalCenter": {
+        "type": "Float",
+        "value": 61.069
+      },
+      "isAbsoluteHorizontalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteVerticalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteTop": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteBottom": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteLeft": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteRight": {
+        "type": "Boolean",
+        "value": true
+      },
+      "alignMode": {
+        "type": "Enum",
+        "value": 0
+      },
+      "_wasAlignOnce": {
+        "type": "Object",
+        "value": null
+      },
+      "_target": {
+        "type": "Object",
+        "value": null
+      },
+      "_alignFlags": {
+        "type": "Float",
+        "value": 1
+      },
+      "_left": {
+        "type": "Float",
+        "value": 78.324
+      },
+      "_right": {
+        "type": "Float",
+        "value": 0
+      },
+      "_top": {
+        "type": "Float",
+        "value": 54.931
+      },
+      "_bottom": {
+        "type": "Float",
+        "value": 0
+      },
+      "_verticalCenter": {
+        "type": "Float",
+        "value": 61.069
+      },
+      "_horizontalCenter": {
+        "type": "Float",
+        "value": -67.176
+      },
+      "_isAbsLeft": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsRight": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsTop": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsBottom": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsHorizontalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsVerticalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_originalWidth": {
+        "type": "Float",
+        "value": 0
+      },
+      "_originalHeight": {
+        "type": "Float",
+        "value": 0
+      },
+      "_id": {
+        "type": "string",
+        "value": "c0vusWM8tNQIVMKnFdhX/d"
+      }
+    }
+  }
+]

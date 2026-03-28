@@ -17,7 +17,7 @@ module.exports = Editor.Panel.extend({
     `,
     template: templateStr,
 
-    $ : {
+    $: {
         app: '#app',
         gameView: '#game-view'
     },
@@ -40,7 +40,7 @@ module.exports = Editor.Panel.extend({
             setup() {
                 // 当前活跃的 Tab (0=main, 1=devtools, 2=cocos, 3=ext)
                 const activeTab = ref(0);
-                
+
                 // 分辨率控制
                 const selectedResolution = ref('FIT');
                 const isLandscape = ref(false);
@@ -95,7 +95,7 @@ module.exports = Editor.Panel.extend({
                 const onUpdateNodeProp = (payload: any) => {
                     const wv: any = gameView.value;
                     if (wv) {
-                        const { uuid, compName, propKey, value } = payload;
+                        const { uuid, compName, propKey, value, compIndex } = payload;
                         let valStr = value;
                         if (typeof value === 'string') {
                             valStr = '"' + value.replace(/"/g, '\\"') + '"';
@@ -107,6 +107,79 @@ module.exports = Editor.Panel.extend({
                             }
                         `;
                         wv.executeJavaScript(code);
+
+                        // 真实场景数据持久化同步 (Scene Persistence)
+                        try {
+                            const postToConsole = (msg: string, isError: boolean = false) => {
+                                if (wv) {
+                                    const c = isError ? `console.error(${JSON.stringify(msg)});` : `console.log('%c[Bridge Info]', 'color: #00ff00', ${JSON.stringify(msg)});`;
+                                    wv.executeJavaScript(c);
+                                }
+                            };
+
+                            Editor.Ipc.sendToPanel('scene', 'scene:query-node', uuid, (err: any, dumpObj: any) => {
+                                if (err) {
+                                    postToConsole('[dump] query-node error: ' + String(err), true);
+                                    return;
+                                }
+                                try {
+                                    const dump = typeof dumpObj === 'string' ? JSON.parse(dumpObj) : dumpObj;
+                                    const comps = dump.value.__comps__ || dump.value.components || dump.__comps__ || dump.components || dump;
+                                    const fs = require('fs');
+                                    const p = require('path').join(__dirname, '../../memory/dump.json');
+                                    fs.writeFileSync(p, JSON.stringify(comps, null, 2));
+                                    postToConsole('[dump] Successfully wrote to memory/dump.json');
+                                } catch (e: any) {
+                                    postToConsole('[dump] write fail: ' + e.message, true);
+                                }
+                            });
+
+                            if (compName) {
+                                postToConsole(`[Webview Update] ${compName}.${propKey} = ${value} (Index: ${compIndex})`);
+                                if (wv) {
+                                    wv.executeJavaScript(`
+                                        (function(){
+                                            if (!window.__mcpCrawler) return 'No Crawler';
+                                            const node = window.__mcpCrawler.findNodeByUuid('${uuid}');
+                                            if (node && node._components && node._components[${compIndex}]) {
+                                                node._components[${compIndex}]['${propKey}'] = ${JSON.stringify(value)};
+                                                if (typeof node._components[${compIndex}].updateAlignment === 'function') {
+                                                    node._components[${compIndex}].updateAlignment();
+                                                }
+                                                return 'OK';
+                                            }
+                                            return 'Node or Component Not Found';
+                                        })();
+                                    `).then((res: any) => {
+                                        postToConsole(`[Webview Result] Component updated: ${res}`);
+                                    }).catch((err: any) => {
+                                        postToConsole(`[Webview Error] ${err.message}`, true);
+                                    });
+                                }
+                            } else {
+                                postToConsole(`[Webview Update] Node.${propKey} = ${value}`);
+                                if (wv) {
+                                    wv.executeJavaScript(`
+                                        (function(){
+                                            if (!window.__mcpCrawler) return 'No Crawler';
+                                            const node = window.__mcpCrawler.findNodeByUuid('${uuid}');
+                                            if (node) {
+                                                node['${propKey}'] = ${JSON.stringify(value)};
+                                                return 'OK';
+                                            }
+                                            return 'Node Not Found';
+                                        })();
+                                    `).then((res: any) => {
+                                        postToConsole(`[Webview Result] Node updated: ${res}`);
+                                    }).catch((err: any) => {
+                                        postToConsole(`[Webview Error] ${err.message}`, true);
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[Bridge Webview Error] Failed to execute JS on game webview:', e);
+                            Editor.error('[Bridge] Failed to execute JS on game webview', e);
+                        }
                     }
                 };
 
@@ -124,7 +197,7 @@ module.exports = Editor.Panel.extend({
                     // 组件挂载时首先向主进程请求最新的树数据
                     try {
                         Editor.Ipc.sendToMain('mcp-inspector-bridge:query-node-tree');
-                    } catch (e) {}
+                    } catch (e) { }
 
                     const wrap = wrapMount.value;
                     if (wrap) {
@@ -149,7 +222,7 @@ module.exports = Editor.Panel.extend({
                     if (gameViewDynamic) {
                         // 不再强制剥除套壳页面，因为直接改变 webview.src 会导致 underlying WebContents 重生、引爆 dom-ready 的状态错误，并引发黑屏。
                         // 这里仅保留事件监听。
-                        
+
                         // 监听来自 gameView 的消息，特别是 ping 测试
                         gameViewDynamic.addEventListener('ipc-message', (event: any) => {
                             if (event.channel === 'ping-pong') {
@@ -162,10 +235,10 @@ module.exports = Editor.Panel.extend({
                                 try {
                                     globalState.nodeTree = JSON.parse(event.args[0]);
                                     globalState.lastTreeUpdate = Date.now();
-                                } catch(e) {}
+                                } catch (e) { }
                             }
                         });
-                        
+
                         // ==== 主动降级容错机制 (Fallback Polling) ====
                         // 基于 dom-ready 超时触发，不再依赖 cocosInfo（它可能因探针注入失败而永远为 null）
                         let fallbackStarted = false;
@@ -240,10 +313,10 @@ module.exports = Editor.Panel.extend({
                                                         globalState.cocosInfo = { version: parsed.version, isNative: false, isMobile: false, language: 'unknown (fallback)' };
                                                     }
                                                     globalState.lastTreeUpdate = Date.now();
-                                                } catch(e) {}
+                                                } catch (e) { }
                                             }
-                                        }).catch(()=>{});
-                                    } catch(err) {}
+                                        }).catch(() => { });
+                                    } catch (err) { }
                                 }
                             }, 2000);
                         };
@@ -251,7 +324,7 @@ module.exports = Editor.Panel.extend({
                         // dom-ready 后 5 秒超时启动降级轮询（如果探针的正常数据流还没建立的话）
                         gameViewDynamic.addEventListener('dom-ready', () => {
                             Editor.info('[Bridge] Webview dom-ready 触发，5 秒后检查探针状态...');
-                            
+
                             // [Fix] 强行注入 CSS 屏蔽 Webview 内部的滚动条 (加强版：涵盖 Cocos 内核的 .contentWrap 和隐藏原生 scrollbar)
                             try {
                                 gameViewDynamic.insertCSS('html, body, .contentWrap, .content, .wrapper, #GameDiv, #GameCanvas { overflow: hidden !important; margin: 0 !important; padding: 0 !important; } ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }');
@@ -310,7 +383,7 @@ module.exports = Editor.Panel.extend({
                     if (newVal === 1 && !isDevToolsSetup) {
                         await nextTick();
                         Editor.info('[Bridge-P7] activeTab === 1，启动 Phase 7 BrowserView 方案...');
-                        
+
                         // 等待游戏的 WebContents ID 就绪
                         let attempts = 0;
                         const captureInterval = setInterval(() => {
@@ -325,15 +398,15 @@ module.exports = Editor.Panel.extend({
                                 Editor.error('[Bridge-P7] 失败：超时。');
                                 return;
                             }
-                            
+
                             try {
                                 const gameWV: any = gameView.value;
                                 if (!gameWV) return;
                                 const gid = gameWV.getWebContentsId();
                                 if (!gid) return;
-                                
+
                                 clearInterval(captureInterval);
-                                
+
                                 const gWC = remote.webContents.fromId(gid);
                                 if (!gWC) {
                                     globalState.devToolsError = '游戏 WebContents fromId 失败';
@@ -344,7 +417,7 @@ module.exports = Editor.Panel.extend({
 
                                 // 创建 BrowserView（完全模仿原版 CocosInspector）
                                 const currentWindow = remote.getCurrentWindow();
-                                
+
                                 devToolsBV = new BrowserView({
                                     webPreferences: {
                                         nodeIntegration: true,
@@ -354,7 +427,7 @@ module.exports = Editor.Panel.extend({
 
                                 // 将 BrowserView 附加到当前编辑器窗口
                                 currentWindow.addBrowserView(devToolsBV);
-                                
+
                                 // 核心绑定：将游戏的 DevTools 输出定向到 BrowserView
                                 const bvWC = devToolsBV.webContents;
                                 gWC.setDevToolsWebContents(bvWC);
@@ -364,7 +437,7 @@ module.exports = Editor.Panel.extend({
 
                                 // 定位 BrowserView
                                 updateBrowserViewBounds();
-                                
+
                                 isDevToolsSetup = true;
                                 globalState.devToolsError = null;
                                 Editor.info('[Bridge-P7] √ BrowserView DevTools 挂载完成！');
@@ -374,7 +447,7 @@ module.exports = Editor.Panel.extend({
                             }
                         }, 20);
                     }
-                    
+
                     // 切入/切出 DevTools Tab 时，控制 BrowserView 的显隐
                     if (devToolsBV) {
                         const currentWindow = remote.getCurrentWindow();
@@ -384,14 +457,14 @@ module.exports = Editor.Panel.extend({
                                 // 先移除再添加，保证在最顶层
                                 currentWindow.removeBrowserView(devToolsBV);
                                 currentWindow.addBrowserView(devToolsBV);
-                            } catch (e) {}
+                            } catch (e) { }
                             await nextTick();
                             updateBrowserViewBounds();
                         } else {
                             // 切出 DevTools Tab => 隐藏 BrowserView
                             try {
                                 currentWindow.removeBrowserView(devToolsBV);
-                            } catch (e) {}
+                            } catch (e) { }
                         }
                     }
                 });
@@ -410,17 +483,17 @@ module.exports = Editor.Panel.extend({
                     const parts = selectedResolution.value.split('x');
                     let targetW = parseInt(parts[0]);
                     let targetH = parseInt(parts[1]);
-                    
+
                     if (isLandscape.value) {
                         const tmp = targetW; targetW = targetH; targetH = tmp;
                     }
-                    
+
                     // 缩放适应灰色外壳的 95% 空间防止挨得太紧
                     const scale = Math.min(
                         (wrapperSize.value.width * 0.95) / targetW,
                         (wrapperSize.value.height * 0.95) / targetH
                     );
-                    
+
                     return {
                         width: Math.floor(targetW) + 'px',
                         height: Math.floor(targetH) + 'px',
@@ -461,7 +534,7 @@ module.exports = Editor.Panel.extend({
                                 }
                             `;
                             wv.executeJavaScript(code);
-                        } catch(e) {}
+                        } catch (e) { }
                     }
                     else Editor.warn('[Bridge] 找不到 game-view，宏发送失败');
                 };

@@ -1,4 +1,5 @@
 const { ref, watch, computed } = require('vue');
+const { WidgetVisualizer } = require('./WidgetVisualizer');
 
 export const NodeInspector = {
     props: {
@@ -74,39 +75,47 @@ export const NodeInspector = {
 
                 <!-- 组件区块 -->
                 <div v-for="(comp, index) in nodeDetail.components" :key="'comp_'+index" class="inspector-section comp-section" style="background: #252525; margin-bottom: 8px; border: 1px solid #3a3a3a; border-radius: 4px;">
-                    <div class="comp-header" @click="toggleComp(index)" style="background: #333; padding: 6px 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444;">
-                        <span style="font-weight: bold; font-size: 13px;">{{ comp.name }}</span>
-                        <span style="font-size: 10px; color: #888;">{{ expandedComps[index] ? '▼' : '◀' }}</span>
+                    <div class="comp-header" style="background: #333; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" :checked="comp.enabled" @change="onUpdateProp(comp.name, 'enabled', $event.target.checked, comp.realIndex)" />
+                            <span @click="toggleComp(index)" style="cursor: pointer; font-weight: bold; font-size: 13px;">{{ comp.name }}</span>
+                        </div>
+                        <span @click="toggleComp(index)" style="cursor: pointer; font-size: 10px; color: #888;">{{ expandedComps[index] ? '▼' : '◀' }}</span>
                     </div>
                     
                     <div v-show="expandedComps[index]" class="comp-body" style="padding: 10px;">
-                        <div v-if="comp.properties.length === 0" style="color: #666; font-size: 12px; font-style: italic;">
-                            无公开基础属性
+                        <div v-if="comp.name === 'cc.Widget' || comp.name === 'Widget' || comp.name === 'Widget<cc.Widget>'">
+                            <widget-visualizer :comp="comp" @update-prop="(k, v) => onUpdateProp(comp.name, k, v, comp.realIndex)" />
                         </div>
-                        <div v-else class="prop-row" v-for="prop in comp.properties" :key="prop.key" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px;">
-                            <span class="prop-label" style="width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px; color: #aaa;" :title="prop.key">{{ prop.key }}</span>
-                            <div class="prop-val" style="width: 60%;">
-                                <!-- Boolean -->
-                                <input v-if="prop.type === 'boolean'" type="checkbox" :checked="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.checked)" />
-                                
-                                <!-- Number -->
-                                <input v-else-if="prop.type === 'number'" type="number" step="0.1" :value="formatNumber(prop.value)" @change="onUpdateProp(comp.name, prop.key, parseFloat($event.target.value))" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
-                                
-                                <!-- String -->
-                                <input v-else-if="prop.type === 'string'" type="text" :value="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.value)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
-                                
-                                <!-- Array -->
-                                <div v-else-if="prop.type === 'array'" style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
-                                    <div style="font-size: 11px; color:#777; margin-bottom: 2px; text-align: right;">Size: {{ prop.value ? prop.value.length : 0 }}</div>
-                                    <div v-for="(item, idx) in prop.value" :key="idx" style="display: flex; align-items: center; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 2px; padding: 2px;">
-                                        <span style="font-size: 10px; color:#666; width: 24px; text-align: center;">[{{ idx }}]</span>
-                                        <input type="text" disabled :value="item" style="flex: 1; min-width: 0; background: transparent; color: #999; border: none; font-size: 11px; padding: 2px;" :title="item"/>
+                        <div v-else>
+                            <div v-if="comp.properties.length === 0" style="color: #666; font-size: 12px; font-style: italic;">
+                                无公开基础属性
+                            </div>
+                            <div v-else class="prop-row" v-for="prop in comp.properties" :key="prop.key" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px;">
+                                <span class="prop-label" style="width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px; color: #aaa;" :title="prop.key">{{ prop.key }}</span>
+                                <div class="prop-val" style="width: 60%;">
+                                    <!-- Boolean -->
+                                    <input v-if="prop.type === 'boolean'" type="checkbox" :checked="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.checked, comp.realIndex)" />
+                                    
+                                    <!-- Number -->
+                                    <input v-else-if="prop.type === 'number'" type="number" step="0.1" :value="formatNumber(prop.value)" @change="onUpdateProp(comp.name, prop.key, parseFloat($event.target.value), comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                                    
+                                    <!-- String -->
+                                    <input v-else-if="prop.type === 'string'" type="text" :value="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.value, comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                                    
+                                    <!-- Array -->
+                                    <div v-else-if="prop.type === 'array'" style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                                        <div style="font-size: 11px; color:#777; margin-bottom: 2px; text-align: right;">Size: {{ prop.value ? prop.value.length : 0 }}</div>
+                                        <div v-for="(item, idx) in prop.value" :key="idx" style="display: flex; align-items: center; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 2px; padding: 2px;">
+                                            <span style="font-size: 10px; color:#666; width: 24px; text-align: center;">[{{ idx }}]</span>
+                                            <input type="text" disabled :value="item" style="flex: 1; min-width: 0; background: transparent; color: #999; border: none; font-size: 11px; padding: 2px;" :title="item"/>
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Unsupported -->
-                                <div v-else style="color: #888; font-style: italic; background: #2a2a2a; padding: 2px 4px; font-size: 11px;">
-                                    [不支持的类型]
+                                    
+                                    <!-- Unsupported -->
+                                    <div v-else style="color: #888; font-style: italic; background: #2a2a2a; padding: 2px 4px; font-size: 11px;">
+                                        [不支持的类型]
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -116,6 +125,9 @@ export const NodeInspector = {
             </div>
         </div>
     `,
+    components: {
+        'widget-visualizer': WidgetVisualizer
+    },
     setup(props: any, { emit }: any) {
         const expandedComps = ref({} as Record<number, boolean>);
 
@@ -134,13 +146,30 @@ export const NodeInspector = {
             expandedComps.value[index] = !expandedComps.value[index];
         };
 
-        const onUpdateProp = (compName: string | null, propKey: string, value: any) => {
+        const onUpdateProp = (compName: string | null, propKey: string, value: any, compIndex?: number) => {
             if (!props.nodeDetail) return;
+
+            // 乐观更新 (Optimistic UI Update)
+            if (compName) {
+                const comp = props.nodeDetail.components.find((c: any) => c.name === compName);
+                if (comp) {
+                    if (propKey === 'enabled') {
+                        comp.enabled = value;
+                    } else {
+                        const prop = comp.properties.find((p: any) => p.key === propKey);
+                        if (prop) prop.value = value;
+                    }
+                }
+            } else {
+                props.nodeDetail[propKey] = value;
+            }
+
             emit('update-prop', {
                 uuid: props.nodeDetail.id,
                 compName: compName,
                 propKey: propKey,
-                value: value
+                value: value,
+                compIndex: compIndex
             });
         };
 
