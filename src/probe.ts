@@ -70,6 +70,22 @@
             } catch (e) {}
         }
 
+        const componentNames = [];
+        if (node._components) {
+            for (let k = 0; k < node._components.length; k++) {
+                const comp = node._components[k];
+                let cClass = comp.name || (comp.constructor ? comp.constructor.name : '');
+                if (typeof cc !== 'undefined' && cc.js && typeof cc.js.getClassName === 'function') {
+                    const cName = cc.js.getClassName(comp);
+                    if (cName) cClass = cName;
+                }
+                if (cClass) {
+                    const m = cClass.match(/<(.+)>/);
+                    componentNames.push(m ? m[1] : cClass);
+                }
+            }
+        }
+
         const data = {
             id: node.uuid,
             name: node.name,
@@ -77,6 +93,7 @@
             activeInHierarchy: isActiveInHierarchy,
             childrenCount: node.childrenCount,
             components: node._components ? node._components.length : 0,
+            componentNames: componentNames,
             children: []
         };
         

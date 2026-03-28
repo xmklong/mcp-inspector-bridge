@@ -41,7 +41,11 @@ export const NodeTree = {
                     <span class="node-icon" v-if="getIcon(node)">{{ getIcon(node) }}</span>
                     <span class="node-name" v-html="highlight(node.name)"></span>
                     
-                    <span v-if="node.componentsCount > 0" class="comp-badge">
+                    <span v-if="node.matchedComponent" style="margin-left: auto; font-size: 11px; color: #888; display: inline-block;">
+                        ({{ node.matchedComponent }})
+                    </span>
+                    
+                    <span v-if="node.componentsCount > 0" class="comp-badge" :style="node.matchedComponent ? 'margin-left: 5px;' : ''">
                         {{ node.componentsCount }} 📄
                     </span>
                 </div>
@@ -57,7 +61,7 @@ export const NodeTree = {
         // 打平层级树结构为一维数组，便于执行虚拟列表渲染和搜索过滤
         const visibleNodes = computed(() => {
             const list: any[] = [];
-            const query = searchQuery.value.trim().toLowerCase();
+            const queries = searchQuery.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
             
             function traverse(node: any, depth: number, isVisible: boolean, currentPath: string[]) {
                 if (!node || !node.id) return;
@@ -66,8 +70,20 @@ export const NodeTree = {
                 
                 // 搜索时展示全部匹配项，忽略折叠状态
                 let matches = true;
-                if (query) {
-                    matches = node.name.toLowerCase().includes(query);
+                let matchedComponent = '';
+                if (queries.length > 0) {
+                    const nodeNameLower = (node.name || '').toLowerCase();
+                    const cList = node.componentNames || (Array.isArray(node.components) ? node.components : []);
+                    const cNamesLower = cList.map((c: string) => c.toLowerCase());
+                    matches = queries.every((q: string) => {
+                        if (nodeNameLower.includes(q)) return true;
+                        const matchIdx = cNamesLower.findIndex((c: string) => c.includes(q));
+                        if (matchIdx !== -1) {
+                            if (!matchedComponent) matchedComponent = cList[matchIdx];
+                            return true;
+                        }
+                        return false;
+                    });
                 }
 
                 // 初始化折叠状态：默认前1级展开
@@ -76,13 +92,14 @@ export const NodeTree = {
                 }
 
                 // 只有当父节点将其标记为可见，或者是全局搜索命中时，才进入列表
-                if (isVisible && (!query || matches)) {
+                if (isVisible && (queries.length === 0 || matches)) {
                     list.push({
                         ...node,
                         depth,
                         expanded: !!expandedState.value[node.id],
                         hasChildren,
                         componentsCount: node.components ? node.components.length : 0,
+                        matchedComponent,
                         ancestorIds: currentPath
                     });
                 }
@@ -90,7 +107,7 @@ export const NodeTree = {
                 // 递归子节点
                 if (hasChildren) {
                     // 如果存在搜索查询，强制子树也随之展开以暴露可能匹配的后代
-                    const childrenVisible = isVisible && (expandedState.value[node.id] || query !== '');
+                    const childrenVisible = isVisible && (expandedState.value[node.id] || queries.length > 0);
                     const nextPath = [...currentPath, node.id];
                     for (const child of node.children) {
                         traverse(child, depth + 1, childrenVisible, nextPath);
@@ -132,8 +149,11 @@ export const NodeTree = {
         };
 
         const highlight = (name: string) => {
-            if (!searchQuery.value) return name;
-            const regex = new RegExp('(' + searchQuery.value.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + ')', 'gi');
+            const queries = searchQuery.value.trim().split(/\s+/).filter(Boolean);
+            if (queries.length === 0) return name;
+            
+            const escapedQueries = queries.map((q: string) => q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            const regex = new RegExp('(' + escapedQueries.join('|') + ')', 'gi');
             return name.replace(regex, '<mark>$1</mark>');
         };
 

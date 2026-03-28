@@ -12,8 +12,9 @@
   彻底规避了 `webContents.setDevToolsWebContents()` 在 `<webview>` 标签上的 `about:blank` 导航死锁问题。通过逆向深入还原，采用 Electron 原生 `BrowserView` 作为 DevTools 容器，确立了绝对稳固的 CDP (Chrome DevTools Protocol) 链路。
   巧妙利用底层 IPC 搭建了智能的“场景嗅探拦截机制”。在判断到 Cocos 内部场景尚未就绪时主动挂起请求，不仅通过视觉遮罩引导用户操作，更辅以面板焦点防抖监听实现无感知的瞬间自动化复苏连接，彻底根除长期困扰的 Preview Server 空跑级内部崩坏报错。
 
-- **⚡ 智能运行时探针 (Runtime Probe)**
+- **⚡ 智能运行时探针与节点树架构 (Runtime Probe & Node Tree)**
   基于预加载脚本 (`preload.js`) 动态无侵入地向游戏运行时注入核心探针。不仅能瞬时截获游戏 DOM 树，更深度适配了 Cocos Creator 2.4 引擎底层的属性陷阱（完美跨越 `cc.Scene` 对 `active` 的 getter 报错劫持）。
+  - **高级组合与穿透搜索引擎 (Deep Search Match)**：右槽面板支持强大的节点搜查定位机制。除基础的名称正则过滤及一次性分词高亮外，现已全面支持通过**空格切分词缀**的跨域多点交叉匹配（AND 逻辑）；不仅限于节点名本身，更能**原生穿透深达组件的装配层级**进行隐性类名的截获搜查（诸如只输入 `Animation` 即可揪出所有挂载了该行为的素干对象），并在判定命中而未受词根显性影响下自发提供高贵的界面级灰色副文本 `(cc.Animation)` 直列标注。此外，一键隐去搜索词时系统会依靠 `ancestorIds` 在瞬息保留原路径祖先的折叠位点，避免长篇大论的树状列表遭遇暴力重弹和视线丢失。
 
 - **🔍 组件属性检查器 (Node Inspector)**
   选中实时树节点后，完美复现了引擎原生层级的 Inspector。

@@ -326,6 +326,21 @@ module.exports = Editor.Panel.extend({
                                                             isActiveInHierarchy = node.activeInHierarchy !== false;
                                                         } catch (e) {}
                                                     }
+                                                    var componentNames = [];
+                                                    if (node._components) {
+                                                        for (var k = 0; k < node._components.length; k++) {
+                                                            var comp = node._components[k];
+                                                            var cClass = comp.name || (comp.constructor ? comp.constructor.name : '');
+                                                            if (typeof eng !== 'undefined' && eng.js && typeof eng.js.getClassName === 'function') {
+                                                                var cName = eng.js.getClassName(comp);
+                                                                if (cName) cClass = cName;
+                                                            }
+                                                            if (cClass) {
+                                                                var m = cClass.match(/<(.+)>/);
+                                                                componentNames.push(m ? m[1] : cClass);
+                                                            }
+                                                        }
+                                                    }
                                                     var data = {
                                                         id: node.uuid,
                                                         name: node.name,
@@ -333,6 +348,7 @@ module.exports = Editor.Panel.extend({
                                                         activeInHierarchy: isActiveInHierarchy,
                                                         childrenCount: node.childrenCount,
                                                         components: node._components ? node._components.length : 0,
+                                                        componentNames: componentNames,
                                                         children: []
                                                     };
                                                     if (node.children) {
