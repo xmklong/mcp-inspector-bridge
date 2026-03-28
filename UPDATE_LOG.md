@@ -15,6 +15,9 @@
 - **全局引擎资源解析与下拉控件拓展 (Global Asset Crawler & Dynamic Dropdowns)**:
   - 重组了 `typeof val === "object"` 的前端爬虫逻辑拦截网，打破了之前只有 `cc.Node` 才能被记录的限制，现已开放并全局接管了所有派生自 `cc.Asset` 的骨骼、纹理和音频等各类素材引用。在属性列表内以带有类名前缀的专属样式（`asset_ref`）安全呈现，彻底弥合因复杂数据类型退化导致的属性显示盲地。
   - **Spine 针对性体验升维**：自 `sp.SkeletonData` 突破封锁正常上报后，爬虫脚本更进一步发起了向其内部数据源 `getRuntimeData()` 的向下窥探，精准提炼出引擎已实例化的动画与皮肤表单，合成并随对象抛出 `enumList` 枚举。前台拦截此附加标记后，完美将 `defaultSkin` 与 `animation` 从危险且盲目的 `<input>` 型文本录板，涅槃重生为极度安全的下拉甄选器（`<select>`），体验全面比肩甚至超越原生系统。
+- **持久化用户偏好配置 (User Preference Persistence)**:
+  - 新增了分辨率边界宽高的本地记忆功能。依靠 `Editor.Profile` 与主进程建立专线存储（严格保存在独立工程的 `settings/mcp-inspector-bridge.json` 专属环境内），彻底终结了每次重载插件均需手动复原设备窗口比例的冗余操作。
+  - FPS 高级分析面板检测同步加入归档阵列。原先的按钮开关状态已全面转正为受控长效状态机制，不仅持久锁定选择，更在因重载、热更导致引擎内核发生下层 `handshake` 重握手的毫秒级瞬间主动将截获状态强势逆注覆写回运行时系统层，提供永不断档即开即见的高级顺滑体验。
 - **纯运行时级数据注入 (Pure Runtime Data Injection)**:
   - 彻底移除了原先基于 Editor IPC（`scene-script.js` 和 Undo Group）的属性跨进程修改架构。
   - 现在 Inspector 的所有属性修改（包括节点 Transform 和所有 Components）将完全绕过编辑器序列化管线，通过在 `gameView` (Webview) 中原生执行 JavaScript 直接对内存中的 `cc.Node` 与 `cc.Component` 实例进行赋值。

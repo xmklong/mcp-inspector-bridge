@@ -33,6 +33,30 @@ module.exports = {
             if (event.reply) {
                 event.reply(null, { status: "polling_active", msg: "已经由注入的爬虫自动同步数据" });
             }
+        },
+        'query-resolution'(event: any) {
+            const profile = Editor.Profile.load('profile://project/mcp-inspector-bridge.json', 'mcp-inspector-bridge');
+            const res = profile.get('last-resolution') || 'FIT';
+            if (event.reply) {
+                event.reply(null, res);
+            }
+        },
+        'save-resolution'(event: any, value: string) {
+            const profile = Editor.Profile.load('profile://project/mcp-inspector-bridge.json', 'mcp-inspector-bridge');
+            profile.set('last-resolution', value);
+            profile.save();
+        },
+        'query-fps'(event: any) {
+            const profile = Editor.Profile.load('profile://project/mcp-inspector-bridge.json', 'mcp-inspector-bridge');
+            const res = profile.get('show-fps');
+            if (event.reply) {
+                event.reply(null, res === undefined ? false : res);
+            }
+        },
+        'save-fps'(event: any, value: boolean) {
+            const profile = Editor.Profile.load('profile://project/mcp-inspector-bridge.json', 'mcp-inspector-bridge');
+            profile.set('show-fps', value);
+            profile.save();
         }
     },
 };

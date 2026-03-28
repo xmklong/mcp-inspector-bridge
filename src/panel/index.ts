@@ -47,6 +47,7 @@ module.exports = Editor.Panel.extend({
 
                 // 分辨率控制
                 const selectedResolution = ref('FIT');
+                const isShowFPS = ref(false);
                 const isLandscape = ref(false);
                 const wrapperSize = ref({ width: 0, height: 0 });
 
@@ -223,6 +224,16 @@ module.exports = Editor.Panel.extend({
                     // 组件挂载时首先向主进程请求最新的树数据
                     try {
                         Editor.Ipc.sendToMain('mcp-inspector-bridge:query-node-tree');
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-resolution', (err: any, res: string) => {
+                            if (!err && res) {
+                                selectedResolution.value = res;
+                            }
+                        });
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-fps', (err: any, res: boolean) => {
+                            if (!err && res !== undefined) {
+                                isShowFPS.value = res;
+                            }
+                        });
                     } catch (e) { }
 
                     const wrap = wrapMount.value;
@@ -263,6 +274,9 @@ module.exports = Editor.Panel.extend({
                             } else if (event.channel === 'handshake') {
                                 Editor.info('[Bridge] 核心探针就绪，握手成功. Cocos:', event.args[0].version);
                                 globalState.cocosInfo = event.args[0];
+                                setTimeout(() => {
+                                    executeMacro(isShowFPS.value ? 'fps:true' : 'fps:false');
+                                }, 500);
                             } else if (event.channel === 'update-tree') {
                                 try {
                                     const parsed = JSON.parse(event.args[0]);
@@ -578,8 +592,10 @@ module.exports = Editor.Panel.extend({
                                     } else if ('${command}' === 'step') {
                                         if (!eng.game.isPaused()) eng.game.pause();
                                         eng.game.step();
-                                    } else if ('${command}' === 'fps') {
-                                        eng.debug.setDisplayStats(!eng.debug.isDisplayStats());
+                                    } else if ('${command}' === 'fps:true') {
+                                        eng.debug.setDisplayStats(true);
+                                    } else if ('${command}' === 'fps:false') {
+                                        eng.debug.setDisplayStats(false);
                                     }
                                 }
                             `;
@@ -591,7 +607,7 @@ module.exports = Editor.Panel.extend({
 
                 const togglePause = () => { globalState.isGamePaused = !globalState.isGamePaused; executeMacro('pause'); };
                 const stepGame = () => { globalState.isGamePaused = true; executeMacro('step'); };
-                const toggleFPS = () => { executeMacro('fps'); };
+                const toggleFPS = () => { isShowFPS.value = !isShowFPS.value; };
 
                 // 回退方案：在独立窗口中打开 DevTools
                 const openDevToolsExternal = () => {
@@ -610,12 +626,26 @@ module.exports = Editor.Panel.extend({
                     }
                 };
 
+                watch(selectedResolution, (newVal: string) => {
+                    try {
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:save-resolution', newVal);
+                    } catch (e) { }
+                });
+
+                watch(isShowFPS, (newVal: boolean) => {
+                    executeMacro(newVal ? 'fps:true' : 'fps:false');
+                    try {
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:save-fps', newVal);
+                    } catch (e) { }
+                });
+
                 return {
                     onNodeSelect,
                     onUpdateNodeProp,
                     onToggleCrawlerDebug,
                     activeTab,
                     selectedResolution,
+                    isShowFPS,
                     isLandscape,
                     gameContainerStyle,
                     rightPanelWidth,
