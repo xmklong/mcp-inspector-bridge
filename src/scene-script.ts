@@ -66,7 +66,13 @@ module.exports = {
                     return;
                 }
             } else {
-                if (args.propKey in node) {
+                if (args.propKey === 'rotation') {
+                    if ('angle' in node) {
+                        node.angle = -args.value;
+                    } else {
+                        node.rotation = args.value;
+                    }
+                } else if (args.propKey in node) {
                     node[args.propKey] = args.value;
                 } else {
                     if (event.reply) event.reply(new Error(`Property ${args.propKey} not found in node`));

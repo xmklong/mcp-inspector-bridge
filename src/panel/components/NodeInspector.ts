@@ -27,7 +27,7 @@ export const NodeInspector = {
                 <div class="inspector-section node-basics" style="background: #2b2b2b; padding: 10px; border-radius: 4px; border: 1px solid #444; margin-bottom: 10px;">
                     <div class="flex-row" style="display: flex; align-items: center; margin-bottom: 10px;">
                         <input type="checkbox" :checked="nodeDetail.active" @change="onUpdateProp(null, 'active', $event.target.checked)" style="margin-right: 8px;" title="激活/禁用节点" />
-                        <input type="text" :value="nodeDetail.name" @change="onUpdateProp(null, 'name', $event.target.value)" style="flex: 1; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px;" />
+                        <input type="text" :value="nodeDetail.name" @change="onUpdateProp(null, 'name', $event.target.value)" style="flex: 1; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; min-width: 0; box-sizing: border-box;" />
                     </div>
                     
                     <div class="transform-grid" style="display: grid; grid-template-columns: 40px 1fr 1fr; gap: 5px; align-items: center; font-size: 12px;">
@@ -35,40 +35,40 @@ export const NodeInspector = {
                         <span style="color: #bbb;">Pos</span>
                         <div class="prop-input-wrap" style="display: flex; align-items: center;">
                             <span style="color: #ff6b6b; margin-right: 4px;">X</span>
-                            <input type="number" step="1" :value="formatNumber(nodeDetail.x)" @change="onUpdateProp(null, 'x', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="1" :value="formatNumber(nodeDetail.x)" @change="onUpdateProp(null, 'x', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
                         <div class="prop-input-wrap" style="display: flex; align-items: center;">
                             <span style="color: #69b02a; margin-right: 4px;">Y</span>
-                            <input type="number" step="1" :value="formatNumber(nodeDetail.y)" @change="onUpdateProp(null, 'y', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="1" :value="formatNumber(nodeDetail.y)" @change="onUpdateProp(null, 'y', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
                         
                         <!-- Rotation -->
                         <span style="color: #bbb;">Rot</span>
                         <div class="prop-input-wrap" style="display: flex; align-items: center; grid-column: span 2;">
                             <span style="color: #4fa1ff; margin-right: 4px;">∠</span>
-                            <input type="number" step="1" :value="formatNumber(nodeDetail.rotation)" @change="onUpdateProp(null, 'rotation', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="1" :value="formatNumber(nodeDetail.rotation)" @change="onUpdateProp(null, 'rotation', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
 
                         <!-- Scale -->
                         <span style="color: #bbb;">Scale</span>
                         <div class="prop-input-wrap" style="display: flex; align-items: center;">
                             <span style="color: #ff6b6b; margin-right: 4px;">X</span>
-                            <input type="number" step="0.1" :value="formatNumber(nodeDetail.scaleX)" @change="onUpdateProp(null, 'scaleX', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="0.1" :value="formatNumber(nodeDetail.scaleX)" @change="onUpdateProp(null, 'scaleX', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
                         <div class="prop-input-wrap" style="display: flex; align-items: center;">
                             <span style="color: #69b02a; margin-right: 4px;">Y</span>
-                            <input type="number" step="0.1" :value="formatNumber(nodeDetail.scaleY)" @change="onUpdateProp(null, 'scaleY', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="0.1" :value="formatNumber(nodeDetail.scaleY)" @change="onUpdateProp(null, 'scaleY', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
 
                         <!-- Size -->
                         <span style="color: #bbb;">Size</span>
                         <div class="prop-input-wrap" style="display: flex; align-items: center;">
                             <span style="color: #ccc; margin-right: 4px;">W</span>
-                            <input type="number" step="1" :value="formatNumber(nodeDetail.width)" @change="onUpdateProp(null, 'width', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="1" :value="formatNumber(nodeDetail.width)" @change="onUpdateProp(null, 'width', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
                         <div class="prop-input-wrap" style="display: flex; align-items: center;">
                             <span style="color: #ccc; margin-right: 4px;">H</span>
-                            <input type="number" step="1" :value="formatNumber(nodeDetail.height)" @change="onUpdateProp(null, 'height', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                            <input type="number" step="1" :value="formatNumber(nodeDetail.height)" @change="onUpdateProp(null, 'height', parseFloat($event.target.value))" style="width: 100%; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                         </div>
                     </div>
                 </div>
@@ -98,14 +98,14 @@ export const NodeInspector = {
                                     <input v-if="prop.type === 'boolean'" type="checkbox" :checked="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.checked, comp.realIndex)" />
                                     
                                     <!-- Number -->
-                                    <input v-else-if="prop.type === 'number'" type="number" step="0.1" :value="formatNumber(prop.value)" @change="onUpdateProp(comp.name, prop.key, parseFloat($event.target.value), comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                                    <input v-else-if="prop.type === 'number'" type="number" step="0.1" :value="formatNumber(prop.value)" @change="onUpdateProp(comp.name, prop.key, parseFloat($event.target.value), comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                                     
                                     <!-- String / Enum -->
                                     <template v-else-if="prop.type === 'string'">
                                         <select v-if="prop.enumList" :value="prop.value || '<None>'" @change="onUpdateProp(comp.name, prop.key, $event.target.value === '<None>' ? '' : $event.target.value, comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;">
                                             <option v-for="opt in prop.enumList" :key="opt" :value="opt">{{ opt }}</option>
                                         </select>
-                                        <input v-else type="text" :value="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.value, comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px;" />
+                                        <input v-else type="text" :value="prop.value" @change="onUpdateProp(comp.name, prop.key, $event.target.value, comp.realIndex)" style="width: 100%; box-sizing: border-box; padding: 2px 4px; background: #1e1e1e; color: #fff; border: 1px solid #444; border-radius: 2px; min-width: 0; box-sizing: border-box;" />
                                     </template>
                                     
                                     <!-- Node Ref -->

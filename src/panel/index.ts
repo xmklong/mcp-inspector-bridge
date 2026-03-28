@@ -60,12 +60,17 @@ module.exports = Editor.Panel.extend({
                 const rightPanelWidth = ref(400);
                 const isDragging = ref(false);
 
-                const startDrag = () => {
+                const startDrag = (downEvent: MouseEvent) => {
                     isDragging.value = true;
+                    const startX = downEvent.clientX;
+                    const startWidth = rightPanelWidth.value;
+
                     const onMouseMove = (e: MouseEvent) => {
                         if (!isDragging.value) return;
-                        // Cocos Panel Body 内部坐标可能有一些偏移，安全起见采用基于 Movement 差值或者 clientX 推算
-                        const newWidth = document.body.clientWidth - e.clientX;
+                        // 增量式计算，跨越绝对坐标差值陷阱
+                        const deltaX = e.clientX - startX;
+                        const newWidth = startWidth - deltaX;
+
                         if (newWidth > 200 && newWidth < document.body.clientWidth - 300) {
                             rightPanelWidth.value = newWidth;
                         }
@@ -81,7 +86,6 @@ module.exports = Editor.Panel.extend({
 
                 // 处理节点树选中事件
                 const onNodeSelect = (node: any) => {
-                    Editor.info('[Bridge] 面板选中节点:', node.name, node.id);
                     const wv: any = gameView.value;
                     if (wv) {
                         const code = `window.__mcpCrawler ? JSON.stringify(window.__mcpCrawler.getNodeDetail('${node.id}')) : null`;
@@ -169,7 +173,11 @@ module.exports = Editor.Panel.extend({
                                             if (!window.__mcpCrawler) return 'No Crawler';
                                             const node = window.__mcpCrawler.findNodeByUuid('${uuid}');
                                             if (node) {
-                                                node['${propKey}'] = ${JSON.stringify(value)};
+                                                if ('${propKey}' === 'rotation' && 'angle' in node) {
+                                                    node.angle = -${JSON.stringify(value)};
+                                                } else {
+                                                    node['${propKey}'] = ${JSON.stringify(value)};
+                                                }
                                                 return 'OK';
                                             }
                                             return 'Node Not Found';
@@ -209,11 +217,10 @@ module.exports = Editor.Panel.extend({
                         // 利用 query-hierarchy 安全嗅探：若场景面板活跃，该 IPC 调用会正确回调，否则报错或超时，不会引发引擎底层崩溃。
                         Editor.Ipc.sendToPanel('scene', 'scene:query-hierarchy', (err: any, res: any) => {
                             if (!err && res) {
-                                Editor.info('[Bridge] =嗅探到场景面板后台就绪，自动唤醒预览引擎连接=');
                                 refreshGame();
                             }
                         }, 500);
-                    } catch (e) {}
+                    } catch (e) { }
                 };
 
                 onMounted(() => {
@@ -269,10 +276,8 @@ module.exports = Editor.Panel.extend({
                         // 监听来自 gameView 的消息，特别是 ping 测试
                         gameViewDynamic.addEventListener('ipc-message', (event: any) => {
                             if (event.channel === 'ping-pong') {
-                                Editor.info('[Bridge] 收到 Webview 握手:\n', event.args[0]);
                                 gameViewDynamic.send('ping-pong-reply', 'Pong from Electron Tab Panel');
                             } else if (event.channel === 'handshake') {
-                                Editor.info('[Bridge] 核心探针就绪，握手成功. Cocos:', event.args[0].version);
                                 globalState.cocosInfo = event.args[0];
                                 setTimeout(() => {
                                     executeMacro(isShowFPS.value ? 'fps:true' : 'fps:false');
@@ -379,7 +384,6 @@ module.exports = Editor.Panel.extend({
 
                         // dom-ready 后 5 秒超时启动降级轮询（如果探针的正常数据流还没建立的话）
                         gameViewDynamic.addEventListener('dom-ready', () => {
-                            Editor.info('[Bridge] Webview dom-ready 触发，5 秒后检查探针状态...');
 
                             // [Fix] 强行注入 CSS 屏蔽 Webview 内部的滚动条 (加强版：涵盖 Cocos 内核的 .contentWrap 和隐藏原生 scrollbar)
                             try {
@@ -393,7 +397,6 @@ module.exports = Editor.Panel.extend({
                                     Editor.warn('[Bridge] 5 秒超时：探针握手仍未收到，启动降级轮询');
                                     startFallbackPolling();
                                 } else {
-                                    Editor.info('[Bridge] 探针已正常工作，降级轮询不启动');
                                 }
                             }, 5000);
 
@@ -569,14 +572,12 @@ module.exports = Editor.Panel.extend({
                     if (!globalState.isPreviewReady) {
                         globalState.isPreviewReady = true;
                         globalState.webviewSrc = 'http://localhost:7456';
-                        Editor.info('[Bridge] 首次主动连接 Preview 服务');
                     } else if (wv) {
-                        try { wv.reload(); } catch(e) {}
+                        try { wv.reload(); } catch (e) { }
                     }
                 }
 
                 const executeMacro = (command: string) => {
-                    Editor.info(`[Bridge] 面板发出宏命令: ${command}`);
                     const wv: any = gameView.value;
                     if (wv) {
                         try {
@@ -601,8 +602,9 @@ module.exports = Editor.Panel.extend({
                             `;
                             wv.executeJavaScript(code);
                         } catch (e) { }
+                    } else {
+                        Editor.warn('[Bridge] 找不到 game-view，宏发送失败');
                     }
-                    else Editor.warn('[Bridge] 找不到 game-view，宏发送失败');
                 };
 
                 const togglePause = () => { globalState.isGamePaused = !globalState.isGamePaused; executeMacro('pause'); };
@@ -618,7 +620,6 @@ module.exports = Editor.Panel.extend({
                             const gWC = remote.webContents.fromId(gid);
                             if (gWC) {
                                 gWC.openDevTools({ mode: 'undocked' });
-                                Editor.info('[Bridge] 已在独立窗口中打开 DevTools');
                             }
                         }
                     } catch (err: any) {
