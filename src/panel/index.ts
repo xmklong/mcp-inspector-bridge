@@ -33,7 +33,10 @@ module.exports = Editor.Panel.extend({
             isFallbackMode: false as boolean,
             devToolsError: null as string | null,
             nodeDetail: null as any,
-            isGamePaused: false as boolean
+            isGamePaused: false as boolean,
+            isNarrow: false as boolean,
+            webviewSrc: '' as string,
+            isPreviewReady: false as boolean
         });
 
         const app = createApp({
@@ -194,7 +197,29 @@ module.exports = Editor.Panel.extend({
                 // DevTools 幂等标志（在 onMounted 内的 dom-ready 回调中使用）
                 let isDevToolsSetup = false;
 
+                // 自动嗅探重连
+                let autoConnectTimer: any = null;
+                const tryAutoConnect = () => {
+                    if (globalState.isPreviewReady) {
+                        if (autoConnectTimer) clearInterval(autoConnectTimer);
+                        return;
+                    }
+                    try {
+                        // 利用 query-hierarchy 安全嗅探：若场景面板活跃，该 IPC 调用会正确回调，否则报错或超时，不会引发引擎底层崩溃。
+                        Editor.Ipc.sendToPanel('scene', 'scene:query-hierarchy', (err: any, res: any) => {
+                            if (!err && res) {
+                                Editor.info('[Bridge] =嗅探到场景面板后台就绪，自动唤醒预览引擎连接=');
+                                refreshGame();
+                            }
+                        }, 500);
+                    } catch (e) {}
+                };
+
                 onMounted(() => {
+                    tryAutoConnect();
+                    autoConnectTimer = setInterval(tryAutoConnect, 2000);
+                    window.addEventListener('focus', tryAutoConnect);
+
                     // 组件挂载时首先向主进程请求最新的树数据
                     try {
                         Editor.Ipc.sendToMain('mcp-inspector-bridge:query-node-tree');
@@ -207,6 +232,7 @@ module.exports = Editor.Panel.extend({
                                 if (entries[0].contentRect.width <= 0 || entries[0].contentRect.height <= 0) return;
                                 wrapperSize.value.width = entries[0].contentRect.width;
                                 wrapperSize.value.height = entries[0].contentRect.height;
+                                globalState.isNarrow = entries[0].contentRect.width < 500;
                             }).observe(wrap);
                         } catch (e) {
                             // Electron 版本过低兜底
@@ -218,6 +244,7 @@ module.exports = Editor.Panel.extend({
                                 if (wrap.clientWidth <= 0 || wrap.clientHeight <= 0) return;
                                 wrapperSize.value.width = wrap.clientWidth;
                                 wrapperSize.value.height = wrap.clientHeight;
+                                globalState.isNarrow = wrap.clientWidth < 500;
                             });
                         }
                     }
@@ -522,11 +549,17 @@ module.exports = Editor.Panel.extend({
                 });
 
                 const rotateScreen = () => { isLandscape.value = !isLandscape.value; };
-                const refreshGame = () => {
+                function refreshGame() {
                     globalState.isGamePaused = false;
                     const wv: any = gameView.value;
-                    if (wv) wv.reload();
-                };
+                    if (!globalState.isPreviewReady) {
+                        globalState.isPreviewReady = true;
+                        globalState.webviewSrc = 'http://localhost:7456';
+                        Editor.info('[Bridge] 首次主动连接 Preview 服务');
+                    } else if (wv) {
+                        try { wv.reload(); } catch(e) {}
+                    }
+                }
 
                 const executeMacro = (command: string) => {
                     Editor.info(`[Bridge] 面板发出宏命令: ${command}`);

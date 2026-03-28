@@ -5,6 +5,13 @@
 ## [0.0.2] - 2026-03-28
 
 ### ✨ 新特性与架构变更
+- **面板窄视图响应式重构 (Responsive Narrow Panel UI)**:
+  - 全面解构并增强了主控制上方的工具栏区域。在左右侧板被用户挤压导致极限空间时，含有说明文字的主操作按键（如：刷新、播放、FPS等）将自动启动隐蔽模式，无缝切入“纯图标(Icon-Only)”展现模式。
+  - 其余长文本标签区域将利用 Flex Shrink 特性与文本溢出工具类强制维持单行运作，彻底粉碎了生硬的换行换排重叠乱局。
+- **后台死寂场景的安全嗅探拦截与自愈系统 (Ghost Scene Safe-Connection & Auto-Recovery)**:
+  - 核心痛点击破：彻底消灭了当插件由于记忆布局随着编辑器开局启动时，因后台不可见的 Scene Panel 还未建档而引爆底层 `TypeError: Cannot read property 'name' of null at Object.stashScene` 大停电报错。
+  - 前台 Webview 转为动态惰性加载（Lazy Load）。在嗅探确认存活前呈现巨幕场记板 🎬 进行引导阻断。
+  - 创建了高可用性轮询与焦点响应（Focus Event）唤醒的复合验证侦测防线，通过对 Editor 发送无副作用的低开销 IPC `scene:query-hierarchy` 请求，能自发判定出编辑器主背景是否就绪并瞬息内剥除遮罩完成连接闭环。
 - **全局引擎资源解析与下拉控件拓展 (Global Asset Crawler & Dynamic Dropdowns)**:
   - 重组了 `typeof val === "object"` 的前端爬虫逻辑拦截网，打破了之前只有 `cc.Node` 才能被记录的限制，现已开放并全局接管了所有派生自 `cc.Asset` 的骨骼、纹理和音频等各类素材引用。在属性列表内以带有类名前缀的专属样式（`asset_ref`）安全呈现，彻底弥合因复杂数据类型退化导致的属性显示盲地。
   - **Spine 针对性体验升维**：自 `sp.SkeletonData` 突破封锁正常上报后，爬虫脚本更进一步发起了向其内部数据源 `getRuntimeData()` 的向下窥探，精准提炼出引擎已实例化的动画与皮肤表单，合成并随对象抛出 `enumList` 枚举。前台拦截此附加标记后，完美将 `defaultSkin` 与 `animation` 从危险且盲目的 `<input>` 型文本录板，涅槃重生为极度安全的下拉甄选器（`<select>`），体验全面比肩甚至超越原生系统。
