@@ -11,6 +11,7 @@
 - **🛡️ 稳态 BrowserView 底层架构与启动防崩壁垒**
   彻底规避了 `webContents.setDevToolsWebContents()` 在 `<webview>` 标签上的 `about:blank` 导航死锁问题。通过逆向深入还原，采用 Electron 原生 `BrowserView` 作为 DevTools 容器，确立了绝对稳固的 CDP (Chrome DevTools Protocol) 链路。
   巧妙利用底层 IPC 搭建了智能的“场景嗅探拦截机制”。在判断到 Cocos 内部场景尚未就绪时主动挂起请求，不仅通过视觉遮罩引导用户操作，更辅以面板焦点防抖监听实现无感知的瞬间自动化复苏连接，彻底根除长期困扰的 Preview Server 空跑级内部崩坏报错。
+  - **全形态窗口适配与保活 (Standalone & Docked)**：无论是内嵌在编辑器面板中，还是作为“独立窗口”悬浮，插件皆能利用底层 HTTP 穿透探测完美完成无头轮询自启动。针对单独弹出的开发者工具窗口，创新性采取了原生 `BrowserWindow` 手动句柄捕获与物理隐藏 (`hide()/show()`) 方案，实现在工作面板标签切换时的秒级切后台与“隐身”，避免了再次打开 DevTools 时所有网络瀑布流记录与深层节点失去记录（丢失焦点）的世纪灾难代码体验。
 
 - **⚡ 智能运行时探针与节点树架构 (Runtime Probe & Node Tree)**
   基于预加载脚本 (`preload.js`) 动态无侵入地向游戏运行时注入核心探针。不仅能瞬时截获游戏 DOM 树，更深度适配了 Cocos Creator 2.4 引擎底层的属性陷阱（完美跨越 `cc.Scene` 对 `active` 的 getter 报错劫持）。

@@ -40,7 +40,6 @@ module.exports = Editor.Panel.extend({
             isNarrow: false as boolean,
             webviewSrc: '' as string,
             isPreviewReady: false as boolean,
-            isSceneReady: false as boolean,
             profiler: {
                 tick: { fps: 0, drawCall: 0, logicTime: 0, renderTime: 0 },
                 memoryStats: null as any,
@@ -235,7 +234,6 @@ module.exports = Editor.Panel.extend({
                 // 独立端口轮询嗅探，检测预览服务器是否已启动
                 let autoConnectTimer: any = null;
                 const tryAutoConnect = () => {
-                    if (!globalState.isSceneReady) return;
                     if (globalState.isPreviewReady) {
                         if (autoConnectTimer) clearInterval(autoConnectTimer);
                         return;
@@ -257,11 +255,6 @@ module.exports = Editor.Panel.extend({
                 };
 
                 onMounted(() => {
-                    (window as any).__mcpOnSceneReady = () => {
-                        globalState.isSceneReady = true;
-                        tryAutoConnect();
-                    };
-
                     tryAutoConnect();
                     autoConnectTimer = setInterval(tryAutoConnect, 2000);
 
@@ -301,10 +294,22 @@ module.exports = Editor.Panel.extend({
                             new ResizeObserver(entries => {
                                 window.requestAnimationFrame(() => {
                                     if (!entries.length) return;
-                                    if (entries[0].contentRect.width <= 0 || entries[0].contentRect.height <= 0) return;
-                                    wrapperSize.value.width = entries[0].contentRect.width;
-                                    wrapperSize.value.height = entries[0].contentRect.height;
-                                    globalState.isNarrow = entries[0].contentRect.width < 500;
+                                    const rect = entries[0].contentRect;
+                                    if (rect.width <= 0 || rect.height <= 0) {
+                                        if (!(globalState as any).isHidden) {
+                                            (globalState as any).isHidden = true;
+                                            window.dispatchEvent(new CustomEvent('panel-visibility-change', { detail: { hidden: true } }));
+                                        }
+                                        return;
+                                    } else {
+                                        if ((globalState as any).isHidden) {
+                                            (globalState as any).isHidden = false;
+                                            window.dispatchEvent(new CustomEvent('panel-visibility-change', { detail: { hidden: false } }));
+                                        }
+                                    }
+                                    wrapperSize.value.width = rect.width;
+                                    wrapperSize.value.height = rect.height;
+                                    globalState.isNarrow = rect.width < 500;
                                 });
                             }).observe(wrap);
                         } catch (e) {
@@ -314,7 +319,19 @@ module.exports = Editor.Panel.extend({
                                 wrapperSize.value.height = wrap.clientHeight;
                             }
                             window.addEventListener('resize', () => {
-                                if (wrap.clientWidth <= 0 || wrap.clientHeight <= 0) return;
+                                const isHidden = wrap.clientWidth <= 0 || wrap.clientHeight <= 0;
+                                if (isHidden) {
+                                    if (!(globalState as any).isHidden) {
+                                        (globalState as any).isHidden = true;
+                                        window.dispatchEvent(new CustomEvent('panel-visibility-change', { detail: { hidden: true } }));
+                                    }
+                                    return;
+                                } else {
+                                    if ((globalState as any).isHidden) {
+                                        (globalState as any).isHidden = false;
+                                        window.dispatchEvent(new CustomEvent('panel-visibility-change', { detail: { hidden: false } }));
+                                    }
+                                }
                                 wrapperSize.value.width = wrap.clientWidth;
                                 wrapperSize.value.height = wrap.clientHeight;
                                 globalState.isNarrow = wrap.clientWidth < 500;
@@ -924,6 +941,104 @@ module.exports = Editor.Panel.extend({
                     });
                 };
 
+                // --- DevTools 生命周期清理拦截 ---
+                let wasExternalDevToolsOpened = false;
+                let externalDevToolsWinId: number | null = null;
+
+                const _onPanelHide = () => {
+                    if (devToolsBV) {
+                        try {
+                            const currentWindow = remote.getCurrentWindow();
+                            currentWindow.removeBrowserView(devToolsBV);
+                        } catch (e) { }
+                    }
+                    try {
+                        const gameViewEl: any = gameView.value;
+                        if (gameViewEl) {
+                            const gid = gameViewEl.getWebContentsId();
+                            if (gid) {
+                                const gWC = remote.webContents.fromId(gid);
+                                if (gWC && gWC.isDevToolsOpened()) {
+                                    const devToolsWC = gWC.devToolsWebContents;
+                                    if (devToolsWC) {
+                                        const dtWin = remote.BrowserWindow.fromWebContents(devToolsWC);
+                                        if (dtWin) {
+                                            externalDevToolsWinId = dtWin.id;
+                                            dtWin.hide();
+                                            return;
+                                        }
+                                    }
+                                    // Fallback if we cannot get the BrowserWindow
+                                    wasExternalDevToolsOpened = true;
+                                    gWC.closeDevTools();
+                                }
+                            }
+                        }
+                    } catch (err) {}
+                };
+
+                const _onPanelShow = () => {
+                    if (activeTab.value === 1 && devToolsBV) {
+                        try {
+                            const currentWindow = remote.getCurrentWindow();
+                            currentWindow.removeBrowserView(devToolsBV);
+                            currentWindow.addBrowserView(devToolsBV);
+                            nextTick(updateBrowserViewBounds);
+                        } catch (e) { }
+                    }
+                    if (externalDevToolsWinId !== null) {
+                        try {
+                            const dtWin = remote.BrowserWindow.fromId(externalDevToolsWinId);
+                            if (dtWin) {
+                                dtWin.show();
+                            } else {
+                                // Window destroyed independently
+                                openDevToolsExternal();
+                            }
+                        } catch (e) {
+                            openDevToolsExternal();
+                        }
+                        externalDevToolsWinId = null;
+                    } else if (wasExternalDevToolsOpened) {
+                        wasExternalDevToolsOpened = false;
+                        openDevToolsExternal();
+                    }
+                };
+
+                const _onPanelClose = () => {
+                    _onPanelHide();
+                    if (devToolsBV) {
+                        try {
+                            (devToolsBV.webContents as any).destroy();
+                        } catch (e) { }
+                        devToolsBV = null;
+                        isDevToolsSetup = false;
+                    }
+                };
+
+                const _onVisibilityChange = (e: any) => {
+                    if (e.detail && e.detail.hidden) {
+                        _onPanelHide();
+                    } else {
+                        _onPanelShow();
+                    }
+                };
+
+                window.addEventListener('panel-hide', _onPanelHide);
+                window.addEventListener('panel-show', _onPanelShow);
+                window.addEventListener('panel-close', _onPanelClose);
+                window.addEventListener('panel-visibility-change', _onVisibilityChange);
+
+                const { onUnmounted } = require('vue');
+                if (onUnmounted) {
+                    onUnmounted(() => {
+                        window.removeEventListener('panel-hide', _onPanelHide);
+                        window.removeEventListener('panel-show', _onPanelShow);
+                        window.removeEventListener('panel-close', _onPanelClose);
+                        window.removeEventListener('panel-visibility-change', _onVisibilityChange);
+                    });
+                }
+
                 return {
                     onNodeSelect,
                     onUpdateNodeProp,
@@ -962,25 +1077,20 @@ module.exports = Editor.Panel.extend({
     },
 
     messages: {
-        'scene:ready'() {
-            if ((window as any).__mcpOnSceneReady) {
-                (window as any).__mcpOnSceneReady();
-            }
-        }
     },
 
     show() {
-        // 当面板获取焦点切回前台时，主动查探目前场景状态
-        if ((window as any).__mcpOnSceneReady) {
-            try {
-                Editor.Ipc.sendToPanel('scene', 'scene:query-hierarchy', null, (err: any, res: any) => {
-                    if (!err && res) {
-                        (window as any).__mcpOnSceneReady();
-                    }
-                });
-            } catch (e) {
-                // 静默拦截可能的上下文丢失
-            }
-        }
+        // [BugFix] 发布 panel-show 事件恢复内部悬浮窗
+        window.dispatchEvent(new CustomEvent('panel-show'));
+    },
+
+    hide() {
+        // [BugFix] 发布 panel-hide 事件隐藏/关闭残留 DevTools
+        window.dispatchEvent(new CustomEvent('panel-hide'));
+    },
+
+    close() {
+        // [BugFix] 面板被彻底关闭时进行最终销毁
+        window.dispatchEvent(new CustomEvent('panel-close'));
     }
 });
