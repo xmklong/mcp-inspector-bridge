@@ -41,7 +41,9 @@ module.exports = Editor.Panel.extend({
             isPreviewReady: false as boolean,
             isSceneReady: false as boolean,
             profiler: {
-                tick: { fps: 0, drawCall: 0, logicTime: 0, renderTime: 0 }
+                tick: { fps: 0, drawCall: 0, logicTime: 0, renderTime: 0 },
+                memoryStats: null as any,
+                expandedBundles: {} as any
             },
             isInspectorHovered: false as boolean
         });
@@ -737,14 +739,15 @@ module.exports = Editor.Panel.extend({
                     } catch (e) { }
                 });
 
-                // Phase 1: 简易数据抽取心跳
+                // Phase 1: 简易数据抽取心跳与厚重内存排行抽取
                 let profilerTickTimer: any = null;
+                let memoryRankTimer: any = null;
                 watch(activeTab, (newVal: number) => {
                     const wv: any = gameView.value;
                     if (newVal === 4 && wv) {
                         if (!profilerTickTimer) {
                             profilerTickTimer = setInterval(() => {
-                                // [Fix Phase 2] 使用 probe.js (runtime-crawler) 注入的定制探针
+                                // [Fix Phase 2] 使用 probe.js 基础高频统计
                                 const expr = `window.__mcpProfilerTick ? JSON.stringify(window.__mcpProfilerTick()) : null`;
 
                                 wv.executeJavaScript(expr).then((res: string) => {
@@ -757,13 +760,102 @@ module.exports = Editor.Panel.extend({
                                 }).catch(() => { });
                             }, 150);
                         }
+                        
+                        // 专门隔离的低频内存探测，防止 IPC 臃肿导致面板卡顿
+                        if (!memoryRankTimer) {
+                            // 为了对抗底层探针完全无法获取某些资源原名的问题，在面板层利用主进程 API 进行反向解析缓存
+                            let uuidNameCache: Record<string, string> = {};
+
+                            memoryRankTimer = setInterval(() => {
+                                const expr = `window.__mcpGetMemoryRanking ? JSON.stringify(window.__mcpGetMemoryRanking()) : null`;
+                                wv.executeJavaScript(expr).then((res: string) => {
+                                    if (res) {
+                                        try {
+                                            const data = JSON.parse(res);
+                                            
+                                            const Editor = (window as any).Editor;
+                                            const resolveRealName = (item: any) => {
+                                                // 使用强力缓存避免每秒 1000 次查询瞬间击穿 IPC 主进程通讯
+                                                if (uuidNameCache[item.id]) {
+                                                    item.name = uuidNameCache[item.id];
+                                                    return;
+                                                }
+                                                
+                                                // 无差别对所有资源尝试动用 Editor 获取它的官方 db:// 全路径
+                                                const remoteDb = Editor && Editor.assetdb && Editor.assetdb.remote;
+                                                if (remoteDb && typeof remoteDb.uuidToUrl === 'function') {
+                                                    const url = remoteDb.uuidToUrl(item.id);
+                                                    if (url && typeof url === 'string') {
+                                                        let cleanUrl = url.replace('db://assets/', '');
+                                                        // 如果仍然带有 internal 头，可以净化一下
+                                                        cleanUrl = cleanUrl.replace('db://internal/', '[Internal] ');
+                                                        item.name = cleanUrl;
+                                                        uuidNameCache[item.id] = item.name;
+                                                        return;
+                                                    }
+                                                }
+                                                
+                                                // 如果确实是运行时动态资源或者是孤儿未查到，那就认可它本来的妥协名字
+                                                uuidNameCache[item.id] = item.name;
+                                            };
+                                            
+                                            if (data.allResources) {
+                                                data.allResources.forEach(resolveRealName);
+                                            }
+                                            if (data.bundles) {
+                                                // 提取过去一帧的旧的 bundles 参考线
+                                                const oldBundles = globalState.profiler.memoryStats && globalState.profiler.memoryStats.bundles;
+                                                const oldMemMap: Record<string, number> = {};
+                                                if (oldBundles) {
+                                                    oldBundles.forEach((ob: any) => {
+                                                        oldMemMap[ob.name] = ob.currentMemory;
+                                                    });
+                                                }
+
+                                                data.bundles.forEach((b: any) => {
+                                                    if (b.resources) b.resources.forEach(resolveRealName);
+                                                    
+                                                    // 计算内存涨跌走向趋势
+                                                    const oldMem = oldMemMap[b.name];
+                                                    if (oldMem !== undefined) {
+                                                        if (b.currentMemory > oldMem) b.trend = 'up';
+                                                        else if (b.currentMemory < oldMem) b.trend = 'down';
+                                                        else b.trend = 'flat';
+                                                    } else {
+                                                        b.trend = 'flat';
+                                                    }
+                                                });
+                                                
+                                                // 根据 bundle 当前占用内存进行从高到低倒序排序
+                                                data.bundles.sort((a: any, b: any) => b.currentMemory - a.currentMemory);
+                                            }
+
+                                            globalState.profiler.memoryStats = data;
+                                        } catch (e) { }
+                                    }
+                                }).catch(() => { });
+                            }, 1000);
+                        }
                     } else {
                         if (profilerTickTimer) {
                             clearInterval(profilerTickTimer);
                             profilerTickTimer = null;
                         }
+                        if (memoryRankTimer) {
+                            clearInterval(memoryRankTimer);
+                            memoryRankTimer = null;
+                        }
                     }
                 });
+
+                // 辅助函数暴露给模板，用于字节换算展示
+                const formatBytes = (bytes: number) => {
+                    if (bytes === 0) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                };
 
                 return {
                     onNodeSelect,
@@ -785,6 +877,7 @@ module.exports = Editor.Panel.extend({
                     toggleMute,
                     isAudioMuted,
                     globalState,
+                    formatBytes,
                     gameView,
                     devtoolsView,
                     wrapMount,
