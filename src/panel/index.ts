@@ -6,6 +6,7 @@ const { createApp, ref, computed, onMounted, reactive, watch, nextTick } = requi
 const { remote } = require('electron');
 const { NodeTree } = require('./components/NodeTree');
 const { NodeInspector } = require('./components/NodeInspector');
+const { RenderDebugger } = require('./components/RenderDebugger');
 
 const templateRaw = fs.readFileSync(path.join(__dirname, '../../src/panel/index.html'), 'utf-8');
 const preloadUrlResolved = 'file:///' + Editor.url('packages://mcp-inspector-bridge/dist/preload.js').replace(/\\/g, '/');
@@ -49,7 +50,7 @@ module.exports = Editor.Panel.extend({
         });
 
         const app = createApp({
-            components: { NodeTree, 'node-inspector': NodeInspector },
+            components: { NodeTree, 'node-inspector': NodeInspector, 'render-debugger': RenderDebugger },
             setup() {
                 // 当前活跃的 Tab (0=main, 1=devtools, 2=cocos, 3=ext)
                 const activeTab = ref(0);
@@ -350,6 +351,28 @@ module.exports = Editor.Panel.extend({
                                         onNodeSelect({ id: globalState.nodeDetail.id }, true);
                                     }
                                 } catch (e) { }
+                            }
+                        });
+
+                        // 阶段二改造：监听 Webview 内部真正的静默 IPC 转发 (推荐)
+                        gameViewDynamic.addEventListener('ipc-message', (e: any) => {
+                            if (e.channel === 'render-debugger-payload') {
+                                try {
+                                    window.dispatchEvent(new CustomEvent('render-debugger-payload', { detail: e.args[0] }));
+                                } catch (err) {}
+                            }
+                        });
+
+                        // 备用降级信道：监听 Webview 内部的 console 转发
+                        gameViewDynamic.addEventListener('console-message', (e: any) => {
+                            if (e.message && e.message.startsWith('[RenderDebugger]JSON_DATA:')) {
+                                const jsonStr = e.message.substring('[RenderDebugger]JSON_DATA:'.length);
+                                try {
+                                    const payload = JSON.parse(jsonStr);
+                                    if (payload.type === 'render-debugger:batch-break') {
+                                        window.dispatchEvent(new CustomEvent('render-debugger-payload', { detail: payload }));
+                                    }
+                                } catch (err) {}
                             }
                         });
 
@@ -857,9 +880,56 @@ module.exports = Editor.Panel.extend({
                     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
                 };
 
+                const onRenderDebuggerToggle = (newVal: boolean) => {
+                    const wv: any = gameView.value;
+                    if (!wv) {
+                        console.error("[RenderDebugger] gameView ref 为空，无法派发指令");
+                        return;
+                    }
+                    if (typeof wv.executeJavaScript === 'function') {
+                        console.log(`[RenderDebugger] 准备向 WebView 执行 JS 指令，参数 newVal=${newVal}`);
+                        wv.executeJavaScript(`
+                            var targetWin = window;
+                            var frm = document.getElementById('GameDiv');
+                            if (frm && frm.contentWindow && frm.contentWindow.__mcpRenderDebuggerHook) {
+                                targetWin = frm.contentWindow;
+                            }
+                            console.log("[Webview 调度层] 路由目标:", targetWin === window ? "Top Window" : "GameDiv Iframe");
+                            if (targetWin.__mcpRenderDebuggerHook) {
+                                if (${newVal}) {
+                                    targetWin.__mcpRenderDebuggerHook.injectHooks();
+                                } else {
+                                    targetWin.__mcpRenderDebuggerHook.restoreHooks();
+                                }
+                            } else {
+                                console.error("[Webview 内核] 严重异常：即便穿透 iframe 也未发现 __mcpRenderDebuggerHook 对象！");
+                            }
+                        `).catch((err: any) => console.error("[RenderDebugger] executeJavaScript 抛出异常:", err));
+                    } else {
+                        console.error("[RenderDebugger] gameView 尚未准备完毕 (typeof wv.executeJavaScript != function)");
+                    }
+                };
+
+                const nodeTreeRef = ref(null);
+                const onRenderDebuggerLocate = (id: string) => {
+                    activeTab.value = 0;
+                    nextTick(() => {
+                        const nt: any = nodeTreeRef.value;
+                        if (nt && nt.expandToNode) {
+                            const success = nt.expandToNode(id);
+                            if (!success) {
+                                Editor.warn(`[ RenderDebugger ] 跨视图定位失败：查找不到 UUID 为 ${id} 的节点，它有可能刚刚由于游戏内部机制已被销毁。`);
+                            }
+                        }
+                    });
+                };
+
                 return {
                     onNodeSelect,
                     onUpdateNodeProp,
+                    onRenderDebuggerToggle,
+                    onRenderDebuggerLocate,
+                    nodeTreeRef,
 
                     activeTab,
                     selectedResolution,

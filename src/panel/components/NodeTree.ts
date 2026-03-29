@@ -144,6 +144,57 @@ export const NodeTree = {
             emit('select', node);
         };
 
+        const expandToNode = (targetId: string) => {
+            let path: string[] | null = null;
+            function findPath(node: any, currentPath: string[]): boolean {
+                if (!node) return false;
+                if (node.id === targetId) {
+                    path = currentPath;
+                    return true;
+                }
+                const nextPath = [...currentPath, node.id];
+                if (node.children) {
+                    for (const child of node.children) {
+                        if (findPath(child, nextPath)) return true;
+                    }
+                }
+                return false;
+            }
+
+            let found = false;
+            if (props.treeData && props.treeData.id) {
+                found = findPath(props.treeData, []);
+            } else if (props.treeData && props.treeData.children) {
+                for (const child of props.treeData.children) {
+                    if (findPath(child, [])) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (found && path) {
+                // 1. 展开所有长辈节点
+                (path as string[]).forEach((pid: string) => {
+                    expandedState.value[pid] = true;
+                });
+                
+                // 2. 模拟高亮选中对象
+                selectedId.value = targetId;
+
+                // 3. 将元素滑向视野中央
+                setTimeout(() => {
+                    const el = document.querySelector('.tree-node.active');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+
+                // 发送给外层通知数据装配
+                emit('select', { id: targetId });
+                return true;
+            }
+            return false;
+        };
+
         const clearSearch = () => {
             searchQuery.value = '';
         };
@@ -178,7 +229,8 @@ export const NodeTree = {
             clearSearch,
             highlight,
             getIcon,
-            getPrefabClass
+            getPrefabClass,
+            expandToNode
         };
     }
 };

@@ -24,3 +24,11 @@
 - 切割派发的验证任务必须具备原子特性 (Atomic)。
 - 假若负责后端爬虫或主进程的逻辑尚未到位，前端研发部分要求使用自主构建的假数据 (Mock IPC/API) 保障顺利测试渲染脱壳。
 - 绝对不要挂起并无限期等待其它外部依赖就绪才开始开发工作。
+
+## 第五条：目标环境架构认知 (Target Environment Architecture)
+**严禁混淆“编辑器原生 Scene 进程”与“游戏预览 Webview”的运行时环境。**
+- **架构定性**: `mcp-inspector-bridge` 监控与调试的目标是**运行在浮动面板 `<webview src="http://localhost:7456">` 内的预览态游戏**，绝不是编辑器处于 Edit 模式的静态 Scene。
+- **环境隔离**: 
+  - `src/scene-script.ts` 仅用于少部分必须触达编辑器原生窗口的操作，**不可用于游戏运行时状态的拦截或逻辑回调**。
+  - 对于所有的游戏管线拦截、逻辑探针，必须注入到 `src/probe.ts` (爬虫对象) 中，由 `src/preload.ts` 负责将其自动挂载至 Webview 网页的 `<head>`。
+- **通信铁律**: 前端 Vue 面板组件若需向游戏环境发送指令，**严禁使用** `Editor.Ipc` 或 `Editor.Scene.callSceneScript`，必须通过获取 DOM 实例执行脚本：`document.querySelector('webview').executeJavaScript(...)`。

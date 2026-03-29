@@ -131,6 +131,7 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
             <div :class="['tab-item', activeTab === 2 ? 'active' : '']" @click="activeTab = 2" title="Cocos信息">ℹ️ <span class="tab-text">Cocos信息</span></div>
             <div :class="['tab-item', activeTab === 3 ? 'active' : '']" @click="activeTab = 3" title="扩展">🔌 <span class="tab-text">扩展</span></div>
             <div :class="['tab-item', activeTab === 4 ? 'active' : '']" @click="activeTab = 4" title="性能分析">💡 <span class="tab-text">性能分析</span></div>
+            <div :class="['tab-item', activeTab === 5 ? 'active' : '']" @click="activeTab = 5" title="渲染合批探测">🔮 <span class="tab-text">渲染诊断</span></div>
         </div>
 
         <!-- 内容渲染层 -->
@@ -143,7 +144,7 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                 </div>
                 <div style="flex: 4; display: flex; flex-direction: column; overflow-y: hidden; background: #252525; border-bottom: 1px solid #444;">
                     <div v-if="!globalState.nodeTree" style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">(等待加载场景节点树)</div>
-                    <node-tree v-else :tree-data="globalState.nodeTree" @select="onNodeSelect"></node-tree>
+                    <node-tree ref="nodeTreeRef" v-else :tree-data="globalState.nodeTree" @select="onNodeSelect"></node-tree>
                 </div>
                 <div style="flex: 6; overflow-y: hidden; background: #202020; border-top: 1px solid #111;">
                     <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp" @hover-change="globalState.isInspectorHovered = $event"></node-inspector>
@@ -267,6 +268,11 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Tab 5: 渲染调试器 MVP -->
+            <div v-show="activeTab === 5" style="position: absolute; inset: 0; background: #1a1a1a;">
+                <render-debugger @toggle="onRenderDebuggerToggle" @locate-node="onRenderDebuggerLocate"></render-debugger>
             </div>
 
         </div>

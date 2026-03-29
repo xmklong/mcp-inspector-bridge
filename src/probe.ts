@@ -461,6 +461,142 @@
                 };
             };
             
+            // ==========================================
+            // [Phase 3: 渲染合批探测器]
+            // ==========================================
+            window.__mcpRenderDebuggerHook = {
+                _isActive: false,
+                _originBatcherAddQuad: null,
+                _originPushRenderCommand: null,
+                _lastPushedNodeName: "Unknown Node",
+                _lastQuadInfo: null,
+
+                injectHooks: function() {
+                    const self = this;
+                    if (self._isActive) return;
+
+                    let eng: any = null;
+                    try {
+                        const frm = document.getElementById('GameDiv') as HTMLIFrameElement;
+                        if (frm && frm.contentWindow && (frm.contentWindow as any).cc) {
+                            eng = (frm.contentWindow as any).cc;
+                        }
+                    } catch (e) {}
+                    if (!eng) eng = window.cc;
+
+                    if (!eng || !eng.RenderComponent) {
+                        console.warn("[RenderDebugger] 初始化失败：未找到 cc.RenderComponent");
+                        return;
+                    }
+
+                    // Cocos 2.4 引擎真实拼写错误：_checkBacth 而非 _checkBatch
+                    const methodName = typeof eng.RenderComponent.prototype._checkBacth === 'function' ? '_checkBacth' : '_checkBatch';
+
+                    if (typeof eng.RenderComponent.prototype[methodName] !== 'function') {
+                        console.warn(`[RenderDebugger] 无法定位合批检测函数：${methodName}() 不存在`);
+                        return;
+                    }
+
+                    if (!self._originCheckBatch) {
+                        self._originCheckBatch = eng.RenderComponent.prototype[methodName];
+                    }
+
+                    eng.RenderComponent.prototype[methodName] = function(batcher: any, cullingMask: number) {
+                        if (self._isActive && batcher) {
+                            try {
+                                const newMaterial = this._materials && this._materials.length > 0 ? this._materials[0] : null;
+                                if (newMaterial && batcher.material) {
+                                    const newHash = newMaterial.getHash();
+                                    const oldHash = batcher.material.getHash();
+
+                                    if (newHash !== oldHash || batcher.cullingMask !== cullingMask) {
+                                            if (batcher.material.name !== 'default-material' && batcher.node && batcher.node !== batcher._dummyNode) {
+                                                const diffs = [];
+                                                if (newMaterial.name !== batcher.material.name) {
+                                                    diffs.push(`材质实例不同 [${batcher.material.name} -> ${newMaterial.name}]`);
+                                                } else if (newHash !== oldHash) {
+                                                    diffs.push(`材质内部参数变动 (疑似纹理或合批未开)`);
+                                                }
+                                                if (batcher.cullingMask !== cullingMask) {
+                                                    diffs.push(`Culling Mask 变动 [${batcher.cullingMask} -> ${cullingMask}]`);
+                                                }
+                                                
+                                                const culpritNode = this.node;
+                                                const victimNode = batcher.node;
+
+                                                const culpritName = culpritNode ? culpritNode.name : 'Unknown';
+                                                const victimName = victimNode ? victimNode.name : 'Unknown';
+                                                const culpritId = culpritNode ? (culpritNode.uuid || culpritNode.id || '') : '';
+                                                const victimId = victimNode ? (victimNode.uuid || victimNode.id || '') : '';
+
+                                                // 完全静默原生控制台，废弃控制台警告直出时代的过渡代码：
+                                                // console.warn(\`[RenderDebugger] 🚫 <合批被迫中断> ...\`);
+
+                                                // 阶段一改造：增加前缀 JSON 以向外广播
+                                                const payload = {
+                                                    type: 'render-debugger:batch-break',
+                                                    data: {
+                                                        culprit: culpritName,
+                                                        culpritId: culpritId,
+                                                        victim: victimName,
+                                                        victimId: victimId,
+                                                        reasons: diffs
+                                                    }
+                                                };
+                                                
+                                                // [真正静默模式]：寻找宿主 IPC 专线投递避免污染 Console
+                                                let isSent = false;
+                                                if (typeof require !== 'undefined') {
+                                                    try {
+                                                        const ipc = require('electron').ipcRenderer;
+                                                        if (ipc && ipc.sendToHost) {
+                                                            ipc.sendToHost('render-debugger-payload', payload);
+                                                            isSent = true;
+                                                        }
+                                                    } catch (err) {}
+                                                }
+                                                if (!isSent) {
+                                                    console.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
+                                                }
+                                            }
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                        return self._originCheckBatch.call(this, batcher, cullingMask);
+                    };
+
+                    self._isActive = true;
+                    console.log("[RenderDebugger] MVP 探针已成功注入游戏内渲染管线 ✅");
+                },
+
+                restoreHooks: function() {
+                    const self = this;
+                    if (!self._isActive) return;
+
+                    let eng: any = null;
+                    try {
+                        const frm = document.getElementById('GameDiv') as HTMLIFrameElement;
+                        if (frm && frm.contentWindow && (frm.contentWindow as any).cc) {
+                            eng = (frm.contentWindow as any).cc;
+                        }
+                    } catch (e) {}
+                    
+                    if (!eng) {
+                        eng = window.cc;
+                    }
+
+                    if (eng && eng.RenderComponent && self._originCheckBatch) {
+                        const methodName = typeof eng.RenderComponent.prototype._checkBacth === 'function' ? '_checkBacth' : '_checkBatch';
+                        eng.RenderComponent.prototype[methodName] = self._originCheckBatch;
+                    }
+                    
+                    self._lastQuadInfo = null;
+                    self._isActive = false;
+                    console.log("[RenderDebugger] MVP 探针已安全撤出，游戏内归还原生管线 🛑");
+                }
+            };
+            
         } catch (err) {
             console.error('[Probe] 初始化探针发生致命异常:', err);
             const envData = {

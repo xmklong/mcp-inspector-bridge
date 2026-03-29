@@ -17,7 +17,7 @@
 	"panel": {
 		"main": "dist/panel/index.js",
 		"type": "dockable",
-		"title": "运行时面板",
+		"title": "⚔︎ 运行时面板",
 		"width": 800,
 		"height": 600
 	},
