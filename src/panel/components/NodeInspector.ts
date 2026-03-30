@@ -8,7 +8,7 @@ export const NodeInspector = {
             default: null
         }
     },
-    emits: ['update-prop', 'hover-change'],
+    emits: ['update-prop', 'hover-change', 'locate-node', 'locate-asset'],
     template: `
         <div class="node-inspector-wrap" style="padding: 10px; overflow-y: auto; height: 100%; color: #d0d0d0;"
              @mouseenter="onHover(true)" @mouseleave="onHover(false)">
@@ -107,12 +107,14 @@ export const NodeInspector = {
                                     <div v-else-if="prop.type === 'node_ref'" style="display: flex; align-items: center; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 2px; padding: 2px;">
                                         <span style="font-size: 10px; color:#4fa1ff; padding: 0 4px;">Node</span>
                                         <input type="text" disabled :value="prop.value.name" style="flex: 1; min-width: 0; background: transparent; color: #aaa; border: none; font-size: 11px; padding: 2px;" :title="prop.value.uuid"/>
+                                        <span v-if="prop.value.uuid && prop.value.uuid !== ''" @click.stop="onLocateNodeRef(prop.value.uuid)" style="cursor: pointer; font-size: 11px; padding: 0 4px; opacity: 0.8;" title="在节点树中定位" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
                                     </div>
 
                                     <!-- Asset Ref -->
                                     <div v-else-if="prop.type === 'asset_ref'" style="display: flex; align-items: center; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 2px; padding: 2px;">
                                         <span style="font-size: 10px; color:#cda34f; padding: 0 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 80px;" :title="prop.value.className">[{{ prop.value.className }}]</span>
                                         <input type="text" disabled :value="prop.value.name" style="flex: 1; min-width: 0; background: transparent; color: #aaa; border: none; font-size: 11px; padding: 2px;" :title="prop.value.uuid"/>
+                                        <span v-if="prop.value.uuid && prop.value.uuid !== ''" @click.stop="onLocateAssetRef(prop.value.uuid)" style="cursor: pointer; font-size: 11px; padding: 0 4px; opacity: 0.8;" title="在资源管理器中定位" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
                                     </div>
                                     
                                     <!-- Array -->
@@ -120,7 +122,22 @@ export const NodeInspector = {
                                         <div style="font-size: 11px; color:#777; margin-bottom: 2px; text-align: right;">Size: {{ prop.value ? prop.value.length : 0 }}</div>
                                         <div v-for="(item, idx) in prop.value" :key="idx" style="display: flex; align-items: center; background: #1a1a1a; border: 1px solid #3a3a3a; border-radius: 2px; padding: 2px;">
                                             <span style="font-size: 10px; color:#666; width: 24px; text-align: center;">[{{ idx }}]</span>
-                                            <input type="text" disabled :value="item" style="flex: 1; min-width: 0; background: transparent; color: #999; border: none; font-size: 11px; padding: 2px;" :title="item"/>
+                                            
+                                            <template v-if="item && typeof item === 'object' && item.type === 'node_ref'">
+                                                <span style="font-size: 10px; color:#4fa1ff; padding: 0 4px;">Node</span>
+                                                <input type="text" disabled :value="item.value.name" style="flex: 1; min-width: 0; background: transparent; color: #aaa; border: none; font-size: 11px; padding: 2px;" :title="item.value.uuid"/>
+                                                <span v-if="item.value.uuid && item.value.uuid !== ''" @click.stop="onLocateNodeRef(item.value.uuid)" style="cursor: pointer; font-size: 11px; padding: 0 4px; opacity: 0.8;" title="在节点树中定位" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
+                                            </template>
+                                            
+                                            <template v-else-if="item && typeof item === 'object' && item.type === 'asset_ref'">
+                                                <span style="font-size: 10px; color:#cda34f; padding: 0 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 80px;" :title="item.value.className">[{{ item.value.className }}]</span>
+                                                <input type="text" disabled :value="item.value.name" style="flex: 1; min-width: 0; background: transparent; color: #aaa; border: none; font-size: 11px; padding: 2px;" :title="item.value.uuid"/>
+                                                <span v-if="item.value.uuid && item.value.uuid !== ''" @click.stop="onLocateAssetRef(item.value.uuid)" style="cursor: pointer; font-size: 11px; padding: 0 4px; opacity: 0.8;" title="在资源管理器中定位" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
+                                            </template>
+
+                                            <template v-else>
+                                                <input type="text" disabled :value="item" style="flex: 1; min-width: 0; background: transparent; color: #999; border: none; font-size: 11px; padding: 2px;" :title="item"/>
+                                            </template>
                                         </div>
                                     </div>
                                     
@@ -195,12 +212,22 @@ export const NodeInspector = {
             return isNaN(res) ? 0 : Number(res.toFixed(3)); // 保留 3 位小数避免失真过长
         };
 
+        const onLocateNodeRef = (uuid: string) => {
+            emit('locate-node', uuid);
+        };
+
+        const onLocateAssetRef = (uuid: string) => {
+            emit('locate-asset', uuid);
+        };
+
         return {
             expandedComps,
             toggleComp,
             onUpdateProp,
             onHover,
-            formatNumber
+            formatNumber,
+            onLocateNodeRef,
+            onLocateAssetRef
         };
     }
 };

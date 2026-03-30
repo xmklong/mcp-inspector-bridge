@@ -89,6 +89,17 @@
                                     if (item === null) return "null";
                                     if (item === undefined) return "undefined";
                                     if (typeof item === "number" || typeof item === "string" || typeof item === "boolean") return item;
+                                    
+                                    const eng = window.cc;
+                                    if (eng && eng.Node && item instanceof eng.Node) {
+                                        return { type: "node_ref", value: { uuid: item.uuid || item.id, name: item.name } };
+                                    } else if (eng && eng.Asset && item instanceof eng.Asset) {
+                                        let clsName = "cc.Asset";
+                                        if (item.__classname__) clsName = item.__classname__;
+                                        else if (item.constructor && item.constructor.name) clsName = item.constructor.name;
+                                        return { type: "asset_ref", value: { uuid: item._uuid || item.uuid || item.id || "unknown", name: item.name || "Unnamed Asset", className: clsName } };
+                                    }
+
                                     if (item.__classname__ || item.name) return `[${item.__classname__ || "对象"}] ${item.name || ""}`;
                                     return "[复杂对象]";
                                 });

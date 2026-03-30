@@ -1086,7 +1086,33 @@ module.exports = Editor.Panel.extend({
                     });
                 }
 
+                const onLocateNode = (uuid: string) => {
+                    if (nodeTreeRef.value) {
+                        const targetId = uuid;
+                        const success = (nodeTreeRef.value as any).expandToNode(targetId);
+                        if (!success) {
+                            console.warn(`[Bridge] 树组件未能展开节点：${targetId}`);
+                        }
+                    }
+                };
+
+                let locateAssetTimeout: any = null;
+                const onLocateAsset = (uuid: string) => {
+                    if (!uuid) return;
+                    if (locateAssetTimeout) clearTimeout(locateAssetTimeout);
+                    locateAssetTimeout = setTimeout(() => {
+                        try {
+                            Editor.Ipc.sendToAll('assets:hint', uuid);
+                            console.log(`[Bridge] IPC 资源定位指令已发出：${uuid}`);
+                        } catch (e: any) {
+                            console.warn(`[Bridge] IPC 发送失败: ${e.message}`);
+                        }
+                    }, 300);
+                };
+
                 return {
+                    onLocateNode,
+                    onLocateAsset,
                     onNodeSelect,
                     onUpdateNodeProp,
                     onRenderDebuggerToggle,

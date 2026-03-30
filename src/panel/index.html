@@ -147,7 +147,7 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                     <node-tree ref="nodeTreeRef" v-else :tree-data="globalState.nodeTree" @select="onNodeSelect"></node-tree>
                 </div>
                 <div style="flex: 6; overflow-y: hidden; background: #202020; border-top: 1px solid #111;">
-                    <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp" @hover-change="globalState.isInspectorHovered = $event"></node-inspector>
+                    <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp" @hover-change="globalState.isInspectorHovered = $event" @locate-node="onLocateNode" @locate-asset="onLocateAsset"></node-inspector>
                 </div>
             </div>
 
