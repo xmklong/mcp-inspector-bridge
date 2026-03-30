@@ -166,11 +166,11 @@ export const RenderDebugger = {
                                 <div style="margin-bottom: 10px; display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <div style="color: #888; margin-bottom: 2px;">Blend Src</div>
-                                        <div style="background: #111; padding: 4px 6px; border-radius: 3px;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].blendSrc ?? 'N/A' }}</div>
+                                        <div style="background: #111; padding: 4px 6px; border-radius: 3px;">{{ formatBlend(frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].blendSrc) }}</div>
                                     </div>
                                     <div style="flex: 1;">
                                         <div style="color: #888; margin-bottom: 2px;">Blend Dst</div>
-                                        <div style="background: #111; padding: 4px 6px; border-radius: 3px;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].blendDst ?? 'N/A' }}</div>
+                                        <div style="background: #111; padding: 4px 6px; border-radius: 3px;">{{ formatBlend(frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].blendDst) }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -228,6 +228,18 @@ export const RenderDebugger = {
                     drawCallListDOM.value.children[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             }, 50);
+        };
+
+        const formatBlend = (val: any) => {
+            if (val === undefined || val === null) return 'N/A';
+            const dict = {
+                0: 'ZERO', 1: 'ONE', 768: 'SRC_COLOR', 769: 'ONE_MINUS_SRC_COLOR',
+                770: 'SRC_ALPHA', 771: 'ONE_MINUS_SRC_ALPHA', 772: 'DST_ALPHA',
+                773: 'ONE_MINUS_DST_ALPHA', 774: 'DST_COLOR', 775: 'ONE_MINUS_DST_COLOR',
+                776: 'SRC_ALPHA_SATURATE'
+            } as any;
+            const res = dict[val];
+            return res ? res : val;
         };
 
         const toggleFreeze = () => {
@@ -367,6 +379,7 @@ export const RenderDebugger = {
             clearLogs,
             locateNode,
             toggleFreeze,
+            formatBlend,
             selectDrawCall,
             selectCommand,
             replayStep

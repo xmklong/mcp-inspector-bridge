@@ -635,6 +635,10 @@
                             let bSrc = mat ? mat.getProperty('blendSrc') : undefined;
                             let bDst = mat ? mat.getProperty('blendDst') : undefined;
 
+                            // 回退拾取：常规组件如果材质取不到则读取组件私有混合模式属性
+                            if (bSrc === undefined && this.srcBlendFactor !== undefined) bSrc = this.srcBlendFactor;
+                            if (bDst === undefined && this.dstBlendFactor !== undefined) bDst = this.dstBlendFactor;
+
                             // 嗅探并动态拦截 CC 2.4 所用 Batcher 的各种底层 Flush 变体函数
                             // 只要底层执行了上传派发缓存区，我们就严格闭合当前的组件槽并开启下一个插槽
                             ['flush', '_flush', '_flushIA', '_flushMaterial'].forEach(fn => {
