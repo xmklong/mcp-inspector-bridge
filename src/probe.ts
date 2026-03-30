@@ -497,6 +497,11 @@
                 _currentReplayDrawCallCount: 0,
                 _requestCaptureThisFrame: false,
                 _pendingCommands: [], // 收集发往下一个 DrawCall 的 Command 详情
+                _tempBatchesData: [[]], // 存储同步批处理的数据分片
+                _currentMcpBatchIndex: 0, // 当前数据分片游标
+                _isFlushingBatcher: false,
+                _currentFlushingBatchIndex: 0,
+                _currentFlushingBatcher: null,
 
                 stepToDrawCall: function(limitIndex: number, frameSnapshotData: any) {
                     this._replayLimit = limitIndex;
@@ -593,25 +598,82 @@
                                 }
                             } catch (e) {}
 
-                            // [Phase 4] 收集参与当前正在合批的渲染指令参数
-                            if (self._isCaptureEnabled && self._currentFrame) {
-                                let mat = this._materials && this._materials.length > 0 ? this._materials[0] : null;
-                                let matHash = mat ? mat.getHash() : 'N/A';
-                                let bSrc = mat ? mat.getProperty('blendSrc') : undefined;
-                                let bDst = mat ? mat.getProperty('blendDst') : undefined;
-
-                                self._pendingCommands.push({
-                                    id: self._pendingCommands.length,
-                                    type: this.__classname__ || this.constructor.name || 'Component',
-                                    name: this.node ? this.node.name : 'Unknown',
-                                    nodeUuid: this.node ? (this.node.uuid || this.node.id) : '',
-                                    materialHash: matHash,
-                                    blendSrc: bSrc,
-                                    blendDst: bDst
-                                });
-                            }
                         }
-                        return self._originCheckBatch.call(this, batcher, cullingMask);
+                        const ret = self._originCheckBatch.call(this, batcher, cullingMask);
+
+                        // [Phase 4] 收集参与当前正在合批的渲染指令参数
+                        if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
+
+                            if (batcher && !batcher.__mcp_execute_hooked) {
+                                batcher.__mcp_execute_hooked = true;
+                                const hookMethod = function(origFunc) {
+                                    if (!origFunc) return origFunc;
+                                    return function() {
+                                        let ret;
+                                        // 标记当前 Batcher 正在排放 DrawCall
+                                        if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
+                                            self._currentFlushingBatcher = this;
+                                            this.__mcp_flushing_index = 0;
+                                        }
+                                        ret = origFunc.apply(this, arguments);
+                                        // 排放结束，重置并清空数据
+                                        if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
+                                            if (self._currentFlushingBatcher === this) {
+                                                self._currentFlushingBatcher = null;
+                                            }
+                                            this.__mcp_temp_batches = [];
+                                        }
+                                        return ret;
+                                    };
+                                };
+                                if (batcher.execute) batcher.execute = hookMethod(batcher.execute);
+                                if (batcher.flush) batcher.flush = hookMethod(batcher.flush);
+                            }
+
+                            let mat = this._materials && this._materials.length > 0 ? this._materials[0] : null;
+                            let matHash = mat ? mat.getHash() : 'N/A';
+                            let bSrc = mat ? mat.getProperty('blendSrc') : undefined;
+                            let bDst = mat ? mat.getProperty('blendDst') : undefined;
+
+                            // 嗅探并动态拦截 CC 2.4 所用 Batcher 的各种底层 Flush 变体函数
+                            // 只要底层执行了上传派发缓存区，我们就严格闭合当前的组件槽并开启下一个插槽
+                            ['flush', '_flush', '_flushIA', '_flushMaterial'].forEach(fn => {
+                                if (typeof batcher[fn] === 'function' && !batcher['__mcp_' + fn + '_hooked']) {
+                                    batcher['__mcp_' + fn + '_hooked'] = true;
+                                    let oldFn = batcher[fn];
+                                    batcher[fn] = function() {
+                                        if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
+                                            // Guard 验证：防止嵌套 flush 导致越级空包
+                                            if (self._tempBatchesData[self._currentMcpBatchIndex] && self._tempBatchesData[self._currentMcpBatchIndex].length > 0) {
+                                                self._currentMcpBatchIndex++;
+                                                self._tempBatchesData[self._currentMcpBatchIndex] = [];
+                                            }
+                                        }
+                                        return oldFn.apply(this, arguments);
+                                    };
+                                }
+                            });
+                            
+                            if (typeof self._currentMcpBatchIndex !== 'number') {
+                                self._currentMcpBatchIndex = 0;
+                            }
+                            let targetBatchIndex = self._currentMcpBatchIndex;
+
+                            if (!self._tempBatchesData[targetBatchIndex]) {
+                                self._tempBatchesData[targetBatchIndex] = [];
+                            }
+
+                            self._tempBatchesData[targetBatchIndex].push({
+                                id: self._tempBatchesData[targetBatchIndex].length,
+                                type: this.__classname__ || this.constructor.name || 'Component',
+                                name: this.node ? this.node.name : 'Unknown',
+                                nodeUuid: this.node ? (this.node.uuid || this.node.id) : '',
+                                materialHash: matHash,
+                                blendSrc: bSrc,
+                                blendDst: bDst
+                            });
+                        }
+                        return ret;
                     };
 
                     // --- 1. mainLoop 钩子 (帧起始/结束) ---
@@ -630,6 +692,9 @@
                                     totalDrawCalls: 0
                                 };
                                 self._pendingCommands = [];
+                                self._tempBatchesData = [[]];
+                                self._currentMcpBatchIndex = 0;
+                                self._isFlushingBatcher = false;
                             }
                             
                             self._originMainLoop.call(this, dt);
@@ -698,13 +763,36 @@
                         if (!self._originBatcherFlush) {
                             self._originBatcherFlush = eng.renderer._batcher.flush;
                             eng.renderer._batcher.flush = function() {
+                                let ret;
                                 if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
-                                    // flush前可以插入拦截逻辑
+                                    self._isFlushingBatcher = true;
+                                    self._currentFlushingBatchIndex = 0;
                                 }
                                 if (self._originBatcherFlush) {
-                                    return self._originBatcherFlush.call(this);
+                                    ret = self._originBatcherFlush.apply(this, arguments);
                                 }
+                                if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
+                                    self._isFlushingBatcher = false;
+                                    // 仅防守，交由具体的 execute/flush hook 清除较为保险，这里也可清
+                                    self._tempBatchesData = [];
+                                }
+                                return ret;
                             };
+                        }
+                    }
+                    
+                    // Hook ForwardRenderer._draw to capture exact Item context
+                    if (eng.renderer && eng.renderer._forward && eng.renderer._forward.constructor && eng.renderer._forward.constructor.prototype) {
+                        if (!self._originForwardDraw) {
+                            self._originForwardDraw = eng.renderer._forward.constructor.prototype._draw;
+                            if (self._originForwardDraw) {
+                                eng.renderer._forward.constructor.prototype._draw = function(item) {
+                                    self._currentRenderItem = item;
+                                    let ret = self._originForwardDraw.apply(this, arguments);
+                                    self._currentRenderItem = null;
+                                    return ret;
+                                };
+                            }
                         }
                     }
                     
@@ -713,6 +801,16 @@
                             self._originDeviceDraw = eng.gfx.Device.prototype.draw;
                             eng.gfx.Device.prototype.draw = function(primitiveType: number, indicesStart: number, indicesCount: number) {
                                 
+                                // 处理 CC 2.4 中底层重载调用 draw(start, count) 的边界情况
+                                let realPrimType = 4; // PT_TRIANGLES 默认为 4
+                                let realIndCount = 0;
+                                if (arguments.length >= 3) {
+                                    realPrimType = arguments[0];
+                                    realIndCount = arguments[2];
+                                } else if (arguments.length === 2) {
+                                    realIndCount = arguments[1];
+                                }
+
                                 // 限制回放阶段的超量渲染
                                 if (self._replayLimit !== -1) {
                                     if (self._currentReplayDrawCallCount > self._replayLimit) {
@@ -720,25 +818,51 @@
                                         return; // 跨阶物理抛弃渲染指令
                                     }
                                 }
-
                                 if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
+                                    let activeCommands = [];
+
+                                    // 基于管线的分离式遍历与集中式消费特征：逐批次消费
+                                    if (self._tempBatchesData && self._tempBatchesData.length > 0) {
+                                        activeCommands = self._tempBatchesData.shift() || [];
+                                    } 
+                                    
+                                    if (!activeCommands || activeCommands.length === 0) {
+                                        activeCommands = self._pendingCommands;
+                                        self._pendingCommands = [];
+                                        
+                                        // 兜底策略：如果存在通过 ForwardRenderer._draw 直接派发的 item，解析其从属 Node
+                                        if (self._currentRenderItem && activeCommands.length === 0) {
+                                            let nodeObj = self._currentRenderItem.node;
+                                            if (!nodeObj && self._currentRenderItem.model) {
+                                                nodeObj = self._currentRenderItem.model.node;
+                                            }
+                                            if (nodeObj) {
+                                                activeCommands.push({
+                                                    id: 0,
+                                                    type: 'RenderItem',
+                                                    name: nodeObj.name || 'Unknown',
+                                                    nodeUuid: nodeObj.uuid || nodeObj.id || ''
+                                                });
+                                            }
+                                        }
+                                    }
+
                                     self._currentFrame.drawCalls.push({
                                         id: self._currentFrame.drawCalls.length,
                                         type: 'draw',
-                                        primitiveType: primitiveType,
-                                        indiceCount: indicesCount,
-                                        vertexCount: Math.floor(indicesCount / 1.5), // 粗略估算四边形的顶点数
+                                        primitiveType: realPrimType,
+                                        indiceCount: realIndCount,
+                                        vertexCount: Math.floor(realIndCount / 1.5), // 粗略估算四边形的顶点数
                                         timestamp: performance.now(),
-                                        commands: self._pendingCommands
+                                        commands: activeCommands
                                     });
-                                    self._pendingCommands = []; // 消费完毕
                                     self._currentFrame.totalDrawCalls++;
                                 }
 
                                 self._currentReplayDrawCallCount++;
 
                                 if (self._originDeviceDraw) {
-                                    return self._originDeviceDraw.call(this, primitiveType, indicesStart, indicesCount);
+                                    return self._originDeviceDraw.apply(this, arguments);
                                 }
                             };
                         }
@@ -792,6 +916,9 @@
                     self._replayLimit = -1;
                     self._currentReplayDrawCallCount = 0;
                     self._pendingCommands = [];
+                    self._tempBatchesData = [[]];
+                    self._currentMcpBatchIndex = 0;
+                    self._isFlushingBatcher = false;
                     console.log("[RenderDebugger] MVP 探针已安全撤出，游戏内归还原生管线 🛑");
                 }
             };

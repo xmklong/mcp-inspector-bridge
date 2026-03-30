@@ -76,7 +76,7 @@ export const RenderDebugger = {
                     <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333;">
                         渲染队列 ({{ frozenSnapshot.totalDrawCalls }} DCs)
                     </div>
-                    <div style="flex: 1; overflow-y: auto; overflow-x: hidden; padding: 5px;">
+                    <div style="flex: 1; overflow-y: auto; overflow-x: hidden; padding: 5px;" ref="drawCallListDOM">
                         <div v-for="(dc, dcIdx) in frozenSnapshot.drawCalls" :key="'dc_'+dcIdx" style="margin-bottom: 4px;">
                             <div @click="selectDrawCall(dcIdx)" 
                                  :style="{ background: selectedDrawCallIndex === dcIdx ? '#0277bd' : '#222', padding: '6px 8px', cursor: 'pointer', borderRadius: '3px', border: '1px solid #444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }">
@@ -220,6 +220,15 @@ export const RenderDebugger = {
         const selectedDrawCallIndex = ref(-1);
         const selectedCommandIndex = ref(-1);
         const replayImageData = ref('');
+        const drawCallListDOM = ref(null);
+
+        const scrollToSelectedDrawCall = (idx: number) => {
+            setTimeout(() => {
+                if (drawCallListDOM.value && drawCallListDOM.value.children[idx]) {
+                    drawCallListDOM.value.children[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, 50);
+        };
 
         const toggleFreeze = () => {
             if (isFrozen.value) {
@@ -250,6 +259,7 @@ export const RenderDebugger = {
             selectedDrawCallIndex.value = idx;
             selectedCommandIndex.value = -1;
             triggerBackendStep();
+            scrollToSelectedDrawCall(idx);
         };
 
         const selectCommand = (dcIdx: number, cmdIdx: number) => {
@@ -267,6 +277,7 @@ export const RenderDebugger = {
                 selectedDrawCallIndex.value--;
             }
             triggerBackendStep();
+            scrollToSelectedDrawCall(selectedDrawCallIndex.value);
         };
 
         let debounceTimer: any = null;
@@ -343,6 +354,7 @@ export const RenderDebugger = {
         });
 
         return {
+            drawCallListDOM,
             isCapturing,
             batchBreakRecords,
             totalHits,
