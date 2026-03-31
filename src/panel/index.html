@@ -2,9 +2,12 @@
 /* CSS Reset for extension panel */
 #app { width: 100%; height: 100%; display: flex; background: #2b2b2b; color: #ccc; font-family: sans-serif; overflow: hidden; position: relative; }
 .tab-nav { display: flex; background: #1e1e1e; border-bottom: 1px solid #000; font-size: 13px; }
-.tab-item { padding: 8px 15px; cursor: pointer; border-right: 1px solid #333; white-space: nowrap; overflow: hidden; }
+.tab-item { padding: 8px 15px; cursor: pointer; border-right: 1px solid #333; white-space: nowrap; overflow: hidden; transition: background 0.2s, opacity 0.2s; user-select: none; -webkit-user-drag: element; }
 .tab-item:hover { background: #2a2a2a; }
 .tab-item.active { background: #3c3c3c; color: #fff; font-weight: bold; border-top: 2px solid #09f; }
+.tab-item.dragging { opacity: 0.5; background: #111; }
+.tab-item.drag-over-left { border-left: 2px solid #09f; padding-left: 13px; }
+.tab-item.drag-over-right { border-right: 2px solid #09f; padding-right: 13px; }
 .btn-group { display: flex; gap: 5px; flex-shrink: 0; }
 .icon-btn { background: transparent; border: 1px solid #555; color: #ccc; cursor: pointer; padding: 4px 8px; border-radius: 3px; font-size: 12px; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
 .icon-btn:hover { background: #555; color: #fff; }
@@ -123,14 +126,27 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
     <!-- 右侧 Tabs Panel (固定或弹性宽度) -->
     <div :style="{ width: rightPanelWidth + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#252525' }">
         
-        <!-- Tab 切换菜单 -->
+        <!-- Tab 切换菜单 (Draggable) -->
         <div :class="['tab-nav', rightPanelWidth < 280 ? 'narrow-tab-nav' : '']">
-            <div :class="['tab-item', activeTab === 0 ? 'active' : '']" @click="activeTab = 0" title="main">🌲 <span class="tab-text">main</span></div>
-            <div :class="['tab-item', activeTab === 1 ? 'active' : '']" @click="activeTab = 1" title="开发者工具">🛠 <span class="tab-text">开发者工具</span></div>
-            <div :class="['tab-item', activeTab === 2 ? 'active' : '']" @click="activeTab = 2" title="Cocos信息">ℹ️ <span class="tab-text">Cocos信息</span></div>
-            <div :class="['tab-item', activeTab === 3 ? 'active' : '']" @click="activeTab = 3" title="扩展">🔌 <span class="tab-text">扩展</span></div>
-            <div :class="['tab-item', activeTab === 4 ? 'active' : '']" @click="activeTab = 4" title="性能分析">💡 <span class="tab-text">性能分析</span></div>
-            <div :class="['tab-item', activeTab === 5 ? 'active' : '']" @click="activeTab = 5" title="渲染合批探测">🔮 <span class="tab-text">渲染诊断</span></div>
+            <div v-for="(tab, index) in tabsList" :key="tab.id"
+                 :class="[
+                     'tab-item', 
+                     activeTab === tab.id ? 'active' : '', 
+                     draggingTabId === tab.id ? 'dragging' : '',
+                     hoverTargetId === tab.id && hoverDropPos === 'left' ? 'drag-over-left' : '',
+                     hoverTargetId === tab.id && hoverDropPos === 'right' ? 'drag-over-right' : ''
+                 ]"
+                 @click="activeTab = tab.id"
+                 :title="tab.name"
+                 draggable="true"
+                 @dragstart.stop="onDragStart(tab, index, $event)"
+                 @dragover.prevent.stop="onDragOver(tab, $event)"
+                 @dragenter.prevent.stop
+                 @dragleave.stop="onDragLeave(tab, $event)"
+                 @drop.stop="onDrop(tab, index, $event)"
+                 @dragend.stop="onDragEnd">
+                {{ tab.icon }} <span class="tab-text">{{ tab.name }}</span>
+            </div>
         </div>
 
         <!-- 内容渲染层 -->

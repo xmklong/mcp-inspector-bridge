@@ -1,6 +1,6 @@
 {
 	"name": "mcp-inspector-bridge",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "Modern Cocos Inspector Bridge using TypeScript and Vue 3",
 	"author": "Firekula",
 	"main": "dist/main.js",
@@ -17,7 +17,7 @@
 	"panel": {
 		"main": "dist/panel/index.js",
 		"type": "dockable",
-		"title": "⚔︎ 运行时面板",
+		"title": "⚔︎ 预览面板",
 		"width": 800,
 		"height": 600
 	},

@@ -58,6 +58,108 @@ module.exports = Editor.Panel.extend({
                 // 当前活跃的 Tab (0=main, 1=devtools, 2=cocos, 3=ext)
                 const activeTab = ref(0);
 
+                // 标签页管理模型与持久化
+                const baseTabsTemplate = [
+                    { id: 0, name: '节点树', icon: '🌲' },
+                    { id: 1, name: '开发者工具', icon: '🛠' },
+                    { id: 4, name: '性能分析', icon: '💡' },
+                    { id: 5, name: '渲染诊断', icon: '🔮' },
+                    { id: 2, name: 'Cocos信息', icon: 'ℹ️' },
+                    { id: 3, name: '扩展', icon: '🔌' }
+                ];
+
+                const loadTabsOrder = () => {
+                    try {
+                        let saved = window.localStorage.getItem('mcp-inspector-tabs-order');
+                        if (saved) {
+                            const savedIds = JSON.parse(saved);
+                            const finalTabs = [];
+                            const availableIds = new Set(baseTabsTemplate.map(t => t.id));
+                            // 排列已存在的保存项
+                            for (let sid of savedIds) {
+                                let found = baseTabsTemplate.find(t => t.id === sid);
+                                if (found) {
+                                    finalTabs.push(found);
+                                    availableIds.delete(sid);
+                                }
+                            }
+                            // 追加新版中未存入的新功能标签
+                            for (let missingId of availableIds) {
+                                let found = baseTabsTemplate.find(t => t.id === missingId);
+                                if (found) finalTabs.push(found);
+                            }
+                            return finalTabs;
+                        }
+                    } catch (e) { }
+                    return [...baseTabsTemplate];
+                };
+
+                const tabsList = ref(loadTabsOrder());
+                const draggingTabId = ref(null as number | null);
+                const hoverTargetId = ref(null as number | null);
+                const hoverDropPos = ref(null as 'left' | 'right' | null);
+                let dragSrcIndex = -1;
+
+                const onDragStart = (tab: any, index: number, event: DragEvent) => {
+                    dragSrcIndex = index;
+                    if (event.dataTransfer) {
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/plain', tab.id.toString());
+                    }
+                    setTimeout(() => {
+                        draggingTabId.value = tab.id;
+                    }, 0);
+                };
+
+                const onDragOver = (tab: any, event: DragEvent) => {
+                    if (draggingTabId.value === null) return;
+                    if (draggingTabId.value === tab.id) {
+                        hoverTargetId.value = null;
+                        hoverDropPos.value = null;
+                        return;
+                    }
+                    hoverTargetId.value = tab.id;
+                    const rect = (event.target as HTMLElement).getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    hoverDropPos.value = event.clientX < midX ? 'left' : 'right';
+                };
+
+                const onDragLeave = (tab: any, event: DragEvent) => {
+                    if (hoverTargetId.value === tab.id) {
+                        // 防止鼠标在内部元素微小移动时闪烁触发
+                        hoverTargetId.value = null;
+                        hoverDropPos.value = null;
+                    }
+                };
+
+                const onDrop = (tab: any, index: number, event: DragEvent) => {
+                    event.preventDefault();
+                    if (draggingTabId.value === null || draggingTabId.value === tab.id) {
+                        onDragEnd(); // 如果原地放下则取消拖拽
+                        return;
+                    }
+                    let targetIndex = index;
+                    if (hoverDropPos.value === 'right') {
+                        targetIndex++;
+                    }
+                    const movingTab = tabsList.value.splice(dragSrcIndex, 1)[0];
+                    if (dragSrcIndex < targetIndex) targetIndex--;
+                    tabsList.value.splice(targetIndex, 0, movingTab);
+
+                    try {
+                        const idList = tabsList.value.map((t: any) => t.id);
+                        window.localStorage.setItem('mcp-inspector-tabs-order', JSON.stringify(idList));
+                    } catch (e) { }
+                    onDragEnd();
+                };
+
+                const onDragEnd = () => {
+                    draggingTabId.value = null;
+                    hoverTargetId.value = null;
+                    hoverDropPos.value = null;
+                    dragSrcIndex = -1;
+                };
+
                 // 分辨率控制
                 const selectedResolution = ref('FIT');
                 const isShowFPS = ref(false);
@@ -171,7 +273,7 @@ module.exports = Editor.Panel.extend({
                             }
                         `;
                         const __p1 = wv.executeJavaScript(code);
-                        if (__p1 && __p1.catch) __p1.catch(() => {});
+                        if (__p1 && __p1.catch) __p1.catch(() => { });
 
                         try {
                             if (!globalState.isEditorSceneActive) {
@@ -207,7 +309,7 @@ module.exports = Editor.Panel.extend({
                                             }
                                             return 'Node or Component Not Found';
                                         })();
-                                    `).catch((err: any) => {});
+                                    `).catch((err: any) => { });
                                 }
                             } else {
                                 if (wv) {
@@ -225,7 +327,7 @@ module.exports = Editor.Panel.extend({
                                             }
                                             return 'Node Not Found';
                                         })();
-                                    `).catch((err: any) => {});
+                                    `).catch((err: any) => { });
                                 }
                             }
                         } catch (e) {
@@ -243,7 +345,7 @@ module.exports = Editor.Panel.extend({
                     window.addEventListener('scene-status-changed', (e: any) => {
                         const wasActive = globalState.isEditorSceneActive;
                         globalState.isEditorSceneActive = e.detail && e.detail.active !== false;
-                        
+
                         // 状态发生切换
                         if (wasActive !== globalState.isEditorSceneActive) {
                             if (!globalState.isEditorSceneActive) {
@@ -266,7 +368,7 @@ module.exports = Editor.Panel.extend({
                                 }
                             });
                         }
-                    } catch (e) {}
+                    } catch (e) { }
 
                     if (globalState.isEditorSceneActive) {
                         refreshGame();
@@ -397,7 +499,7 @@ module.exports = Editor.Panel.extend({
                                         }
                                     }
                                     window.dispatchEvent(new CustomEvent('render-debugger-payload', { detail: payload }));
-                                } catch (err) {}
+                                } catch (err) { }
                             }
                         });
 
@@ -416,7 +518,7 @@ module.exports = Editor.Panel.extend({
                                     if (payload.type === 'render-debugger:batch-break' || payload.type === 'render-debugger:snapshot') {
                                         window.dispatchEvent(new CustomEvent('render-debugger-payload', { detail: payload }));
                                     }
-                                } catch (err) {}
+                                } catch (err) { }
                             }
                         });
 
@@ -424,8 +526,8 @@ module.exports = Editor.Panel.extend({
                         window.addEventListener('render-debugger:send-macro', ((e: any) => {
                             if (e.detail && gameViewDynamic) {
                                 try {
-                                    gameViewDynamic.executeJavaScript(e.detail).catch(() => {});
-                                } catch (err) {}
+                                    gameViewDynamic.executeJavaScript(e.detail).catch(() => { });
+                                } catch (err) { }
                             }
                         }) as EventListener);
 
@@ -554,7 +656,7 @@ module.exports = Editor.Panel.extend({
                             // 强行注入 CSS 屏蔽 Webview 内部的滚动条以及外壳元素的溢出
                             try {
                                 const __pIns = gameViewDynamic.insertCSS('html, body, .contentWrap, .content, .wrapper, #GameDiv, #GameCanvas { overflow: hidden !important; margin: 0 !important; padding: 0 !important; } ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }');
-                                if (__pIns && __pIns.catch) __pIns.catch(() => {});
+                                if (__pIns && __pIns.catch) __pIns.catch(() => { });
                             } catch (e) {
                                 Editor.warn('[Bridge] Webview 注入屏蔽滚动条 CSS 失败', e);
                             }
@@ -735,7 +837,7 @@ module.exports = Editor.Panel.extend({
                     }
                     globalState.isGamePaused = false;
                     const wv: any = gameView.value;
-                    
+
                     // [Robust] 只有地址不再包含 localhost 时 (例如空字符串或 about:blank)，才重新赋予初始的预览服务器地址
                     if (!globalState.webviewSrc || !globalState.webviewSrc.includes('localhost:')) {
                         globalState.webviewSrc = 'http://localhost:7456';
@@ -768,7 +870,7 @@ module.exports = Editor.Panel.extend({
                                 }
                             `;
                             const __p4 = wv.executeJavaScript(code);
-                            if (__p4 && __p4.catch) __p4.catch(() => {});
+                            if (__p4 && __p4.catch) __p4.catch(() => { });
                         } catch (e) { }
                     } else {
                         Editor.warn('[Bridge] 找不到 game-view，宏发送失败');
@@ -842,7 +944,7 @@ module.exports = Editor.Panel.extend({
                                 }).catch(() => { });
                             }, 150);
                         }
-                        
+
                         // 专门隔离的低频内存探测，防止 IPC 臃肿导致面板卡顿
                         if (!memoryRankTimer) {
                             // 为了对抗底层探针完全无法获取某些资源原名的问题，在面板层利用主进程 API 进行反向解析缓存
@@ -854,7 +956,7 @@ module.exports = Editor.Panel.extend({
                                     if (res) {
                                         try {
                                             const data = JSON.parse(res);
-                                            
+
                                             const Editor = (window as any).Editor;
                                             const resolveRealName = (item: any) => {
                                                 // 使用强力缓存避免每秒 1000 次查询瞬间击穿 IPC 主进程通讯
@@ -862,7 +964,7 @@ module.exports = Editor.Panel.extend({
                                                     item.name = uuidNameCache[item.id];
                                                     return;
                                                 }
-                                                
+
                                                 // 无差别对所有资源尝试动用 Editor 获取它的官方 db:// 全路径
                                                 const remoteDb = Editor && Editor.assetdb && Editor.assetdb.remote;
                                                 if (remoteDb && typeof remoteDb.uuidToUrl === 'function') {
@@ -876,11 +978,11 @@ module.exports = Editor.Panel.extend({
                                                         return;
                                                     }
                                                 }
-                                                
+
                                                 // 如果确实是运行时动态资源或者是孤儿未查到，那就认可它本来的妥协名字
                                                 uuidNameCache[item.id] = item.name;
                                             };
-                                            
+
                                             if (data.allResources) {
                                                 data.allResources.forEach(resolveRealName);
                                             }
@@ -896,7 +998,7 @@ module.exports = Editor.Panel.extend({
 
                                                 data.bundles.forEach((b: any) => {
                                                     if (b.resources) b.resources.forEach(resolveRealName);
-                                                    
+
                                                     // 计算内存涨跌走向趋势
                                                     const oldMem = oldMemMap[b.name];
                                                     if (oldMem !== undefined) {
@@ -907,7 +1009,7 @@ module.exports = Editor.Panel.extend({
                                                         b.trend = 'flat';
                                                     }
                                                 });
-                                                
+
                                                 // 根据 bundle 当前占用内存进行从高到低倒序排序
                                                 data.bundles.sort((a: any, b: any) => b.currentMemory - a.currentMemory);
                                             }
@@ -1037,7 +1139,7 @@ module.exports = Editor.Panel.extend({
                                 }
                             }
                         }
-                    } catch (err) {}
+                    } catch (err) { }
                 };
 
                 const _onPanelShow = () => {
@@ -1156,7 +1258,16 @@ module.exports = Editor.Panel.extend({
                     gameView,
                     devtoolsView,
                     wrapMount,
-                    openDevToolsExternal
+                    openDevToolsExternal,
+                    tabsList,
+                    draggingTabId,
+                    hoverTargetId,
+                    hoverDropPos,
+                    onDragStart,
+                    onDragOver,
+                    onDragLeave,
+                    onDrop,
+                    onDragEnd
                 };
             }
         });
