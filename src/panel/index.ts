@@ -336,9 +336,13 @@ module.exports = Editor.Panel.extend({
                             valStr = '"' + value.replace(/"/g, '\\"') + '"';
                         }
                         const compStr = compName ? '"' + compName + '"' : 'null';
+                        
+                        // 直接通过探针注入的统一下发通道去修改引擎底层真实数据
                         const code = `
-                            if (window.__mcpCrawler) {
-                                window.__mcpCrawler.updateNodeProperty('${uuid}', ${compStr}, '${propKey}', ${valStr});
+                            if (window.__mcpCrawler && typeof window.__mcpCrawler.updateNodeProperty === 'function') {
+                                window.__mcpCrawler.updateNodeProperty('${uuid}', ${compStr}, '${propKey}', ${valStr}, ${compIndex !== undefined ? compIndex : -1});
+                            } else {
+                                console.error("[MCP Bridge] 致命错误: window.__mcpCrawler.updateNodeProperty 未就绪或丢失。");
                             }
                         `;
                         const __p1 = wv.executeJavaScript(code);
@@ -350,58 +354,17 @@ module.exports = Editor.Panel.extend({
                                 return;
                             }
                             Editor.Ipc.sendToPanel('scene', 'scene:query-node', uuid, (err: any, dumpObj: any) => {
-                                if (err) {
-                                    return;
-                                }
+                                if (err) { return; }
                                 try {
                                     const dump = typeof dumpObj === 'string' ? JSON.parse(dumpObj) : dumpObj;
                                     const comps = dump.value.__comps__ || dump.value.components || dump.__comps__ || dump.components || dump;
                                     const fs = require('fs');
                                     const p = require('path').join(__dirname, '../../memory/dump.json');
                                     fs.writeFileSync(p, JSON.stringify(comps, null, 2));
-                                } catch (e: any) {
-                                }
+                                } catch (e: any) {}
                             });
-
-                            if (compName) {
-                                if (wv) {
-                                    wv.executeJavaScript(`
-                                        (function(){
-                                            if (!window.__mcpCrawler) return 'No Crawler';
-                                            const node = window.__mcpCrawler.findNodeByUuid('${uuid}');
-                                            if (node && node._components && node._components[${compIndex}]) {
-                                                node._components[${compIndex}]['${propKey}'] = ${JSON.stringify(value)};
-                                                if (typeof node._components[${compIndex}].updateAlignment === 'function') {
-                                                    node._components[${compIndex}].updateAlignment();
-                                                }
-                                                return 'OK';
-                                            }
-                                            return 'Node or Component Not Found';
-                                        })();
-                                    `).catch((err: any) => { });
-                                }
-                            } else {
-                                if (wv) {
-                                    wv.executeJavaScript(`
-                                        (function(){
-                                            if (!window.__mcpCrawler) return 'No Crawler';
-                                            const node = window.__mcpCrawler.findNodeByUuid('${uuid}');
-                                            if (node) {
-                                                if ('${propKey}' === 'rotation' && 'angle' in node) {
-                                                    node.angle = -${JSON.stringify(value)};
-                                                } else {
-                                                    node['${propKey}'] = ${JSON.stringify(value)};
-                                                }
-                                                return 'OK';
-                                            }
-                                            return 'Node Not Found';
-                                        })();
-                                    `).catch((err: any) => { });
-                                }
-                            }
                         } catch (e) {
-                            console.error('[Bridge Webview Error] Failed to execute JS on game webview:', e);
-                            Editor.error('[Bridge] Failed to execute JS on game webview', e);
+                            console.error('[Bridge Webview Error] Failed to query scene node info:', e);
                         }
                     }
                 };
@@ -548,6 +511,7 @@ module.exports = Editor.Panel.extend({
                                 globalState.cocosInfo = event.args[0];
                                 setTimeout(() => {
                                     executeMacro(isShowFPS.value ? 'fps:true' : 'fps:false');
+                                    executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
                                 }, 500);
                             } else if (event.channel === 'update-tree') {
                                 try {
@@ -620,8 +584,8 @@ module.exports = Editor.Panel.extend({
                             fallbackStarted = true;
 
                             setInterval(() => {
-                                // 如果已经收到了探针的正常数据流，无需降级
-                                if (globalState.cocosInfo && globalState.lastTreeUpdate > 0 && (Date.now() - globalState.lastTreeUpdate < 3000)) {
+                                // 如果已经收到了探针的正常数据流，无需降级（移除对 cocosInfo 的严苛前置要求以防双轨竞态死锁）
+                                if (globalState.lastTreeUpdate > 0 && (Date.now() - globalState.lastTreeUpdate < 3000)) {
                                     return;
                                 }
                                 const wv: any = gameView.value;
@@ -733,6 +697,7 @@ module.exports = Editor.Panel.extend({
                             if (isAudioMuted.value && typeof gameViewDynamic.setAudioMuted === 'function') {
                                 try { gameViewDynamic.setAudioMuted(isAudioMuted.value); } catch (e) { }
                             }
+                            executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
 
                             // 强行注入 CSS 屏蔽 Webview 内部的滚动条以及外壳元素的溢出
                             try {
@@ -913,10 +878,14 @@ module.exports = Editor.Panel.extend({
                 const rotateScreen = () => { isLandscape.value = !isLandscape.value; };
                 function refreshGame() {
                     if (!globalState.isEditorSceneActive) {
-                        console.warn('[Bridge] 场景未激活，刷新操作被安全拦截');
+                        console.warn('[Bridge] 场景未激活，刷新操作暂被拦截以防报错。');
                         return;
                     }
+                    console.log('[Bridge] 触发手动刷新重载游戏视图...');
                     globalState.isGamePaused = false;
+                    globalState.nodeTree = null;
+                    globalState.lastTreeUpdate = 0;
+                    
                     const wv: any = gameView.value;
 
                     // [Robust] 只有地址不再包含 localhost 时 (例如空字符串或 about:blank)，才重新赋予初始的预览服务器地址
@@ -949,6 +918,15 @@ module.exports = Editor.Panel.extend({
                                         eng.debug.setDisplayStats(false);
                                     }
                                 }
+                                if (eng && eng.audioEngine) {
+                                    if ('${command}' === 'mute:true') {
+                                        if (typeof eng.audioEngine.setMusicVolume === 'function') eng.audioEngine.setMusicVolume(0);
+                                        if (typeof eng.audioEngine.setEffectsVolume === 'function') eng.audioEngine.setEffectsVolume(0);
+                                    } else if ('${command}' === 'mute:false') {
+                                        if (typeof eng.audioEngine.setMusicVolume === 'function') eng.audioEngine.setMusicVolume(1);
+                                        if (typeof eng.audioEngine.setEffectsVolume === 'function') eng.audioEngine.setEffectsVolume(1);
+                                    }
+                                }
                             `;
                             const __p4 = wv.executeJavaScript(code);
                             if (__p4 && __p4.catch) __p4.catch(() => { });
@@ -967,6 +945,7 @@ module.exports = Editor.Panel.extend({
                     if (wv && typeof wv.setAudioMuted === 'function') {
                         try { wv.setAudioMuted(isAudioMuted.value); } catch (e) { }
                     }
+                    executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
                 };
 
                 // 回退方案：在独立窗口中打开 DevTools

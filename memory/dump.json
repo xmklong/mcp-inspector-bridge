@@ -1,6 +1,6 @@
 [
   {
-    "type": "cc.Sprite",
+    "type": "cc.Canvas",
     "value": {
       "_name": {
         "type": "String",
@@ -8,22 +8,22 @@
       },
       "_objFlags": {
         "type": "Float",
-        "value": 63488
+        "value": 3799040
       },
       "node": {
         "value": {
-          "name": "PuzzleUI",
-          "uuid": "36OPsCXTRCZ7N+HjWhprxP"
+          "name": "Canvas",
+          "uuid": "10Lm1h489E/6Z/MWyWcKPj"
         },
         "type": "cc.Node"
       },
       "name": {
         "type": "String",
-        "value": "PuzzleUI<Sprite>"
+        "value": "Canvas<Canvas>"
       },
       "uuid": {
         "type": "String",
-        "value": "41H1R1gsZMlpym/WJTOaGh"
+        "value": "e0VMMvPKRNmZ9+y02Mj6Ae"
       },
       "__scriptAsset": {
         "type": "cc.Script",
@@ -47,127 +47,39 @@
         "type": "Float",
         "value": 16384
       },
-      "_materials": {
-        "type": "cc.Material",
-        "value": [
-          {
-            "type": "cc.MaterialVariant",
-            "value": {
-              "uuid": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
-            }
-          }
-        ]
-      },
-      "materials": {
-        "type": "cc.Material",
-        "value": [
-          {
-            "type": "cc.MaterialVariant",
-            "value": {
-              "uuid": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
-            }
-          }
-        ]
-      },
-      "_srcBlendFactor": {
-        "type": "Float",
-        "value": 770
-      },
-      "_dstBlendFactor": {
-        "type": "Float",
-        "value": 771
-      },
-      "srcBlendFactor": {
-        "type": "Enum",
-        "value": 770
-      },
-      "dstBlendFactor": {
-        "type": "Enum",
-        "value": 771
-      },
-      "_spriteFrame": {
-        "type": "cc.SpriteFrame",
+      "_designResolution": {
+        "type": "cc.Size",
         "value": {
-          "uuid": "a23235d1-15db-4b95-8439-a2e005bfff91"
+          "width": 750,
+          "height": 1334
         }
       },
-      "_type": {
-        "type": "Float",
-        "value": 0
-      },
-      "_sizeMode": {
-        "type": "Float",
-        "value": 0
-      },
-      "_fillType": {
-        "type": "Float",
-        "value": 0
-      },
-      "_fillCenter": {
-        "type": "cc.Vec2",
+      "designResolution": {
+        "type": "cc.Size",
         "value": {
-          "x": 0,
-          "y": 0
+          "width": 750,
+          "height": 1334
         }
       },
-      "_fillStart": {
-        "type": "Float",
-        "value": 0
-      },
-      "_fillRange": {
-        "type": "Float",
-        "value": 0
-      },
-      "_isTrimmedMode": {
+      "_fitWidth": {
         "type": "Boolean",
         "value": true
       },
-      "_atlas": {
-        "type": "cc.SpriteAtlas",
-        "value": {
-          "uuid": ""
-        }
-      },
-      "spriteFrame": {
-        "type": "cc.SpriteFrame",
-        "value": {
-          "uuid": "a23235d1-15db-4b95-8439-a2e005bfff91"
-        }
-      },
-      "type": {
-        "type": "Enum",
-        "value": 0
-      },
-      "fillType": {
-        "type": "Enum",
-        "value": 0
-      },
-      "fillCenter": {
-        "type": "cc.Vec2",
-        "value": {
-          "x": 0,
-          "y": 0
-        }
-      },
-      "fillStart": {
-        "type": "Float",
-        "value": 0
-      },
-      "fillRange": {
-        "type": "Float",
-        "value": 0
-      },
-      "trim": {
+      "_fitHeight": {
         "type": "Boolean",
         "value": true
       },
-      "sizeMode": {
-        "type": "Enum",
-        "value": 0
+      "fitHeight": {
+        "type": "Boolean",
+        "value": true
+      },
+      "fitWidth": {
+        "type": "Boolean",
+        "value": true
       },
       "_id": {
         "type": "string",
-        "value": "41H1R1gsZMlpym/WJTOaGh"
+        "value": "e0VMMvPKRNmZ9+y02Mj6Ae"
       }
     }
   },
@@ -180,22 +92,22 @@
       },
       "_objFlags": {
         "type": "Float",
-        "value": 57344
+        "value": 63488
       },
       "node": {
         "value": {
-          "name": "PuzzleUI",
-          "uuid": "36OPsCXTRCZ7N+HjWhprxP"
+          "name": "Canvas",
+          "uuid": "10Lm1h489E/6Z/MWyWcKPj"
         },
         "type": "cc.Node"
       },
       "name": {
         "type": "String",
-        "value": "PuzzleUI<Widget>"
+        "value": "Canvas<Widget>"
       },
       "uuid": {
         "type": "String",
-        "value": "c0vusWM8tNQIVMKnFdhX/d"
+        "value": "53DFX8TLRMf6M1aIJSCJm4"
       },
       "__scriptAsset": {
         "type": "cc.Script",
@@ -205,15 +117,15 @@
       },
       "_enabled": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "enabled": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "enabledInHierarchy": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "_isOnLoadCalled": {
         "type": "Float",
@@ -235,11 +147,11 @@
       },
       "isAlignBottom": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "isAlignLeft": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "isAlignHorizontalCenter": {
         "type": "Boolean",
@@ -247,19 +159,19 @@
       },
       "isAlignRight": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "isStretchWidth": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "isStretchHeight": {
         "type": "Boolean",
-        "value": false
+        "value": true
       },
       "top": {
         "type": "Float",
-        "value": 54.931
+        "value": 0
       },
       "bottom": {
         "type": "Float",
@@ -267,7 +179,7 @@
       },
       "left": {
         "type": "Float",
-        "value": 78.324
+        "value": 0
       },
       "right": {
         "type": "Float",
@@ -275,11 +187,11 @@
       },
       "horizontalCenter": {
         "type": "Float",
-        "value": -67.176
+        "value": 0
       },
       "verticalCenter": {
         "type": "Float",
-        "value": 61.069
+        "value": 0
       },
       "isAbsoluteHorizontalCenter": {
         "type": "Boolean",
@@ -307,7 +219,7 @@
       },
       "alignMode": {
         "type": "Enum",
-        "value": 0
+        "value": 1
       },
       "_wasAlignOnce": {
         "type": "Object",
@@ -319,11 +231,11 @@
       },
       "_alignFlags": {
         "type": "Float",
-        "value": 1
+        "value": 45
       },
       "_left": {
         "type": "Float",
-        "value": 78.324
+        "value": 0
       },
       "_right": {
         "type": "Float",
@@ -331,7 +243,7 @@
       },
       "_top": {
         "type": "Float",
-        "value": 54.931
+        "value": 0
       },
       "_bottom": {
         "type": "Float",
@@ -339,11 +251,11 @@
       },
       "_verticalCenter": {
         "type": "Float",
-        "value": 61.069
+        "value": 0
       },
       "_horizontalCenter": {
         "type": "Float",
-        "value": -67.176
+        "value": 0
       },
       "_isAbsLeft": {
         "type": "Boolean",
@@ -379,7 +291,7 @@
       },
       "_id": {
         "type": "string",
-        "value": "c0vusWM8tNQIVMKnFdhX/d"
+        "value": "53DFX8TLRMf6M1aIJSCJm4"
       }
     }
   }

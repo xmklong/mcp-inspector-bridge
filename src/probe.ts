@@ -148,6 +148,59 @@
                 }
             }
             return detail;
+        },
+        updateNodeProperty: function (uuid, compName, propKey, value, compIndex) {
+            const node = this.findNodeByUuid(uuid);
+            if (!node || !node.isValid) {
+                console.warn("[MCP Crawler] Node " + uuid + " is invalid or already destroyed.");
+                return false;
+            }
+
+            try {
+                if (!compName || compName === 'null') {
+                    // Update property on the node directly
+                    if (propKey === 'rotation' && 'angle' in node) {
+                        node.angle = -value;
+                    } else {
+                        node[propKey] = value;
+                    }
+                    return true;
+                } else {
+                    // Update property on a specific component
+                    if (node._components) {
+                        // Use compIndex if valid, otherwise fallback to name searching
+                        let targetComp = null;
+                        if (compIndex !== undefined && compIndex >= 0 && compIndex < node._components.length) {
+                            targetComp = node._components[compIndex];
+                        } else {
+                            for (let i = 0; i < node._components.length; i++) {
+                                const comp = node._components[i];
+                                let cname = comp.name || comp.__classname__ || "Unknown";
+                                const match = cname.match(/<([^>]+)>/);
+                                if (match) cname = match[1];
+                                
+                                if (cname === compName) {
+                                    targetComp = comp;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (targetComp) {
+                            targetComp[propKey] = value;
+                            if (typeof targetComp.updateAlignment === 'function') {
+                                targetComp.updateAlignment();
+                            }
+                            return true;
+                        }
+                        console.warn("[MCP Crawler] Component " + compName + " not found on node " + node.name);
+                        return false;
+                    }
+                }
+            } catch (e) {
+                console.error("[MCP Crawler] Exception in updateNodeProperty: ", e);
+            }
+            return false;
         }
     };
 
