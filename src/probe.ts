@@ -4,7 +4,7 @@
     if (window.__mcpProbeInitialized) {
         return;
     }
-    
+
     // 初始化高亮状态存储
     window.__mcpHighlightData = {
         hoverId: null,
@@ -14,7 +14,7 @@
         selectNode: null,
         selectGraphics: null,
     };
-    
+
     // 注册向外部供血的全局 API 对象
     window.__mcpCrawler = {
 
@@ -54,7 +54,7 @@
                 groupList: window.cc && window.cc.game ? window.cc.game.groupList : null,
                 components: [],
             };
-            
+
             if (node._components) {
                 for (let i = 0; i < node._components.length; i++) {
                     const comp = node._components[i];
@@ -62,21 +62,21 @@
                     const match = cname.match(/<([^>]+)>/);
                     if (match) cname = match[1];
                     const props = [];
-                    
+
                     let propKeys = [];
                     if (comp.constructor && Array.isArray(comp.constructor.__props__)) {
                         propKeys = comp.constructor.__props__;
                     } else {
                         propKeys = Object.keys(comp);
                     }
-                    
-                    const hiddenBuiltins = ["name","uuid","node","enabled","enabledInHierarchy","_scriptAsset","__scriptAsset","_isOnLoadCalled","_objFlags"];
-                    
+
+                    const hiddenBuiltins = ["name", "uuid", "node", "enabled", "enabledInHierarchy", "_scriptAsset", "__scriptAsset", "_isOnLoadCalled", "_objFlags"];
+
                     for (let j = 0; j < propKeys.length; j++) {
                         const key = propKeys[j];
                         try {
                             if (hiddenBuiltins.indexOf(key) !== -1) continue;
-                            
+
                             let isVisible = true;
                             if (comp.constructor && comp.constructor.__attrs__) {
                                 const visibleAttr = comp.constructor.__attrs__[key + "|visible"];
@@ -89,10 +89,10 @@
                                 isVisible = false;
                             }
                             if (!isVisible) continue;
-                            
+
                             const val = comp[key];
                             if (typeof val === "function") continue;
-                            
+
                             let type = "unsupported";
                             let exportValue = val;
                             if (val === null || val === undefined) type = "unsupported";
@@ -105,7 +105,7 @@
                                     if (item === null) return "null";
                                     if (item === undefined) return "undefined";
                                     if (typeof item === "number" || typeof item === "string" || typeof item === "boolean") return item;
-                                    
+
                                     const eng = window.cc;
                                     if (eng && eng.Node && item instanceof eng.Node) {
                                         return { type: "node_ref", value: { uuid: item.uuid || item.id, name: item.name } };
@@ -133,7 +133,7 @@
                                     exportValue = { uuid: val._uuid || val.uuid || val.id || "unknown", name: val.name || "Unnamed Asset", className: clsName };
                                 }
                             }
-                            
+
                             if (type !== "unsupported") {
                                 let enumList = null;
                                 if (cname === "sp.Skeleton" || cname === "Skeleton") {
@@ -141,12 +141,12 @@
                                         try {
                                             const rd = comp.skeletonData.getRuntimeData();
                                             if (rd && rd.animations) enumList = ["<None>"].concat(rd.animations.map((a) => a.name));
-                                        } catch (e) {}
+                                        } catch (e) { }
                                     } else if (key === "defaultSkin" && comp.skeletonData) {
                                         try {
                                             const rd = comp.skeletonData.getRuntimeData();
                                             if (rd && rd.skins) enumList = rd.skins.map((s) => s.name);
-                                        } catch (e) {}
+                                        } catch (e) { }
                                     }
                                 }
                                 const propData = { key, value: exportValue, type };
@@ -203,7 +203,7 @@
                                 let cname = comp.name || comp.__classname__ || "Unknown";
                                 const match = cname.match(/<([^>]+)>/);
                                 if (match) cname = match[1];
-                                
+
                                 if (cname === compName) {
                                     targetComp = comp;
                                     break;
@@ -234,10 +234,10 @@
                 console.warn("[MCP Crawler] Target node or component not found for printing.", uuid, compIndex);
                 return;
             }
-            
+
             const comp = node._components[compIndex];
             const eng = window.cc || {};
-            
+
             function getNodePath(n) {
                 if (!n) return '';
                 let isValidStr = (n.isValid === false) ? ' (Destroyed)' : '';
@@ -254,12 +254,12 @@
             const seen = new WeakSet();
             const replacer = function (key, value) {
                 if (value === null || value === undefined) return value;
-                
+
                 // 处理 cc.Node
                 if (eng.Node && value instanceof eng.Node) {
                     return `[ cc.Node: ${getNodePath(value)} ]`;
                 }
-                
+
                 // 处理 cc.Asset
                 if (eng.Asset && value instanceof eng.Asset) {
                     let clsName = "cc.Asset";
@@ -274,7 +274,7 @@
                     }
                     seen.add(value);
                 }
-                
+
                 return value;
             };
 
@@ -287,17 +287,17 @@
                 console.log(`%c[MCP] 组件 (${compName}) 数据导出成功 👇`, 'color: #00ff00; font-weight: bold;');
                 console.log(jsonStr);
                 console.log(`%c---------------------------------------`, 'color: #00ff00; font-weight: bold;');
-                
+
                 // 尝试写入剪贴板
                 if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(jsonStr).catch(function(err){});
+                    navigator.clipboard.writeText(jsonStr).catch(function (err) { });
                 }
             } catch (err) {
                 console.error("[MCP Crawler] 序列化组件数据失败: ", err);
             }
         },
 
-        getNodeWorldPolygon: function(target) {
+        getNodeWorldPolygon: function (target) {
             const eng = window.cc;
             if (!target || typeof target.convertToWorldSpaceAR !== 'function') return null;
             const width = target.width || 0;
@@ -316,14 +316,14 @@
             let br = target.convertToWorldSpaceAR(eng.v2(ptRight, ptBottom));
             let tr = target.convertToWorldSpaceAR(eng.v2(ptRight, ptTop));
             let tl = target.convertToWorldSpaceAR(eng.v2(ptLeft, ptTop));
-            
+
             return [bl, br, tr, tl];
         },
 
         setHoverTarget: function (uuid) {
             window.__mcpHighlightData.hoverId = uuid;
         },
-        
+
         setSelectionTarget: function (uuid) {
             window.__mcpHighlightData.selectId = uuid;
         }
@@ -332,15 +332,15 @@
 
 
     const DEBUG_INTERVAL = 1000;
-    
+
     function initProbe() {
         try {
             if (typeof cc === 'undefined' || !cc.director || !cc.director.getScene()) {
                 setTimeout(initProbe, 500);
                 return;
             }
-            
-            
+
+
             // 通知中控面板握手完成
             window.__mcpInspector.sendHandshake({
                 version: cc.ENGINE_VERSION,
@@ -354,7 +354,7 @@
 
             // 标记探针已初始化完成，防止重复注入
             window.__mcpProbeInitialized = true;
-            
+
             // ==========================================
             // [Phase X: 节点交互高亮渲染基架]
             // ==========================================
@@ -382,11 +382,11 @@
                     }
                     return { node, graphics };
                 }
-                
+
                 const hover = getOrCreateOverlay('__mcp_hover_overlay__');
                 window.__mcpHighlightData.hoverNode = hover.node;
                 window.__mcpHighlightData.hoverGraphics = hover.graphics;
-                
+
                 const select = getOrCreateOverlay('__mcp_select_overlay__');
                 window.__mcpHighlightData.selectNode = select.node;
                 window.__mcpHighlightData.selectGraphics = select.graphics;
@@ -410,7 +410,7 @@
                 }
                 const hoverG = data.hoverGraphics;
                 const selectG = data.selectGraphics;
-                
+
                 hoverG.clear();
                 selectG.clear();
 
@@ -492,7 +492,7 @@
                 if (data.selectId) {
                     drawNodeBox(data.selectId, selectG, false, data.selectNode);
                 }
-                
+
                 // 如果悬停对象与选中焦点为同一个（或者为父级选中的同组逻辑等但 UUID 一致的情况则屏蔽画笔）
                 if (data.hoverId && data.hoverId !== data.selectId) {
                     drawNodeBox(data.hoverId, hoverG, true, data.hoverNode);
@@ -511,10 +511,10 @@
             let accumulatedRenderTime = 0;
             let logicFrames = 0;
             let renderFrames = 0;
-            
+
             let logicStart = 0;
             let renderStart = 0;
-            
+
             // 实时逻辑消耗窃听器
             cc.director.on(cc.Director.EVENT_BEFORE_UPDATE, () => {
                 logicStart = performance.now();
@@ -523,7 +523,7 @@
                 accumulatedLogicTime += (performance.now() - logicStart);
                 logicFrames++;
             });
-            
+
             // 实时渲染消耗窃听器
             cc.director.on(cc.Director.EVENT_BEFORE_DRAW, () => {
                 renderStart = performance.now();
@@ -546,11 +546,11 @@
                 }
                 lastTime = now;
                 lastFrames = frames;
-                
+
                 // 平滑计算平均耗时，保留 2 位小数
                 displayLogicTime = logicFrames > 0 ? Number((accumulatedLogicTime / logicFrames).toFixed(2)) : 0;
                 displayRenderTime = renderFrames > 0 ? Number((accumulatedRenderTime / renderFrames).toFixed(2)) : 0;
-                
+
                 // 重置累加器
                 accumulatedLogicTime = 0;
                 logicFrames = 0;
@@ -559,7 +559,7 @@
 
             }, 500); // 也是 500ms，和 FPS 一起刷新平滑
 
-            window.__mcpProfilerTick = function() {
+            window.__mcpProfilerTick = function () {
                 // 读取 DrawCall: 它是单帧即时数据，可以直接拿 renderer 的
                 let drawCall = 0;
 
@@ -569,7 +569,7 @@
                     } else if (cc.profiler_stats) {
                         drawCall = cc.profiler_stats.drawCall || 0;
                     }
-                } catch(e) {}
+                } catch (e) { }
 
                 return {
                     fps: currentFps,
@@ -578,19 +578,19 @@
                     renderTime: displayRenderTime
                 };
             };
-            
+
             // 极值存储器，寿命贯穿探针全程
             const memExtrema = {};
 
-            window.__mcpGetMemoryRanking = function() {
+            window.__mcpGetMemoryRanking = function () {
                 const eng = window.cc;
                 if (!eng || !eng.assetManager || !eng.assetManager.assets) return null;
-                
+
                 const assets = eng.assetManager.assets;
                 const bundles = eng.assetManager.bundles; // Map<string, Bundle> (2.4+)
-                
+
                 const globalResources = [];
-                const bundleDataMap = {}; 
+                const bundleDataMap = {};
                 const ownerMap = {}; // texture uuid -> list of parent asset names
 
                 // Pass 1: 建立纹理归属反向映射表
@@ -606,16 +606,16 @@
                                     if (tid) {
                                         if (!ownerMap[tid]) ownerMap[tid] = [];
                                         let sName = asset.name || asset._name;
-                                        if (sName && sName !== 'Unnamed' && sName.indexOf(auuid.substring(0,8)) === -1 && ownerMap[tid].indexOf(sName) === -1) {
+                                        if (sName && sName !== 'Unnamed' && sName.indexOf(auuid.substring(0, 8)) === -1 && ownerMap[tid].indexOf(sName) === -1) {
                                             ownerMap[tid].push(sName);
                                         }
                                     }
                                 }
                             }
-                        } catch(e) {}
+                        } catch (e) { }
                     });
                 }
-                
+
                 // 1. 初始化存在的 bundle 容器
                 if (bundles && bundles.forEach) {
                     bundles.forEach((bundle, name) => {
@@ -629,17 +629,17 @@
                         }
                     }
                 }
-                
+
                 // 虚拟兜底区
                 bundleDataMap['[Internal/Global]'] = { name: '[Internal/Global]', currentMemory: 0, resources: [] };
-                
+
                 // 辅助函数，粗略或精确的计算单个资源的内存字节数
                 function getAssetSize(asset) {
                     if (!asset) return 0;
                     // 若有原生标记则非常准确
                     if (asset._nativeSize !== undefined) return asset._nativeSize;
                     if (asset._nativeAsset && asset._nativeAsset.byteLength) return asset._nativeAsset.byteLength;
-                    
+
                     let cName = '';
                     if (asset.__classname__) {
                         cName = asset.__classname__;
@@ -647,7 +647,7 @@
                         cName = eng.js.getClassName(asset) || '';
                     }
                     const typeStr = cName || (asset.constructor ? asset.constructor.name : 'Unknown');
-                    
+
                     if (typeStr.indexOf('Texture2D') !== -1 || (eng.Texture2D && asset instanceof eng.Texture2D)) {
                         const w = asset.width || 0;
                         const h = asset.height || 0;
@@ -656,7 +656,7 @@
                     }
                     if ((typeStr.indexOf('AudioClip') !== -1 || (eng.AudioClip && asset instanceof eng.AudioClip)) && asset._duration) {
                         // 预估 128kbps 的音频在解压时的体积 (简单粗暴的下限预估)
-                        return Math.floor(asset._duration * 128 * 1024 / 8); 
+                        return Math.floor(asset._duration * 128 * 1024 / 8);
                     }
                     if (typeStr.indexOf('SpriteFrame') !== -1 || (eng.SpriteFrame && asset instanceof eng.SpriteFrame)) {
                         // 引用类资源，其巨大内存本身落在依存的 Texture(图集) 上，切勿重复累积大片 Bytes 导致虚高
@@ -667,19 +667,19 @@
                     }
                     return 512; // 其他微型资源：Prefab/Material/Effect 等
                 }
-                
+
                 // 2. 遍历所有存活 asset
                 if (assets.forEach) {
                     assets.forEach((asset, uuid) => {
                         if (!asset) return;
-                        
+
                         let typeName = (asset.constructor && asset.constructor.name) || (asset.__classname__) || 'Asset';
                         // cc.js.getClassName 更好
                         if (eng.js && typeof eng.js.getClassName === 'function') {
                             const cName = eng.js.getClassName(asset);
                             if (cName) typeName = cName;
                         }
-                        
+
                         // 优先寻找它的 Bundle 归属与原生构建路径 (大幅降低大批 Unnamed 现象)
                         let foundBundle = false;
                         let bNameTarget = '[Internal/Global]';
@@ -700,14 +700,14 @@
                                 }
                             });
                         }
-                        
+
                         // 多级名称回落策略与污染判定
                         function isUselessName(n, u) {
                             if (!n) return true;
                             if (n === 'Unnamed' || n === 'Unknown') return true;
                             const shortU = u.substring(0, 8);
                             // 包含了原资产 UUID 截断序列的名称往往是引擎底层生成的临时无意义名
-                            if (n.indexOf(shortU) !== -1) return true; 
+                            if (n.indexOf(shortU) !== -1) return true;
                             if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-/.test(n)) return true;
                             return false;
                         }
@@ -720,19 +720,19 @@
                                 name = urlParts[urlParts.length - 1]; // 通常是 xxxxxxxx.png，但可能被上方的 shortU 拦下来
                             }
                         }
-                        
+
                         // 依然无意义？使用反向扫描探测到的拥有者名字 (针对依附对象提取)
                         if (isUselessName(name, uuid) && ownerMap[uuid] && ownerMap[uuid].length > 0) {
                             name = '[Tex] ' + ownerMap[uuid][0]; // 借用父层名字
                         }
-                        
+
                         if (isUselessName(name, uuid)) {
                             name = '[Unnamed] ' + uuid.substring(0, 8);
                         }
 
                         const refCount = asset.refCount || 0;
                         const size = getAssetSize(asset);
-                        
+
                         const resItem = {
                             id: uuid,
                             name: name,
@@ -740,21 +740,21 @@
                             memory: size,
                             refCount: refCount
                         };
-                        
+
                         if (bundleDataMap[bNameTarget]) {
                             bundleDataMap[bNameTarget].resources.push(resItem);
                             bundleDataMap[bNameTarget].currentMemory += size;
                         }
                     });
                 }
-                
+
                 // 3. 构建返回列表、排序，并更新极值记录
                 const resultList = [];
-                const allRes = []; 
-                
+                const allRes = [];
+
                 for (let bName in bundleDataMap) {
                     const block = bundleDataMap[bName];
-                    
+
                     if (!memExtrema[bName]) {
                         memExtrema[bName] = { max: block.currentMemory, min: block.currentMemory };
                     } else {
@@ -769,31 +769,31 @@
                             memExtrema[bName].max = block.currentMemory;
                         }
                     }
-                    
+
                     block.maxMemory = memExtrema[bName].max;
                     block.minMemory = memExtrema[bName].min;
                     block.resourceCount = block.resources.length;
-                    
+
                     // Bundle 内部局部倒序
-                    block.resources.sort((a,b) => b.memory - a.memory);
-                    
+                    block.resources.sort((a, b) => b.memory - a.memory);
+
                     // 收集汇总
-                    for(let i=0; i<block.resources.length; i++){
+                    for (let i = 0; i < block.resources.length; i++) {
                         allRes.push(block.resources[i]);
                     }
-                    
+
                     resultList.push(block);
                 }
-                
+
                 // 全景榜单倒序
-                allRes.sort((a,b) => b.memory - a.memory);
-                
+                allRes.sort((a, b) => b.memory - a.memory);
+
                 return {
                     bundles: resultList,
                     allResources: allRes
                 };
             };
-            
+
             // ==========================================
             // [Phase 3: 渲染合批探测器]
             // ==========================================
@@ -813,7 +813,7 @@
                 _originBatcherFlush: null,
                 _originDeviceDraw: null,
                 _lastSnapshotSendTime: 0,
-                
+
                 // --- 画面重绘回放 ---
                 _replayLimit: -1,
                 _currentReplayDrawCallCount: 0,
@@ -825,7 +825,7 @@
                 _currentFlushingBatchIndex: 0,
                 _currentFlushingBatcher: null,
 
-                stepToDrawCall: function(limitIndex: number, frameSnapshotData: any) {
+                stepToDrawCall: function (limitIndex: number, frameSnapshotData: any) {
                     this._replayLimit = limitIndex;
                     this._requestCaptureThisFrame = true;
                     // 尝试促使引擎渲染
@@ -836,7 +836,7 @@
                     }
                 },
 
-                injectHooks: function() {
+                injectHooks: function () {
                     const self = this;
                     if (self._isActive) return;
 
@@ -846,7 +846,7 @@
                         if (frm && frm.contentWindow && (frm.contentWindow as any).cc) {
                             eng = (frm.contentWindow as any).cc;
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                     if (!eng) eng = window.cc;
 
                     if (!eng || !eng.RenderComponent) {
@@ -866,7 +866,7 @@
                         self._originCheckBatch = eng.RenderComponent.prototype[methodName];
                     }
 
-                    eng.RenderComponent.prototype[methodName] = function(batcher: any, cullingMask: number) {
+                    eng.RenderComponent.prototype[methodName] = function (batcher: any, cullingMask: number) {
                         if (self._isActive && batcher) {
                             try {
                                 const newMaterial = this._materials && this._materials.length > 0 ? this._materials[0] : null;
@@ -875,50 +875,50 @@
                                     const oldHash = batcher.material.getHash();
 
                                     if (newHash !== oldHash || batcher.cullingMask !== cullingMask) {
-                                            if (batcher.material.name !== 'default-material' && batcher.node && batcher.node !== batcher._dummyNode) {
-                                                const diffs = [];
-                                                if (newMaterial.name !== batcher.material.name) {
-                                                    diffs.push(`材质实例不同 [${batcher.material.name} -> ${newMaterial.name}]`);
-                                                } else if (newHash !== oldHash) {
-                                                    diffs.push(`材质内部参数变动 (疑似纹理或合批未开)`);
-                                                }
-                                                if (batcher.cullingMask !== cullingMask) {
-                                                    diffs.push(`Culling Mask 变动 [${batcher.cullingMask} -> ${cullingMask}]`);
-                                                }
-                                                
-                                                const culpritNode = this.node;
-                                                const victimNode = batcher.node;
-
-                                                const culpritName = culpritNode ? culpritNode.name : 'Unknown';
-                                                const victimName = victimNode ? victimNode.name : 'Unknown';
-                                                const culpritId = culpritNode ? (culpritNode.uuid || culpritNode.id || '') : '';
-                                                const victimId = victimNode ? (victimNode.uuid || victimNode.id || '') : '';
-
-                                                // 完全静默原生控制台，废弃控制台警告直出时代的过渡代码：
-                                                // console.warn(\`[RenderDebugger] 🚫 <合批被迫中断> ...\`);
-
-                                                // 阶段一改造：增加前缀 JSON 以向外广播
-                                                const payload = {
-                                                    type: 'render-debugger:batch-break',
-                                                    data: {
-                                                        culprit: culpritName,
-                                                        culpritId: culpritId,
-                                                        victim: victimName,
-                                                        victimId: victimId,
-                                                        reasons: diffs
-                                                    }
-                                                };
-                                                
-                                                // [真正静默模式]：寻找宿主 IPC 专线投递避免污染 Console
-                                                if (window.__mcpInspector && window.__mcpInspector.sendRenderDebuggerPayload) {
-                                                    window.__mcpInspector.sendRenderDebuggerPayload(payload);
-                                                } else {
-                                                    console.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
-                                                }
+                                        if (batcher.material.name !== 'default-material' && batcher.node && batcher.node !== batcher._dummyNode) {
+                                            const diffs = [];
+                                            if (newMaterial.name !== batcher.material.name) {
+                                                diffs.push(`材质实例不同 [${batcher.material.name} -> ${newMaterial.name}]`);
+                                            } else if (newHash !== oldHash) {
+                                                diffs.push(`材质内部参数变动 (疑似纹理或合批未开)`);
                                             }
+                                            if (batcher.cullingMask !== cullingMask) {
+                                                diffs.push(`Culling Mask 变动 [${batcher.cullingMask} -> ${cullingMask}]`);
+                                            }
+
+                                            const culpritNode = this.node;
+                                            const victimNode = batcher.node;
+
+                                            const culpritName = culpritNode ? culpritNode.name : 'Unknown';
+                                            const victimName = victimNode ? victimNode.name : 'Unknown';
+                                            const culpritId = culpritNode ? (culpritNode.uuid || culpritNode.id || '') : '';
+                                            const victimId = victimNode ? (victimNode.uuid || victimNode.id || '') : '';
+
+                                            // 完全静默原生控制台，废弃控制台警告直出时代的过渡代码：
+                                            // console.warn(\`[RenderDebugger] 🚫 <合批被迫中断> ...\`);
+
+                                            // 阶段一改造：增加前缀 JSON 以向外广播
+                                            const payload = {
+                                                type: 'render-debugger:batch-break',
+                                                data: {
+                                                    culprit: culpritName,
+                                                    culpritId: culpritId,
+                                                    victim: victimName,
+                                                    victimId: victimId,
+                                                    reasons: diffs
+                                                }
+                                            };
+
+                                            // [真正静默模式]：寻找宿主 IPC 专线投递避免污染 Console
+                                            if (window.__mcpInspector && window.__mcpInspector.sendRenderDebuggerPayload) {
+                                                window.__mcpInspector.sendRenderDebuggerPayload(payload);
+                                            } else {
+                                                console.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
+                                            }
+                                        }
                                     }
                                 }
-                            } catch (e) {}
+                            } catch (e) { }
 
                         }
                         const ret = self._originCheckBatch.call(this, batcher, cullingMask);
@@ -928,9 +928,9 @@
 
                             if (batcher && !batcher.__mcp_execute_hooked) {
                                 batcher.__mcp_execute_hooked = true;
-                                const hookMethod = function(origFunc) {
+                                const hookMethod = function (origFunc) {
                                     if (!origFunc) return origFunc;
-                                    return function() {
+                                    return function () {
                                         let ret;
                                         // 标记当前 Batcher 正在排放 DrawCall
                                         if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
@@ -967,7 +967,7 @@
                                 if (typeof batcher[fn] === 'function' && !batcher['__mcp_' + fn + '_hooked']) {
                                     batcher['__mcp_' + fn + '_hooked'] = true;
                                     let oldFn = batcher[fn];
-                                    batcher[fn] = function() {
+                                    batcher[fn] = function () {
                                         if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
                                             // Guard 验证：防止嵌套 flush 导致越级空包
                                             if (self._tempBatchesData[self._currentMcpBatchIndex] && self._tempBatchesData[self._currentMcpBatchIndex].length > 0) {
@@ -979,7 +979,7 @@
                                     };
                                 }
                             });
-                            
+
                             if (typeof self._currentMcpBatchIndex !== 'number') {
                                 self._currentMcpBatchIndex = 0;
                             }
@@ -1005,7 +1005,7 @@
                     // --- 1. mainLoop 钩子 (帧起始/结束) ---
                     if (!self._originMainLoop && eng.Director && eng.Director.prototype.mainLoop) {
                         self._originMainLoop = eng.Director.prototype.mainLoop;
-                        eng.Director.prototype.mainLoop = function(dt: number) {
+                        eng.Director.prototype.mainLoop = function (dt: number) {
                             self._currentReplayDrawCallCount = 0; // 起始重置计数
 
                             if (self._isActive && self._isCaptureEnabled) {
@@ -1022,9 +1022,9 @@
                                 self._currentMcpBatchIndex = 0;
                                 self._isFlushingBatcher = false;
                             }
-                            
+
                             self._originMainLoop.call(this, dt);
-                            
+
                             // 回读截屏 (在原本渲染循环刚完毕尚未交换走 Buffer 时提取)
                             if (self._requestCaptureThisFrame) {
                                 self._requestCaptureThisFrame = false;
@@ -1088,7 +1088,7 @@
                     if (eng.renderer && eng.renderer._batcher) {
                         if (!self._originBatcherFlush) {
                             self._originBatcherFlush = eng.renderer._batcher.flush;
-                            eng.renderer._batcher.flush = function() {
+                            eng.renderer._batcher.flush = function () {
                                 let ret;
                                 if (self._isActive && self._isCaptureEnabled && self._currentFrame) {
                                     self._isFlushingBatcher = true;
@@ -1106,13 +1106,13 @@
                             };
                         }
                     }
-                    
+
                     // Hook ForwardRenderer._draw to capture exact Item context
                     if (eng.renderer && eng.renderer._forward && eng.renderer._forward.constructor && eng.renderer._forward.constructor.prototype) {
                         if (!self._originForwardDraw) {
                             self._originForwardDraw = eng.renderer._forward.constructor.prototype._draw;
                             if (self._originForwardDraw) {
-                                eng.renderer._forward.constructor.prototype._draw = function(item) {
+                                eng.renderer._forward.constructor.prototype._draw = function (item) {
                                     self._currentRenderItem = item;
                                     let ret = self._originForwardDraw.apply(this, arguments);
                                     self._currentRenderItem = null;
@@ -1121,12 +1121,12 @@
                             }
                         }
                     }
-                    
+
                     if (eng.gfx && eng.gfx.Device) {
                         if (!self._originDeviceDraw) {
                             self._originDeviceDraw = eng.gfx.Device.prototype.draw;
-                            eng.gfx.Device.prototype.draw = function(primitiveType: number, indicesStart: number, indicesCount: number) {
-                                
+                            eng.gfx.Device.prototype.draw = function (primitiveType: number, indicesStart: number, indicesCount: number) {
+
                                 // 处理 CC 2.4 中底层重载调用 draw(start, count) 的边界情况
                                 let realPrimType = 4; // PT_TRIANGLES 默认为 4
                                 let realIndCount = 0;
@@ -1150,12 +1150,12 @@
                                     // 基于管线的分离式遍历与集中式消费特征：逐批次消费
                                     if (self._tempBatchesData && self._tempBatchesData.length > 0) {
                                         activeCommands = self._tempBatchesData.shift() || [];
-                                    } 
-                                    
+                                    }
+
                                     if (!activeCommands || activeCommands.length === 0) {
                                         activeCommands = self._pendingCommands;
                                         self._pendingCommands = [];
-                                        
+
                                         // 兜底策略：如果存在通过 ForwardRenderer._draw 直接派发的 item，解析其从属 Node
                                         if (self._currentRenderItem && activeCommands.length === 0) {
                                             let nodeObj = self._currentRenderItem.node;
@@ -1198,7 +1198,7 @@
                     console.log("[RenderDebugger] MVP 探针已成功注入游戏内渲染管线 ✅");
                 },
 
-                restoreHooks: function() {
+                restoreHooks: function () {
                     const self = this;
                     if (!self._isActive) return;
 
@@ -1208,8 +1208,8 @@
                         if (frm && frm.contentWindow && (frm.contentWindow as any).cc) {
                             eng = (frm.contentWindow as any).cc;
                         }
-                    } catch (e) {}
-                    
+                    } catch (e) { }
+
                     if (!eng) {
                         eng = window.cc;
                     }
@@ -1234,7 +1234,7 @@
                         eng.gfx.Device.prototype.draw = self._originDeviceDraw;
                         self._originDeviceDraw = null;
                     }
-                    
+
                     self._lastQuadInfo = null;
                     self._frames = [];
                     self._currentFrame = null;
@@ -1256,17 +1256,42 @@
                 _onClick: null,
                 _onKeyDown: null,
 
-                enable: function() {
+                enable: function () {
                     const self = this;
                     if (self.isActive) return;
                     self.isActive = true;
                     console.log("[Node Picker] 拾取模式已开启 🎯");
 
+                    // 部署 DOM 级阻击探针，免疫全部 Cocos 渲染管线错误
+                    if (!document.getElementById('__mcp_cursor_tracker')) {
+                        const tracker = document.createElement('div');
+                        tracker.id = '__mcp_cursor_tracker';
+                        tracker.style.position = 'fixed';
+                        tracker.style.zIndex = '2147483647';
+                        tracker.style.pointerEvents = 'none';
+                        tracker.style.width = '8px';
+                        tracker.style.height = '8px';
+                        tracker.style.borderRadius = '50%';
+                        tracker.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
+                        tracker.style.border = '1px solid white';
+                        tracker.style.transform = 'translate(-50%, -50%)';
+                        tracker.style.boxShadow = '0 0 5px rgba(255,0,0,1)';
+                        // 使用 shadowDOM 或者最外层 body 避免被游戏 canvas 截断
+                        document.body.appendChild(tracker);
+                    }
+
                     self._lastMoveTime = 0;
                     self._lastHoverUuid = null;
 
-                    self._onMouseMove = function(e) {
+                    self._onMouseMove = function (e) {
                         if (!self.isActive) return;
+
+                        // 实时同步原生探针
+                        const tracker = document.getElementById('__mcp_cursor_tracker');
+                        if (tracker) {
+                            tracker.style.left = e.clientX + 'px';
+                            tracker.style.top = e.clientY + 'px';
+                        }
                         // 节流，50ms一次
                         const now = Date.now();
                         if (now - self._lastMoveTime < 50) return;
@@ -1274,13 +1299,10 @@
 
                         const hitNode = self.hitTest(e.clientX, e.clientY);
                         const hitUuid = hitNode ? (hitNode.uuid || hitNode.id) : null;
-                        
-                        // 打印悬停日志 (去重防刷屏)
+
+                        // 不再打印高频的 Hover 日志
                         if (hitUuid !== self._lastHoverUuid) {
                             self._lastHoverUuid = hitUuid;
-                            if (hitNode) {
-                                console.log(`[Node Picker] Hover: ${hitNode.name} (UUID: ${hitUuid})`);
-                            }
                         }
 
                         if (hitUuid && window.__mcpCrawler) {
@@ -1290,7 +1312,7 @@
                         }
                     };
 
-                    self._onClick = function(e) {
+                    self._onClick = function (e) {
                         if (!self.isActive) return;
                         // 强制阻止物理拦截被别的 Input Manager 抢占
                         e.stopPropagation();
@@ -1302,28 +1324,27 @@
                         // 仅在 click 或 mouseup 确认拾取
                         if (e.type === 'mousedown') return;
 
-                        console.log('--- [Node Picker] 开始捕获点击深度诊断 (Deep Raycast Diagnostics) ---');
-                        const hitNode = self.hitTest(e.clientX, e.clientY, true);
+                        const hitNode = self.hitTest(e.clientX, e.clientY, false);
                         let hitUuid = '';
                         if (hitNode) {
                             hitUuid = hitNode.uuid || hitNode.id;
-                            console.log(`[Node Picker] Selected Hit: ${hitNode.name} (Size: ${hitNode.width}x${hitNode.height}, UUID: ${hitUuid})`);
+                            // console.log(`[Node Picker] Selected Hit: ${hitNode.name} (Size: ${hitNode.width}x${hitNode.height}, UUID: ${hitUuid})`);
                         }
-                        
+
                         // 同步持久化高亮框焦点
                         if (window.__mcpCrawler && window.__mcpCrawler.setSelectionTarget) {
                             window.__mcpCrawler.setSelectionTarget(hitUuid || '');
                         }
-                        
+
                         // 强制发送无差别 IPC 闭环，确保面板按钮能正确复位
                         if (window.__mcpInspector && window.__mcpInspector.sendNodeSelected) {
                             window.__mcpInspector.sendNodeSelected(hitUuid || '');
                         }
-                        
+
                         self.disable();
                     };
 
-                    self._onKeyDown = function(e) {
+                    self._onKeyDown = function (e) {
                         if (e.key === 'Escape') {
                             if (window.__mcpInspector && window.__mcpInspector.sendNodeSelected) {
                                 window.__mcpInspector.sendNodeSelected('');
@@ -1340,12 +1361,17 @@
                     document.documentElement.addEventListener('keydown', self._onKeyDown, true);
                 },
 
-                disable: function() {
+                disable: function () {
                     const self = this;
                     if (!self.isActive) return;
                     self.isActive = false;
                     console.log("[Node Picker] 拾取模式已关闭 🛑");
-                    
+
+                    const tracker = document.getElementById('__mcp_cursor_tracker');
+                    if (tracker && tracker.parentNode) {
+                        tracker.parentNode.removeChild(tracker);
+                    }
+
                     if (self._onMouseMove) document.documentElement.removeEventListener('mousemove', self._onMouseMove, true);
                     if (self._onClick) {
                         document.documentElement.removeEventListener('mousedown', self._onClick, true);
@@ -1353,37 +1379,43 @@
                         document.documentElement.removeEventListener('click', self._onClick, true);
                     }
                     if (self._onKeyDown) document.documentElement.removeEventListener('keydown', self._onKeyDown, true);
-                    
+
                     if (window.__mcpCrawler) {
                         window.__mcpCrawler.setHoverTarget(null);
                     }
                 },
 
-                hitTest: function(clientX, clientY, isDebug) {
+                hitTest: function (clientX, clientY, isDebug) {
                     const eng = window.cc;
                     if (!eng || !eng.director || !eng.view) return null;
                     const scene = eng.director.getScene();
                     if (!scene) return null;
 
-                    // 抓取 GameCanvas 边界，抹平缩放与偏移
+                    // 抓取 GameCanvas 边界，以此为基准进行缩放扣除与偏移
                     const canvas = document.getElementById('GameCanvas');
-                    const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-                    
-                    let screenPt;
-                    if (typeof eng.view.convertToLocationInView === 'function') {
-                        screenPt = eng.view.convertToLocationInView(clientX, clientY, rect);
-                    } else { // 降级方案
-                        const frameSize = eng.view.getFrameSize();
-                        const x = clientX - rect.left;
-                        const y = clientY - rect.top;
-                        screenPt = eng.v2(x * (frameSize.width / rect.width), frameSize.height - y * (frameSize.height / rect.height));
-                    }
-                    
+                    const rect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+
+                    const frameSize = eng.view.getFrameSize();
+                    const vp = eng.view.getViewportRect();
+                    const scaleX = eng.view.getScaleX();
+                    const scaleY = eng.view.getScaleY();
+
+                    // Step 1: DOM 坐标转到以左下角为原点的 Frame 像素坐标 (ScreenPt)
+                    const x = (clientX - rect.left) * (frameSize.width / rect.width);
+                    const y = (rect.bottom - clientY) * (frameSize.height / rect.height);
+                    const screenPt = eng.v2(x, y);
+
+                    // Step 2: 扣除视区黑边和缩放，计算出无相机影响的绝对 2D 世界坐标 (WorldPos)
+                    const worldX = (x - vp.x) / scaleX;
+                    const worldY = (y - vp.y) / scaleY;
+                    let baseWorldPos = eng.v2(worldX, worldY);
+
                     if (isDebug) {
                         try {
-                            const fs = eng.view.getFrameSize();
-                            console.log(`[Node Picker Raycast] Input:(clientX=${clientX}, clientY=${clientY}) Rect:(left=${rect.left}, top=${rect.top}, w=${rect.width}, h=${rect.height}) FrameSize:(w=${fs.width}, h=${fs.height}) => ScreenPt:(x=${screenPt.x}, y=${screenPt.y})`);
-                        } catch(e) {}
+                            console.log(`[Node Picker Raycast] Input:(clientX=${clientX}, clientY=${clientY}) Rect:(left=${rect.left}, bottom=${rect.bottom}, w=${rect.width}, h=${rect.height}) FrameSize:(w=${frameSize.width}, h=${frameSize.height})`);
+                            console.log(`[Node Picker Raycast] Viewport:(x=${vp.x}, y=${vp.y}, w=${vp.width}, h=${vp.height}) Scale:(sx=${scaleX}, sy=${scaleY})`);
+                            console.log(`[Node Picker Raycast] => ScreenPt:(x=${screenPt.x}, y=${screenPt.y}) => BaseWorldPos:(x=${baseWorldPos.x}, y=${baseWorldPos.y})`);
+                        } catch (e) { }
                     }
 
                     // 如果没拿到 camera 数组就备用一下
@@ -1393,7 +1425,7 @@
                     }
 
                     // 优先测在前部的 Camera
-                    const sortedCameras = cameras.slice().sort(function(a, b) { return b.depth - a.depth; });
+                    const sortedCameras = cameras.slice().sort(function (a, b) { return b.depth - a.depth; });
                     if (sortedCameras.length === 0) return null;
 
                     let hitCandidates = [];
@@ -1401,10 +1433,15 @@
 
                     for (let c = 0; c < sortedCameras.length; c++) {
                         const camera = sortedCameras[c];
-                        let worldPos = screenPt;
-                        
+                        let worldPos = baseWorldPos; // 默认使用算好的绝对世界坐标
+
+                        // Step 3: 如果相机构建了摄像机矩阵（比如渲染 3D 或位移过），则交由相机自行反算
                         if (typeof camera.getScreenToWorldPoint === 'function') {
-                            worldPos = camera.getScreenToWorldPoint(screenPt);
+                            const testWorldPos = camera.getScreenToWorldPoint(baseWorldPos);
+                            // 极少部分版本的 2D Camera 也许会回传 null 或者不对的向量，如果有返回则使用
+                            if (testWorldPos) {
+                                worldPos = testWorldPos;
+                            }
                         }
 
                         if (isDebug) {
@@ -1424,11 +1461,11 @@
 
                             try {
                                 if (node.activeInHierarchy === false) {
-                                    if(isDebug) console.log(`[Trace] 深度剪枝 ${node.name}: activeInHierarchy=false`);
+                                    if (isDebug) console.log(`[Trace] 深度剪枝 ${node.name}: activeInHierarchy=false`);
                                     return;
                                 }
                                 if (node.opacity === 0 || (node.color && node.color.a === 0)) {
-                                    if(isDebug) console.log(`[Trace] 深度剪枝 ${node.name}: 透明度归零不可见`);
+                                    if (isDebug) console.log(`[Trace] 深度剪枝 ${node.name}: 透明度归零不可见`);
                                     return;
                                 }
                             } catch (e) {
@@ -1439,12 +1476,12 @@
                             for (let i = children.length - 1; i >= 0; i--) {
                                 walk(children[i]);
                             }
-                            
+
                             // 必须等子节点都检测完，再测自身！
                             // 因为 Cocos里父节点的 group 不对，不代表子节点的 group 被剔除！
                             try {
                                 if ((camera.cullingMask & (1 << node.groupIndex)) === 0) {
-                                    if(isDebug) console.log(`[Trace] 忽略自身 ${node.name}: 被相机(${camera.node?camera.node.name:'Unknown'}) 的 cullingMask 剔除`);
+                                    if (isDebug) console.log(`[Trace] 忽略自身 ${node.name}: 被相机(${camera.node ? camera.node.name : 'Unknown'}) 的 cullingMask 剔除`);
                                     return;
                                 }
                             } catch (e) {
@@ -1453,33 +1490,33 @@
 
                             if (node.width > 0 && node.height > 0) {
                                 if (node.name === '__mcp_hover_overlay__' || node.name === '__mcp_select_overlay__') return;
-                                
+
                                 // 核心过滤：必须存在真实可见的渲染组件（排除空有大小但不可见的排版包裹层和交互事件幽灵层）
                                 let hasRenderComp = false;
                                 if (node._components) {
                                     for (let k = 0; k < node._components.length; k++) {
                                         const comp = node._components[k];
                                         if (comp && comp.enabled === false) continue; // 禁用的组件直接无视
-                                        
+
                                         const compName = comp.name || (comp.constructor ? comp.constructor.name : '');
-                                        const isRender = (eng.RenderComponent && comp instanceof eng.RenderComponent) || 
-                                                         (compName.indexOf('Sprite') > -1 || compName.indexOf('Label') > -1 || 
-                                                          compName.indexOf('RichText') > -1 || compName.indexOf('Graphics') > -1 || 
-                                                          compName.indexOf('Skeleton') > -1 || compName.indexOf('Particle') > -1 ||
-                                                          compName.indexOf('Mesh') > -1 || compName.indexOf('VideoPlayer') > -1 ||
-                                                          compName.indexOf('WebView') > -1);
-                                        
+                                        const isRender = (eng.RenderComponent && comp instanceof eng.RenderComponent) ||
+                                            (compName.indexOf('Sprite') > -1 || compName.indexOf('Label') > -1 ||
+                                                compName.indexOf('RichText') > -1 || compName.indexOf('Graphics') > -1 ||
+                                                compName.indexOf('Skeleton') > -1 || compName.indexOf('Particle') > -1 ||
+                                                compName.indexOf('Mesh') > -1 || compName.indexOf('VideoPlayer') > -1 ||
+                                                compName.indexOf('WebView') > -1);
+
                                         if (isRender) {
                                             // 极度严格的幽灵节点甄别（针对用作全屏事件阻挡但无透传绘制的 Sprite 占位符）
                                             if (compName.indexOf('Sprite') > -1) {
                                                 if (!comp.spriteFrame && !comp._spriteFrame) {
-                                                    if(isDebug) console.log(`[Trace] 剥离幽灵节点 ${node.name}: Sprite 纹理为空`);
+                                                    if (isDebug) console.log(`[Trace] 剥离幽灵节点 ${node.name}: Sprite 纹理为空`);
                                                     continue;
                                                 }
                                             }
                                             if (compName.indexOf('Label') > -1 || compName.indexOf('RichText') > -1) {
                                                 if (!comp.string || comp.string === '') {
-                                                    if(isDebug) console.log(`[Trace] 剥离幽灵节点 ${node.name}: 文本内容为空`);
+                                                    if (isDebug) console.log(`[Trace] 剥离幽灵节点 ${node.name}: 文本内容为空`);
                                                     continue;
                                                 }
                                             }
@@ -1488,19 +1525,19 @@
                                         }
                                     }
                                 }
-                                
+
                                 if (!hasRenderComp) {
                                     if (isDebug) console.log(`[Filter] 跳过了 ${node.name}：无渲染组件实体 (width=${node.width}, height=${node.height})`);
                                     return; // 排除仅有大小但无渲染物体的空节点包裹层
                                 }
 
                                 let isHit = false;
-                                
+
                                 // 1. 首选方案：劫持引擎最底层的点乘逆向矩阵判断算法 (完美支持层级、相机缩放、Fit策略)
                                 if (typeof node._hitTest === 'function') {
-                                    isHit = node._hitTest(screenPt);
+                                    isHit = node._hitTest(worldPos);
                                     if (isDebug) {
-                                        if (isHit) console.log(`[Hit] 命中🎯 ${node.name}: _hitTest(ScreenPt(${screenPt.x}, ${screenPt.y})) == true`);
+                                        if (isHit) console.log(`[Hit] 命中🎯 ${node.name}: _hitTest(WorldPos(${worldPos.x}, ${worldPos.y})) == true`);
                                         else console.log(`[Miss] 射线不在此节点内 ${node.name}: _hitTest 返回 false`);
                                     }
                                 } else if (typeof node.convertToNodeSpaceAR === 'function') {
@@ -1508,12 +1545,12 @@
                                     const localPt = node.convertToNodeSpaceAR(worldPos);
                                     const ax = node.anchorX !== undefined ? node.anchorX : 0.5;
                                     const ay = node.anchorY !== undefined ? node.anchorY : 0.5;
-                                    
+
                                     const ptLeft = -ax * node.width;
                                     const ptRight = (1 - ax) * node.width;
                                     const ptBottom = -ay * node.height;
                                     const ptTop = (1 - ay) * node.height;
-                                    
+
                                     isHit = (localPt.x >= ptLeft && localPt.x <= ptRight && localPt.y >= ptBottom && localPt.y <= ptTop);
                                     if (isDebug) {
                                         if (isHit) console.log(`[Hit] 命中🎯 ${node.name}: LocalPt(${localPt.x}, ${localPt.y}) 命中内框`);
@@ -1553,31 +1590,31 @@
 
                         walk(scene);
                     }
-                    
+
                     if (hitCandidates.length > 0) {
-                        hitCandidates.sort(function(a, b) {
+                        hitCandidates.sort(function (a, b) {
                             if (a.area !== b.area) {
                                 return a.area - b.area; // 面积越小越靠前（通常代表是独立精细控件而非巨大的背景遮罩）
                             }
                             return b.hierarchyIndex - a.hierarchyIndex; // 面积一致时，数组压入较晚的优先（因为深度优先后搜到的往往是在上层渲染）
                         });
-                        
+
                         hitNode = hitCandidates[0].node;
                         if (isDebug) {
-                            console.log(`[Node Picker] 候选池裁决 (${hitCandidates.length} hit): 最终胜出节点：${hitNode.name} (最优面积: ${hitCandidates[0].area})`);
-                            hitCandidates.forEach(function(can, idx) {
+                            // console.log(`[Node Picker] 候选池裁决 (${hitCandidates.length} hit): 最终胜出节点：${hitNode.name} (最优面积: ${hitCandidates[0].area})`);
+                            hitCandidates.forEach(function (can, idx) {
                                 console.log(`   #${idx}: ${can.node.name} [Area: ${can.area}]`);
                             });
                         }
                     }
-                    
+
                     if (hitNode) {
                         return hitNode;
                     }
                     return null;
                 }
             };
-            
+
         } catch (err) {
             console.error('[Probe] 初始化探针发生致命异常:', err);
             const envData = {
@@ -1591,23 +1628,23 @@
             }
         }
     }
-    
+
     function syncNodeTree() {
         const scene = cc.director.getScene();
         if (!scene) return;
-        
+
         const treeData = serializeNode(scene, 0);
         const pauseStatus = (typeof cc.game !== 'undefined' && cc.game.isPaused) ? cc.game.isPaused() : false;
         window.__mcpInspector.updateTree(JSON.stringify({ tree: treeData, isPaused: pauseStatus }));
     }
-    
+
     function serializeNode(node, currentPrefabDepth = 0) {
         if (!node) return null;
         if (node.name === '__mcp_hover_overlay__' || node.name === '__mcp_select_overlay__') return null; // 排除内部创建的高亮渲染层
         let isActive = true;
         let isActiveInHierarchy = true;
         let isScene = false;
-        
+
         // 彻底规避 cc.Scene 会在 getter 内部直接用 cc.error 打印日志的问题
         // 无论是否包裹在 catch 中，只要触发 getter 都会有红字报错
         if (typeof cc !== 'undefined' && node instanceof cc.Scene) {
@@ -1618,9 +1655,9 @@
             try {
                 isActive = node.active !== false;
                 isActiveInHierarchy = node.activeInHierarchy !== false;
-            } catch (e) {}
+            } catch (e) { }
         }
-        
+
         let isPrefab = !!node._prefab;
         let prefabRoot = isPrefab && node._prefab.root === node;
         let nextPrefabDepth = currentPrefabDepth;
@@ -1658,7 +1695,7 @@
             prefabRoot: prefabRoot,
             prefabDepth: nextPrefabDepth
         };
-        
+
         if (node.children) {
             for (let i = 0; i < node.children.length; i++) {
                 const childData = serializeNode(node.children[i], nextPrefabDepth);
