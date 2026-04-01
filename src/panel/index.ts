@@ -391,50 +391,11 @@ module.exports = Editor.Panel.extend({
                 // DevTools 幂等标志（在 onMounted 内的 dom-ready 回调中使用）
                 let isDevToolsSetup = false;
 
-                onMounted(() => {
-                    window.addEventListener('scene-status-changed', (e: any) => {
-                        const wasActive = globalState.isEditorSceneActive;
-                        globalState.isEditorSceneActive = e.detail && e.detail.active !== false;
-
-                        // 状态发生切换
-                        if (wasActive !== globalState.isEditorSceneActive) {
-                            if (!globalState.isEditorSceneActive) {
-                                // 失去焦点：仅标记状态，不再切断 webview 引起频繁重载和白屏
-                            } else {
-                                // 场景重回激活，仅在首次捕获时触发重置和渲染
-                                if (!hasInitialRefreshed) {
-                                    hasInitialRefreshed = true;
-                                    globalState.lastTreeUpdate = 0;
-                                    refreshGame(); // 直接自动刷新，无需 ping
-                                }
-                            }
-                        }
-                    });
-
-                    // 面板启动时主动查询一次当前场景激活态
-                    try {
-                        if (typeof Editor !== 'undefined' && Editor.Ipc) {
-                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-scene-active', (err: any, isActive: boolean) => {
-                                if (!err && isActive !== undefined) {
-                                    globalState.isEditorSceneActive = isActive;
-                                    // 根据后置结果安全决定是否触发初次刷新
-                                    if (isActive && !hasInitialRefreshed) {
-                                        hasInitialRefreshed = true;
-                                        globalState.lastTreeUpdate = 0;
-                                        refreshGame();
-                                    }
-                                }
-                            });
-                        } else {
-                            // 纯浏览器无 IPC 环境的兼容
-                            globalState.isEditorSceneActive = true;
-                            if (!hasInitialRefreshed) {
-                                hasInitialRefreshed = true;
-                                globalState.lastTreeUpdate = 0;
-                                refreshGame();
-                            }
-                        }
-                    } catch (e) { }
+                // 面板启动核心环境搭建（延后至当前场景完全激活后触发）
+                let isEnvInitialized = false;
+                const initializePreviewEnvironment = () => {
+                    if (isEnvInitialized) return;
+                    isEnvInitialized = true;
 
                     // 启动拉取持久化的偏好设置与动态端口
                     try {
@@ -456,42 +417,97 @@ module.exports = Editor.Panel.extend({
                             return startPort;
                         };
 
-                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-preview-port', async (err: any, res: number) => {
-                            if (!err && res) {
-                                const alivePort = await probeAlivePort(res);
-                                globalState.previewPort = alivePort;
-                                // 修正如果抢跑加载了错误的 7456
-                                if (globalState.webviewSrc === 'http://localhost:7456' && alivePort !== 7456) {
-                                    globalState.webviewSrc = `http://localhost:${alivePort}`;
+                        if (typeof Editor !== 'undefined' && Editor.Ipc) {
+                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-preview-port', async (err: any, res: number) => {
+                                if (!err && res) {
+                                    const alivePort = await probeAlivePort(res);
+                                    globalState.previewPort = alivePort;
+                                    // 修正如果抢跑加载了错误的 7456
+                                    if (globalState.webviewSrc === 'http://localhost:7456' && alivePort !== 7456) {
+                                        globalState.webviewSrc = `http://localhost:${alivePort}`;
+                                    }
+                                }
+                                // 在拿到确定可用的目标端口后再首次挂载 Webview
+                                refreshGame();
+                            });
+                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-resolution', (err: any, res: string) => {
+                                if (!err && res) {
+                                    selectedResolution.value = res;
+                                }
+                            });
+                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-fps', (err: any, res: boolean) => {
+                                if (!err && res !== undefined) {
+                                    isShowFPS.value = res;
+                                }
+                            });
+                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-audio-mute', (err: any, res: boolean) => {
+                                if (!err && res !== undefined) {
+                                    isAudioMuted.value = res;
+                                    // 拉取后立即尝试强行施加静音拦截（补救真空期）
+                                    const wv: any = gameView.value;
+                                    if (wv && typeof wv.setAudioMuted === 'function') {
+                                        try { wv.setAudioMuted(res); } catch (e) { }
+                                    }
+                                }
+                            });
+                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-panel-width', (err: any, res: number) => {
+                                if (!err && res !== undefined) {
+                                    const maxW = document.body.clientWidth - 300;
+                                    rightPanelWidth.value = Math.max(200, Math.min(res, maxW > 200 ? maxW : 200));
+                                }
+                            });
+                        } else {
+                            // 纯浏览器无 IPC 环境的兼容
+                            refreshGame();
+                        }
+                    } catch (e) { 
+                        refreshGame();
+                    }
+                };
+
+                onMounted(() => {
+                    window.addEventListener('scene-status-changed', (e: any) => {
+                        const wasActive = globalState.isEditorSceneActive;
+                        globalState.isEditorSceneActive = e.detail && e.detail.active !== false;
+
+                        // 状态发生切换
+                        if (wasActive !== globalState.isEditorSceneActive) {
+                            if (!globalState.isEditorSceneActive) {
+                                // 失去焦点：仅标记状态，不再切断 webview 引起频繁重载和白屏
+                            } else {
+                                // 场景重回激活，仅在首次捕获时触发重置和渲染
+                                if (!hasInitialRefreshed) {
+                                    hasInitialRefreshed = true;
+                                    globalState.lastTreeUpdate = 0;
+                                    initializePreviewEnvironment(); // 推迟到场景真正安全激活后再挂接探针和加载游戏
                                 }
                             }
-                        });
-                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-resolution', (err: any, res: string) => {
-                            if (!err && res) {
-                                selectedResolution.value = res;
-                            }
-                        });
-                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-fps', (err: any, res: boolean) => {
-                            if (!err && res !== undefined) {
-                                isShowFPS.value = res;
-                            }
-                        });
-                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-audio-mute', (err: any, res: boolean) => {
-                            if (!err && res !== undefined) {
-                                isAudioMuted.value = res;
-                                // 拉取后立即尝试强行施加静音拦截（补救真空期）
-                                const wv: any = gameView.value;
-                                if (wv && typeof wv.setAudioMuted === 'function') {
-                                    try { wv.setAudioMuted(res); } catch (e) { }
+                        }
+                    });
+
+                    // 面板启动时主动查询一次当前场景激活态
+                    try {
+                        if (typeof Editor !== 'undefined' && Editor.Ipc) {
+                            Editor.Ipc.sendToMain('mcp-inspector-bridge:query-scene-active', (err: any, isActive: boolean) => {
+                                if (!err && isActive !== undefined) {
+                                    globalState.isEditorSceneActive = isActive;
+                                    // 根据后置结果安全决定是否触发初次刷新
+                                    if (isActive && !hasInitialRefreshed) {
+                                        hasInitialRefreshed = true;
+                                        globalState.lastTreeUpdate = 0;
+                                        initializePreviewEnvironment();
+                                    }
                                 }
+                            });
+                        } else {
+                            // 纯浏览器无 IPC 环境的兼容
+                            globalState.isEditorSceneActive = true;
+                            if (!hasInitialRefreshed) {
+                                hasInitialRefreshed = true;
+                                globalState.lastTreeUpdate = 0;
+                                initializePreviewEnvironment();
                             }
-                        });
-                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-panel-width', (err: any, res: number) => {
-                            if (!err && res !== undefined) {
-                                const maxW = document.body.clientWidth - 300;
-                                rightPanelWidth.value = Math.max(200, Math.min(res, maxW > 200 ? maxW : 200));
-                            }
-                        });
+                        }
                     } catch (e) { }
 
                     const wrap = wrapMount.value;

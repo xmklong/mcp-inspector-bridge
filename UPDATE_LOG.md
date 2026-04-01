@@ -33,9 +33,10 @@
 - **彻底根并修复了全境设备下的 Node Picker 点击倒置偏移与射线脱靶错位 (Ultimate Picker Raycast Offset Fix)**:
   - **核心痛点**：此前的节点拾取体系虽然升级为了面积计算但没有剔除浏览器黑边，以及错误地让引擎摄像机的逆向反射器吃进了原生的客户端分辨率，致使位于极地、边框附近乃至经过非标 Fit 拉伸的 UI 按钮均遭遇惨烈的指鹿为马选偏现象。
   - **重构防线**：全套重写了 `Rect` 与 `Viewport` 扣除提取公式并剔除错误的屏幕投喂基点。将原以为是 BUG 但其实是由于错误打靶调用导致的漏洞：`isHit = node._hitTest(screenPt)` 彻底正规化修正为 `_hitTest(worldPos)`，终结了由于最后一步传参断流而枉费前期完美坐标提取的乌龙。
-  - **核心痛点**：当前端插件过早随编辑器启动时，默认激进地先手触发了针对 Webview 的 `refreshGame()` 面板加载。由于此刻底层的 Cocos Preview Server 以及编辑器原生 Scene 还根本没有初始化完毕，引擎盲目接收请求并尝试强行存储空场景，引发 `TypeError: Cannot read property 'name' of null at Object.stashScene` 核爆报错导致后台彻底卡死。
-  - **防御与延后修正**：将原本粗暴武断的预设值阻断，修改为严格信托且基于防御性编程的保守等待状态（`false`）起手。利用 `query-scene-active` 远端异步 IPC 回调，真正拿到 `isActive: true` 或静默等候监听到 `scene:ready` 冒泡信号后，再释放首次面板画面的 `refreshGame()` 加载权。
-  - **防止多余重刷与页面污染**：在确立初启安全刷新机制后，一并取消了当场景失焦时切断回 `about:blank` 所引发的视觉闪退与记忆剥离。且精准限制了刷新行为：仅在生命周期内完成且**只允许完成一次**场景激活加载。以后即便开发者关闭、切换其他完全不相干的编辑器场景，内嵌的渲染视角也将维持丝滑旁观保持独立游戏态运作，再也不会被迫拉着游戏频繁回退盲目重置！
+- **彻底根除编辑器早期探测引发的底层 `stashScene` 崩溃与断连 (Startup Probe Crash Recovery)**:
+  - **核心痛点**：当前端插件过早随编辑器启动时，默认激进地先手触发了 Webview 的网络探测与挂载加载。由于此刻底层的 Cocos Preview Server 及编辑器原生 Scene 还根本没有初始化完毕，前端在 `onMounted` 里抢跑发出的端口嗅探请求（如 `fetch('http://localhost:${p}/settings.js')`）会刺激引诱引擎去强行存储未就绪的空场景，进而引发 `TypeError: Cannot read property 'name' of null at Object.stashScene` 核爆报错卡死后台。
+  - **彻底剥离抢跑嗅探探针**：将原先在 Vue 挂载周期里粗暴执行的 `probeAlivePort` 测活流程，以及所有针对分辨率、音效、面板设置的预拉取同步交互，全部封装并切断，打包装入独立的 `initializePreviewEnvironment` 安全初始化沙盒中。
+  - **防御性状态屏障与防抖锁释放**：严格信托编辑器的 IPC 回调。只有通过异步 `query-scene-active` 真正拿到 `isActive: true` 或在静默中监听到 `scene:ready` 信号翻转后，才放行扣下沙盒侦测的扳机。配合内置防抖锁，实现了 100% 绝对安全的运行时接入，不仅斩草除根了引爆空指针崩溃的根源脉络，更免除了场景频繁切换引发的盲目重刷骚扰。
 - **修复运行时节点树双重数据源引发的高频频闪 (Dual-Source Tree Flickering Fix)**:
   - **核心痛点**：由于部分环境加载时探针握手信号可能丢失导致 `cocosInfo` 缺失，触发了面板保守的 DOM 降级轮询预案。而后台正常的探针心跳实质并未挂死从而导致两股携带轻微偏差的 JSON 树被同时投塞给 Vue 组件响应，造成持续无法停歇的画面剧烈抽搐。
   - **重构路线**：摒除针对通讯对象的强依赖。直接依附于 `lastTreeUpdate` 这个毫秒级活跃基准线。阻断由于单点数据丢包引发的降级连环车祸，并以此一劳永逸平息所有视图抖动。
