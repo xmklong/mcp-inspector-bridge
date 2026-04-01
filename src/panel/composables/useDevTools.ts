@@ -1,0 +1,214 @@
+const { nextTick, onUnmounted } = require('vue');
+const { remote } = require('electron');
+declare const Editor: any;
+
+export function useDevTools(globalState: any, gameView: any, devtoolsView: any, activeTab: any) {
+    const { BrowserView } = remote;
+    let devToolsBV: any = null;
+    let isDevToolsSetup = false;
+    let wasExternalDevToolsOpened = false;
+    let externalDevToolsWinId: number | null = null;
+
+    const updateBrowserViewBounds = () => {
+        if (!devToolsBV) return;
+        const container = devtoolsView.value as any;
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        try {
+            devToolsBV.setBounds({
+                x: Math.round(rect.left),
+                y: Math.round(rect.top),
+                width: Math.round(rect.width),
+                height: Math.round(rect.height)
+            });
+        } catch (e) { }
+    };
+
+    const setupDevToolsWatchers = () => {
+        const { watch } = require('vue');
+        watch(activeTab, async (newVal: number) => {
+            if (newVal === 1 && !isDevToolsSetup) {
+                await nextTick();
+                let attempts = 0;
+                const captureInterval = setInterval(() => {
+                    attempts++;
+                    if (isDevToolsSetup) {
+                        clearInterval(captureInterval);
+                        return;
+                    }
+                    if (attempts > 150) {
+                        clearInterval(captureInterval);
+                        globalState.devToolsError = 'BrowserView: 游戏 WebContents 获取超时';
+                        return;
+                    }
+
+                    try {
+                        const gameWV: any = gameView.value;
+                        if (!gameWV) return;
+                        const gid = gameWV.getWebContentsId();
+                        if (!gid) return;
+
+                        clearInterval(captureInterval);
+                        const gWC = remote.webContents.fromId(gid);
+                        if (!gWC) {
+                            globalState.devToolsError = '游戏 WebContents fromId 失败';
+                            return;
+                        }
+
+                        const currentWindow = remote.getCurrentWindow();
+                        devToolsBV = new BrowserView({
+                            webPreferences: {
+                                nodeIntegration: true,
+                                contextIsolation: false
+                            }
+                        });
+
+                        currentWindow.addBrowserView(devToolsBV);
+                        const bvWC = devToolsBV.webContents;
+                        gWC.setDevToolsWebContents(bvWC);
+                        gWC.openDevTools();
+
+                        updateBrowserViewBounds();
+                        isDevToolsSetup = true;
+                        globalState.devToolsError = null;
+
+                    } catch (e: any) {
+                        if (typeof Editor !== 'undefined') Editor.error('[Bridge] 异常: ' + e.message);
+                    }
+                }, 20);
+            }
+
+            if (devToolsBV) {
+                const currentWindow = remote.getCurrentWindow();
+                if (newVal === 1) {
+                    try {
+                        currentWindow.removeBrowserView(devToolsBV);
+                        currentWindow.addBrowserView(devToolsBV);
+                    } catch (e) { }
+                    await nextTick();
+                    updateBrowserViewBounds();
+                } else {
+                    try {
+                        currentWindow.removeBrowserView(devToolsBV);
+                    } catch (e) { }
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (activeTab.value === 1 && devToolsBV) {
+                nextTick().then(updateBrowserViewBounds);
+            }
+        });
+
+        window.addEventListener('panel-hide', _onPanelHide);
+        window.addEventListener('panel-show', _onPanelShow);
+        window.addEventListener('panel-close', _onPanelClose);
+        window.addEventListener('panel-visibility-change', _onVisibilityChange);
+
+        onUnmounted(() => {
+            window.removeEventListener('panel-hide', _onPanelHide);
+            window.removeEventListener('panel-show', _onPanelShow);
+            window.removeEventListener('panel-close', _onPanelClose);
+            window.removeEventListener('panel-visibility-change', _onVisibilityChange);
+        });
+    };
+
+    const openDevToolsExternal = () => {
+        try {
+            const gameViewEl: any = gameView.value;
+            if (gameViewEl) {
+                const gid = gameViewEl.getWebContentsId();
+                const gWC = remote.webContents.fromId(gid);
+                if (gWC) {
+                    gWC.openDevTools({ mode: 'undocked' });
+                }
+            }
+        } catch (err: any) {
+            if (typeof Editor !== 'undefined') Editor.error('[Bridge] 独立窗口 DevTools 也无法打开:', err.message);
+        }
+    };
+
+    const _onPanelHide = () => {
+        if (devToolsBV) {
+            try {
+                const currentWindow = remote.getCurrentWindow();
+                currentWindow.removeBrowserView(devToolsBV);
+            } catch (e) { }
+        }
+        try {
+            const gameViewEl: any = gameView.value;
+            if (gameViewEl) {
+                const gid = gameViewEl.getWebContentsId();
+                if (gid) {
+                    const gWC = remote.webContents.fromId(gid);
+                    if (gWC && gWC.isDevToolsOpened()) {
+                        const devToolsWC = gWC.devToolsWebContents;
+                        if (devToolsWC) {
+                            const dtWin = remote.BrowserWindow.fromWebContents(devToolsWC);
+                            if (dtWin) {
+                                externalDevToolsWinId = dtWin.id;
+                                dtWin.hide();
+                                return;
+                            }
+                        }
+                        wasExternalDevToolsOpened = true;
+                        gWC.closeDevTools();
+                    }
+                }
+            }
+        } catch (err) { }
+    };
+
+    const _onPanelShow = () => {
+        if (activeTab.value === 1 && devToolsBV) {
+            try {
+                const currentWindow = remote.getCurrentWindow();
+                currentWindow.removeBrowserView(devToolsBV);
+                currentWindow.addBrowserView(devToolsBV);
+                nextTick(updateBrowserViewBounds);
+            } catch (e) { }
+        }
+        if (externalDevToolsWinId !== null) {
+            try {
+                const dtWin = remote.BrowserWindow.fromId(externalDevToolsWinId);
+                if (dtWin) {
+                    dtWin.show();
+                } else {
+                    openDevToolsExternal();
+                }
+            } catch (e) {
+                openDevToolsExternal();
+            }
+            externalDevToolsWinId = null;
+        } else if (wasExternalDevToolsOpened) {
+            wasExternalDevToolsOpened = false;
+            openDevToolsExternal();
+        }
+    };
+
+    const _onPanelClose = () => {
+        _onPanelHide();
+        if (devToolsBV) {
+            try {
+                (devToolsBV.webContents as any).destroy();
+            } catch (e) { }
+            devToolsBV = null;
+            isDevToolsSetup = false;
+        }
+    };
+
+    const _onVisibilityChange = (e: any) => {
+        if (e.detail && e.detail.hidden) {
+            _onPanelHide();
+        } else {
+            _onPanelShow();
+        }
+    };
+
+    return {
+        setupDevToolsWatchers,
+        openDevToolsExternal,
+        updateBrowserViewBounds
+    };
+}
