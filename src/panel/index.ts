@@ -51,7 +51,8 @@ module.exports = Editor.Panel.extend({
             },
             isInspectorHovered: false as boolean,
             isEditorSceneActive: false as boolean,
-            isNodePickerActive: false as boolean
+            isNodePickerActive: false as boolean,
+            previewPort: 7456 as number
         });
 
         const app = createApp({
@@ -435,8 +436,36 @@ module.exports = Editor.Panel.extend({
                         }
                     } catch (e) { }
 
-                    // 启动拉取持久化的偏好设置
+                    // 启动拉取持久化的偏好设置与动态端口
                     try {
+                        const probeAlivePort = async (startPort: number): Promise<number> => {
+                            for (let p = startPort; p <= startPort + 10; p++) {
+                                try {
+                                    const controller = new AbortController();
+                                    const timeoutId = setTimeout(() => controller.abort(), 800);
+                                    // CORS 请求通常也会发出并响应成功，我们以此验证引擎存活
+                                    await fetch(`http://localhost:${p}/settings.js`, { mode: 'no-cors', signal: controller.signal });
+                                    clearTimeout(timeoutId);
+                                    console.log(`[Bridge] 成功嗅探到当前真正活跃的预览服务器端口: ${p}`);
+                                    return p;
+                                } catch (e) {
+                                    // 抓不通，意味着端口未开启或挂了，继续测下一个自增端口
+                                }
+                            }
+                            console.warn(`[Bridge] 端口自增探针测底失败，被迫退回起始分配端口: ${startPort}`);
+                            return startPort;
+                        };
+
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:query-preview-port', async (err: any, res: number) => {
+                            if (!err && res) {
+                                const alivePort = await probeAlivePort(res);
+                                globalState.previewPort = alivePort;
+                                // 修正如果抢跑加载了错误的 7456
+                                if (globalState.webviewSrc === 'http://localhost:7456' && alivePort !== 7456) {
+                                    globalState.webviewSrc = `http://localhost:${alivePort}`;
+                                }
+                            }
+                        });
                         Editor.Ipc.sendToMain('mcp-inspector-bridge:query-resolution', (err: any, res: string) => {
                             if (!err && res) {
                                 selectedResolution.value = res;
@@ -951,7 +980,7 @@ module.exports = Editor.Panel.extend({
 
                     // [Robust] 只有地址不再包含 localhost 时 (例如空字符串或 about:blank)，才重新赋予初始的预览服务器地址
                     if (!globalState.webviewSrc || !globalState.webviewSrc.includes('localhost:')) {
-                        globalState.webviewSrc = 'http://localhost:7456';
+                        globalState.webviewSrc = `http://localhost:${globalState.previewPort}`;
                     } else if (wv && typeof wv.reload === 'function') {
                         try { wv.reload(); } catch (e) { }
                     }

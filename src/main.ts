@@ -97,6 +97,31 @@ module.exports = {
             const profile = Editor.Profile.load('profile://project/mcp-inspector-bridge.json', 'mcp-inspector-bridge');
             profile.set('panel-width', value);
             profile.save();
+        },
+        'query-preview-port'(event: any) {
+            let port = 7456;
+            
+            try {
+                if (typeof Editor !== 'undefined' && Editor.PreviewServer) {
+                    if ((Editor.PreviewServer as any)._previewPort) {
+                        port = (Editor.PreviewServer as any)._previewPort;
+                    }
+                }
+            } catch(e) {}
+            
+            // 策略 2: profile 取值备用
+            if (port === 7456) {
+                try {
+                    const profile = Editor.Profile.load('profile://global/settings.json');
+                    if (profile && profile.data && profile.data['preview-port']) {
+                        port = profile.data['preview-port'];
+                    }
+                } catch (e) {}
+            }
+
+            if (event.reply) {
+                event.reply(null, port);
+            }
         }
     },
 };
