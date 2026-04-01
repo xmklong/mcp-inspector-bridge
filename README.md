@@ -77,7 +77,14 @@ mcp-inspector-bridge/
 │   ├── panel/
 │   │   ├── index.ts      # 插件渲染进程，Vue 3 双栏逻辑核心（负责挂载 BrowserView）
 │   │   └── index.html    # 插件主面板视图骨架
-│   ├── probe.ts          # 探针源码（负责注入到游戏页面提取节点树）
+│   ├── probe/            # 探针模块（被 esbuild 打包为单一 IIFE 闭包注入游戏）
+│   │   ├── index.ts      # 探针主生命周期聚合入口
+│   │   ├── crawler.ts    # 实时节点树与属性属性爬虫
+│   │   ├── highlighter.ts# 悬停/选中高亮渲染遮罩层
+│   │   ├── profiler.ts   # 帧绿与逻辑耗时截获测试器
+│   │   ├── memory.ts     # 内存全域检视与反向溯源
+│   │   ├── render-debugger.ts # 渲染流水线劫持与断批诊断器
+│   │   └── picker.ts     # 深度屏幕射线穿透拾取器
 │   └── preload.ts        # Electron 预加载中转枢纽，打通 IPC
 ```
 
@@ -86,10 +93,10 @@ mcp-inspector-bridge/
 本项目采用纯 TypeScript 进行核心逻辑开发，并使用原生 `tsc` 进行打包编译。
 
 ```bash
-# 新装依赖
+# 新装依赖 (包含 esbuild)
 npm install
 
-# TypeScript 编译
+# 执行 tsc 编译主面板，同时利用 esbuild 将探针拆分模块合并闭包打包
 npm run build
 ```
 *(注：编译后请确保按 Cocos 插件机制刷新编辑器即可看到最新效果)*

@@ -1,90 +1,6 @@
 [
   {
-    "type": "cc.Canvas",
-    "value": {
-      "_name": {
-        "type": "String",
-        "value": ""
-      },
-      "_objFlags": {
-        "type": "Float",
-        "value": 3799040
-      },
-      "node": {
-        "value": {
-          "name": "Canvas",
-          "uuid": "10Lm1h489E/6Z/MWyWcKPj"
-        },
-        "type": "cc.Node"
-      },
-      "name": {
-        "type": "String",
-        "value": "Canvas<Canvas>"
-      },
-      "uuid": {
-        "type": "String",
-        "value": "e0VMMvPKRNmZ9+y02Mj6Ae"
-      },
-      "__scriptAsset": {
-        "type": "cc.Script",
-        "value": {
-          "uuid": ""
-        }
-      },
-      "_enabled": {
-        "type": "Boolean",
-        "value": true
-      },
-      "enabled": {
-        "type": "Boolean",
-        "value": true
-      },
-      "enabledInHierarchy": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_isOnLoadCalled": {
-        "type": "Float",
-        "value": 16384
-      },
-      "_designResolution": {
-        "type": "cc.Size",
-        "value": {
-          "width": 750,
-          "height": 1334
-        }
-      },
-      "designResolution": {
-        "type": "cc.Size",
-        "value": {
-          "width": 750,
-          "height": 1334
-        }
-      },
-      "_fitWidth": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_fitHeight": {
-        "type": "Boolean",
-        "value": true
-      },
-      "fitHeight": {
-        "type": "Boolean",
-        "value": true
-      },
-      "fitWidth": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_id": {
-        "type": "string",
-        "value": "e0VMMvPKRNmZ9+y02Mj6Ae"
-      }
-    }
-  },
-  {
-    "type": "cc.Widget",
+    "type": "cc.Camera",
     "value": {
       "_name": {
         "type": "String",
@@ -96,18 +12,18 @@
       },
       "node": {
         "value": {
-          "name": "Canvas",
-          "uuid": "10Lm1h489E/6Z/MWyWcKPj"
+          "name": "Main Camera",
+          "uuid": "b4kRCC16pOd6LmYwSLxI3V"
         },
         "type": "cc.Node"
       },
       "name": {
         "type": "String",
-        "value": "Canvas<Widget>"
+        "value": "Main Camera<Camera>"
       },
       "uuid": {
         "type": "String",
-        "value": "53DFX8TLRMf6M1aIJSCJm4"
+        "value": "faQXJEa/RDHK6arUuu3Byx"
       },
       "__scriptAsset": {
         "type": "cc.Script",
@@ -131,167 +47,145 @@
         "type": "Float",
         "value": 16384
       },
-      "target": {
-        "type": "cc.Node",
+      "_cullingMask": {
+        "type": "Float",
+        "value": 4294967295
+      },
+      "_clearFlags": {
+        "type": "Float",
+        "value": 7
+      },
+      "_backgroundColor": {
+        "type": "cc.Color",
         "value": {
-          "uuid": ""
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 255
         }
       },
-      "isAlignTop": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAlignVerticalCenter": {
-        "type": "Boolean",
-        "value": false
-      },
-      "isAlignBottom": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAlignLeft": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAlignHorizontalCenter": {
-        "type": "Boolean",
-        "value": false
-      },
-      "isAlignRight": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isStretchWidth": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isStretchHeight": {
-        "type": "Boolean",
-        "value": true
-      },
-      "top": {
+      "_depth": {
         "type": "Float",
-        "value": 0
+        "value": -1
       },
-      "bottom": {
+      "_zoomRatio": {
         "type": "Float",
-        "value": 0
-      },
-      "left": {
-        "type": "Float",
-        "value": 0
-      },
-      "right": {
-        "type": "Float",
-        "value": 0
-      },
-      "horizontalCenter": {
-        "type": "Float",
-        "value": 0
-      },
-      "verticalCenter": {
-        "type": "Float",
-        "value": 0
-      },
-      "isAbsoluteHorizontalCenter": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAbsoluteVerticalCenter": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAbsoluteTop": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAbsoluteBottom": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAbsoluteLeft": {
-        "type": "Boolean",
-        "value": true
-      },
-      "isAbsoluteRight": {
-        "type": "Boolean",
-        "value": true
-      },
-      "alignMode": {
-        "type": "Enum",
         "value": 1
       },
-      "_wasAlignOnce": {
+      "_targetTexture": {
         "type": "Object",
         "value": null
       },
-      "_target": {
+      "_fov": {
+        "type": "Float",
+        "value": 60
+      },
+      "_orthoSize": {
+        "type": "Float",
+        "value": 10
+      },
+      "_nearClip": {
+        "type": "Float",
+        "value": 1
+      },
+      "_farClip": {
+        "type": "Float",
+        "value": 4096
+      },
+      "_ortho": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_rect": {
+        "type": "cc.Rect",
+        "value": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        }
+      },
+      "_renderStages": {
+        "type": "Float",
+        "value": 1
+      },
+      "_alignWithScreen": {
+        "type": "Boolean",
+        "value": true
+      },
+      "zoomRatio": {
+        "type": "Float",
+        "value": 1
+      },
+      "fov": {
+        "type": "Float",
+        "value": 60
+      },
+      "orthoSize": {
+        "type": "Float",
+        "value": 10
+      },
+      "nearClip": {
+        "type": "Float",
+        "value": 1
+      },
+      "farClip": {
+        "type": "Float",
+        "value": 4096
+      },
+      "ortho": {
+        "type": "Boolean",
+        "value": true
+      },
+      "rect": {
+        "type": "cc.Rect",
+        "value": {
+          "x": 0,
+          "y": 0,
+          "width": 1,
+          "height": 1
+        }
+      },
+      "cullingMask": {
+        "type": "Float",
+        "value": 4294967295
+      },
+      "clearFlags": {
+        "type": "Float",
+        "value": 7
+      },
+      "backgroundColor": {
+        "type": "cc.Color",
+        "value": {
+          "r": 0,
+          "g": 0,
+          "b": 0,
+          "a": 255
+        }
+      },
+      "depth": {
+        "type": "Float",
+        "value": -1
+      },
+      "targetTexture": {
         "type": "Object",
         "value": null
       },
-      "_alignFlags": {
+      "renderStages": {
         "type": "Float",
-        "value": 45
+        "value": 1
       },
-      "_left": {
-        "type": "Float",
-        "value": 0
-      },
-      "_right": {
-        "type": "Float",
-        "value": 0
-      },
-      "_top": {
-        "type": "Float",
-        "value": 0
-      },
-      "_bottom": {
-        "type": "Float",
-        "value": 0
-      },
-      "_verticalCenter": {
-        "type": "Float",
-        "value": 0
-      },
-      "_horizontalCenter": {
-        "type": "Float",
-        "value": 0
-      },
-      "_isAbsLeft": {
+      "alignWithScreen": {
         "type": "Boolean",
         "value": true
       },
-      "_isAbsRight": {
+      "_is3D": {
         "type": "Boolean",
-        "value": true
-      },
-      "_isAbsTop": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_isAbsBottom": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_isAbsHorizontalCenter": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_isAbsVerticalCenter": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_originalWidth": {
-        "type": "Float",
-        "value": 0
-      },
-      "_originalHeight": {
-        "type": "Float",
-        "value": 0
+        "value": false
       },
       "_id": {
         "type": "string",
-        "value": "53DFX8TLRMf6M1aIJSCJm4"
+        "value": "faQXJEa/RDHK6arUuu3Byx"
       }
     }
   }

@@ -5,8 +5,8 @@
 	"author": "Firekula",
 	"main": "dist/main.js",
 	"scripts": {
-		"build": "tsc",
-		"watch": "tsc -w"
+		"build": "tsc && esbuild src/probe/index.ts --bundle --outfile=dist/probe.js",
+		"watch": "tsc -w & esbuild src/probe/index.ts --bundle --outfile=dist/probe.js --watch"
 	},
 	"main-menu": {
 		"MCP 桥接器/开启运行时面板": {
@@ -23,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^25.5.0",
+		"esbuild": "^0.27.4",
 		"typescript": "^6.0.2"
 	},
 	"dependencies": {
