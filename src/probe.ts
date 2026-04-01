@@ -297,6 +297,29 @@
             }
         },
 
+        getNodeWorldPolygon: function(target) {
+            const eng = window.cc;
+            if (!target || typeof target.convertToWorldSpaceAR !== 'function') return null;
+            const width = target.width || 0;
+            const height = target.height || 0;
+            if (width === 0 && height === 0) return null;
+
+            const ax = target.anchorX !== undefined ? target.anchorX : 0.5;
+            const ay = target.anchorY !== undefined ? target.anchorY : 0.5;
+
+            const ptLeft = -ax * width;
+            const ptRight = (1 - ax) * width;
+            const ptBottom = -ay * height;
+            const ptTop = (1 - ay) * height;
+
+            let bl = target.convertToWorldSpaceAR(eng.v2(ptLeft, ptBottom));
+            let br = target.convertToWorldSpaceAR(eng.v2(ptRight, ptBottom));
+            let tr = target.convertToWorldSpaceAR(eng.v2(ptRight, ptTop));
+            let tl = target.convertToWorldSpaceAR(eng.v2(ptLeft, ptTop));
+            
+            return [bl, br, tr, tl];
+        },
+
         setHoverTarget: function (uuid) {
             window.__mcpHighlightData.hoverId = uuid;
         },
@@ -400,32 +423,6 @@
                         isScene = true;
                     }
 
-                    const width = target.width || 0;
-                    const height = target.height || 0;
-                    const ax = target.anchorX !== undefined ? target.anchorX : 0.5;
-                    const ay = target.anchorY !== undefined ? target.anchorY : 0.5;
-
-                    const ptLeft = -ax * width;
-                    const ptRight = (1 - ax) * width;
-                    const ptBottom = -ay * height;
-                    const ptTop = (1 - ay) * height;
-
-                    let bl = eng.v2(ptLeft, ptBottom);
-                    let br = eng.v2(ptRight, ptBottom);
-                    let tl = eng.v2(ptLeft, ptTop);
-                    let tr = eng.v2(ptRight, ptTop);
-                    let center = eng.v2(0, 0);
-
-                    // 使用更官方纯正的世界坐标封装 API
-                    if (typeof target.convertToWorldSpaceAR === 'function') {
-                        bl = target.convertToWorldSpaceAR(bl);
-                        br = target.convertToWorldSpaceAR(br);
-                        tl = target.convertToWorldSpaceAR(tl);
-                        tr = target.convertToWorldSpaceAR(tr);
-                        center = target.convertToWorldSpaceAR(center);
-                    } else {
-                        return;
-                    }
 
                     // 动态推断最佳渲染分组：为了防止 Target 的 group 处于背景摄像机导致包围框被 UI 遮挡
                     // 我们遍历所有相中，找到 depth 最大的顶层摄像机，并窃取它能看到的分组
@@ -466,7 +463,12 @@
                         g.fillColor = new eng.Color(255, 153, 0, 100);   // 焦点态不透明度高
                     }
 
-                    if (width === 0 || height === 0) {
+                    const poly = window.__mcpCrawler.getNodeWorldPolygon(target);
+                    if (!poly) {
+                        let center = eng.v2(0, 0);
+                        if (typeof target.convertToWorldSpaceAR === 'function') {
+                            center = target.convertToWorldSpaceAR(center);
+                        }
                         g.circle(center.x, center.y, 8);
                         g.fill();
                         g.moveTo(center.x - 12, center.y);
@@ -474,15 +476,17 @@
                         g.moveTo(center.x, center.y - 12);
                         g.lineTo(center.x, center.y + 12);
                         g.stroke();
-                    } else {
-                        g.moveTo(bl.x, bl.y);
-                        g.lineTo(br.x, br.y);
-                        g.lineTo(tr.x, tr.y);
-                        g.lineTo(tl.x, tl.y);
-                        g.close();
-                        g.fill();
-                        g.stroke();
+                        return;
                     }
+
+                    const bl = poly[0], br = poly[1], tr = poly[2], tl = poly[3];
+                    g.moveTo(bl.x, bl.y);
+                    g.lineTo(br.x, br.y);
+                    g.lineTo(tr.x, tr.y);
+                    g.lineTo(tl.x, tl.y);
+                    g.close();
+                    g.fill();
+                    g.stroke();
                 }
 
                 if (data.selectId) {
@@ -1490,24 +1494,45 @@
                                     return; // 排除仅有大小但无渲染物体的空节点包裹层
                                 }
 
-                                if (typeof node.getBoundingBoxToWorld === 'function') {
-                                    const bbox = node.getBoundingBoxToWorld();
-                                    if (bbox.contains(worldPos)) {
-                                        if (isDebug) console.log(`[Hit] 命中🎯 ${node.name}: BBox(${bbox.x}, ${bbox.y}, ${bbox.width}, ${bbox.height}) contains WorldPos(${worldPos.x}, ${worldPos.y})`);
-                                        const area = bbox.width * bbox.height;
-                                        if (area > 0) {
-                                            hitCandidates.push({
-                                                node: node,
-                                                area: area,
-                                                hierarchyIndex: hitCandidates.length
-                                            });
-                                        }
-                                        return null; // 继续扫描下方其他重叠层次
-                                    } else {
-                                        if (isDebug && node.name !== 'Main Camera' && node.name !== 'GameCamera' && node.name !== 'UICamera') {
-                                            console.log(`[Miss] 射线不在 ${node.name} 包围盒内: BBox(${bbox.x}, ${bbox.y}, ${bbox.width}, ${bbox.height}) vs WorldPos(${worldPos.x}, ${worldPos.y})`);
+                                let isHit = false;
+                                
+                                // 1. 首选方案：劫持引擎最底层的点乘逆向矩阵判断算法 (完美支持层级、相机缩放、Fit策略)
+                                if (typeof node._hitTest === 'function') {
+                                    isHit = node._hitTest(screenPt);
+                                    if (isDebug) {
+                                        if (isHit) console.log(`[Hit] 命中🎯 ${node.name}: _hitTest(ScreenPt(${screenPt.x}, ${screenPt.y})) == true`);
+                                        else console.log(`[Miss] 射线不在此节点内 ${node.name}: _hitTest 返回 false`);
+                                    }
+                                } else if (typeof node.convertToNodeSpaceAR === 'function') {
+                                    // 2. 降级方案：经典本地映射碰撞 (针对非常古老无 _hitTest 的引擎版本)
+                                    const localPt = node.convertToNodeSpaceAR(worldPos);
+                                    const ax = node.anchorX !== undefined ? node.anchorX : 0.5;
+                                    const ay = node.anchorY !== undefined ? node.anchorY : 0.5;
+                                    
+                                    const ptLeft = -ax * node.width;
+                                    const ptRight = (1 - ax) * node.width;
+                                    const ptBottom = -ay * node.height;
+                                    const ptTop = (1 - ay) * node.height;
+                                    
+                                    isHit = (localPt.x >= ptLeft && localPt.x <= ptRight && localPt.y >= ptBottom && localPt.y <= ptTop);
+                                    if (isDebug) {
+                                        if (isHit) console.log(`[Hit] 命中🎯 ${node.name}: LocalPt(${localPt.x}, ${localPt.y}) 命中内框`);
+                                        else if (node.name !== 'Main Camera' && node.name !== 'GameCamera' && node.name !== 'UICamera') {
+                                            console.log(`[Miss] 射线不在此节点内 ${node.name}: LocalPt(${localPt.x}, ${localPt.y}) outside BBox. WorldPos(${worldPos.x}, ${worldPos.y})`);
                                         }
                                     }
+                                }
+
+                                if (isHit) {
+                                    const area = node.width * node.height;
+                                    if (area > 0) {
+                                        hitCandidates.push({
+                                            node: node,
+                                            area: area,
+                                            hierarchyIndex: hitCandidates.length
+                                        });
+                                    }
+                                    return null; // 继续扫描下方其他重叠层次
                                 }
                             } else {
                                 if (isDebug) {
