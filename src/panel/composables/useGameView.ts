@@ -429,7 +429,28 @@ export function useGameView(
                 executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
 
                 try {
-                    const __pIns = gameViewDynamic.insertCSS('html, body, .contentWrap, .content, .wrapper, #GameDiv, #GameCanvas { overflow: hidden !important; margin: 0 !important; padding: 0 !important; } ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }');
+                    const __pIns = gameViewDynamic.insertCSS(`
+                        html, body, .content, .contentWrap, .wrapper, #GameDiv {
+                            overflow: hidden !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            width: 100% !important;
+                            height: 100% !important;
+                            max-width: 100vw !important;
+                            max-height: 100vh !important;
+                            box-sizing: border-box !important;
+                        }
+                        #GameCanvas {
+                            max-width: 100% !important;
+                            max-height: 100% !important;
+                        }
+                        *::-webkit-scrollbar {
+                            display: none !important;
+                            width: 0 !important;
+                            height: 0 !important;
+                            background: transparent !important;
+                        }
+                    `);
                     if (__pIns && __pIns.catch) __pIns.catch(() => { });
                 } catch (e) { }
 

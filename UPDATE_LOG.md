@@ -36,6 +36,9 @@
 - **彻底根治面板后台激活导致的游戏视图黑屏死板 (Background Preview Black Screen Fix)**:
   - **核心痛点**：当插件面板处于后台未激活或被其他标签页折叠遮挡时如果恰逢编辑器触发了场景更新等操作，此前的核心虽然能防止崩塌，但因试图让隐藏状态下尺寸为 0x0 的 Webview 强行刷新而导致了致命的“全黑屏罢工”；用户切回焦点时只能绝望地面对一片漆黑并手动重试。
   - **彻底拦截与自适应恢复机制**：引入前置的 Webview DOM 物理尺寸防御 (`clientWidth/Height === 0`) 以及状态机级别的刷新挂起标记 (`pendingRefresh`)。不再盲动去对隐藏无感知的面板滥发重载资源命令。伴随着底座注入的 `ResizeObserver` 后台监控哨兵，任何一次带着脏标记的切回与面板激活，皆能在获悉安全非 0 尺寸的瞬间立刻发起自我矫正补救及渲染更新。真正做回了 100% 同步恢复，全方位防脱防黑无痛归位。
+- **修复横屏模式下游戏预览画面滚动条复发 (Landscape Scrollbar Recurrence Fix)**:
+  - **核心痛点**：此前在 `v0.0.1` 中已修复的预览区滚动条问题，在用户切换至**横屏模式**后再度复发。根因在于横屏宽高互换（如 iPhone 7 竖屏 `750x1334` → 横屏 `1334x750`）后，Cocos 预览模板内部的 `.contentWrap` / `#GameDiv` 等容器会按照引擎设计分辨率设定绝对宽度，超出 Webview 物理像素边界导致溢出。旧版 CSS 注入仅覆盖了 `overflow: hidden` 与 `margin/padding` 重置，缺失对容器 `width`/`height`/`max-width`/`max-height` 的刚性约束。
+  - **双层 CSS 时间夹击全量封锁**：在 `preload.ts`（DOMContentLoaded 早期注入）与 `useGameView.ts`（dom-ready 运行时注入）两个生命周期节点同步扩充 CSS 规则。对 `.content, .contentWrap, .wrapper, #GameDiv` 全量追加 `width: 100% !important; height: 100% !important; max-width: 100vw !important; max-height: 100vh !important; box-sizing: border-box !important` 铁壁约束；对 `#GameCanvas` 追加 `max-width/max-height` 上限封顶；并使用通配符 `*::-webkit-scrollbar` 全局无差别灭绝一切滚动条残余。形成时间夹击闭环，无论 Cocos 引擎 `boot.js` 在何时动态修改 DOM 样式，最终均被 `!important` 强制覆盖。
 
 ## [0.0.7] - 2026-04-01
 ### ✨ 新特性与架构变更

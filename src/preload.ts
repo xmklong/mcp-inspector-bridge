@@ -16,6 +16,25 @@ window.addEventListener('DOMContentLoaded', () => {
         .toolbar { display: none !important; opacity: 0 !important; height: 0 !important; }
         .content { top: 0px !important; bottom: 0px !important; padding: 0 !important; border: none !important; margin: 0 !important; height: 100% !important; }
         body, html { overflow: hidden !important; background: transparent !important; }
+        .content, .contentWrap, .wrapper, #GameDiv {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+        }
+        #GameCanvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+        }
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
     `;
     if (document.head) {
         document.head.appendChild(style);
