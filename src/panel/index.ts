@@ -70,6 +70,10 @@ module.exports = Editor.Panel.extend({
                 if (savedScale && !isNaN(parseFloat(savedScale))) {
                     globalState.uiScale = parseFloat(savedScale);
                 }
+                const savedFontSize = window.localStorage.getItem('mcp-base-font-size');
+                if (savedFontSize && !isNaN(parseInt(savedFontSize))) {
+                    globalState.baseFontSize = parseInt(savedFontSize, 10);
+                }
                 const savedLayout = window.localStorage.getItem('mcp-inspector-layout');
                 if (savedLayout === 'vertical' || savedLayout === 'horizontal') {
                     globalState.inspectorLayout = savedLayout;
@@ -78,6 +82,13 @@ module.exports = Editor.Panel.extend({
                 watch(() => globalState.inspectorLayout, (newVal: string) => {
                     try {
                         window.localStorage.setItem('mcp-inspector-layout', newVal);
+                    } catch(e) {}
+                });
+
+                watch(() => globalState.baseFontSize, (newVal: number) => {
+                    try {
+                        if (panelAppElement) panelAppElement.style.setProperty('--base-font-size', `${newVal}px`);
+                        window.localStorage.setItem('mcp-base-font-size', newVal.toString());
                     } catch(e) {}
                 });
 
@@ -111,6 +122,7 @@ module.exports = Editor.Panel.extend({
                     
                     if (panelAppElement) {
                         panelAppElement.style.zoom = globalState.uiScale.toString();
+                        panelAppElement.style.setProperty('--base-font-size', globalState.baseFontSize + 'px');
                     }
                 });
 

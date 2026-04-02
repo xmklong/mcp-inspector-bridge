@@ -25,5 +25,6 @@ export const globalState = reactive({
     isNodePickerActive: false as boolean,
     previewPort: 7456 as number,
     uiScale: 1.0 as number,
+    baseFontSize: 13 as number,
     inspectorLayout: 'horizontal' as 'horizontal' | 'vertical'
 });

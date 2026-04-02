@@ -5,18 +5,11 @@ export const RenderDebugger = {
     template: `
         <div style="padding: 10px; color: #eee; font-family: sans-serif; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
             <!-- 头部控制栏 -->
-            <div style="flex-shrink: 0; margin-bottom: 10px; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <div style="flex: 1 1 300px;">
-                    <h3 style="margin: 0 0 5px 0; color: #fff;">Render Pipeline 流水线诊断</h3>
-                    <div style="font-size: 12px; color: #aaa;">
-                        <span v-if="!isFrozen">底层动态探测会导致 DrawCall 断流的深层根因。</span>
-                        <span v-else>快照已锁定（帧号 {{ frozenSnapshot?.frameId }}）。可逐层追溯每一个 DrawCall 与原始 RenderCommand 的绑定及物理画面。</span>
-                    </div>
-                </div>
+            <div style="flex-shrink: 0; margin-bottom: 5px; display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 auto; justify-content: flex-end;">
                     <label v-if="!isFrozen" style="display: flex; align-items: center; cursor: pointer; background: #222; padding: 6px 12px; border-radius: 4px; border: 1px solid #555;">
                         <input type="checkbox" v-model="isCapturing" style="margin-right: 8px;" />
-                        <span style="font-size: 13px; font-weight: bold;" :style="{ color: isCapturing ? '#4caf50' : '#ccc' }">
+                        <span style="font-size: var(--base-font-size, 13px); font-weight: bold;" :style="{ color: isCapturing ? '#4caf50' : '#ccc' }">
                             {{ isCapturing ? '侦听中' : '开启侦听' }}
                         </span>
                     </label>
@@ -24,7 +17,7 @@ export const RenderDebugger = {
                             :style="{ background: isFrozen ? '#e65100' : (latestSnapshot ? '#1976d2' : '#333'), color: '#fff', border: '1px solid #555', padding: '6px 12px', borderRadius: '4px', cursor: (latestSnapshot||isFrozen) ? 'pointer' : 'not-allowed', fontWeight: 'bold' }">
                         {{ isFrozen ? '⏸ 恢复嗅探' : '⏺ 截取当前帧' }}
                     </button>
-                    <button v-if="!isFrozen" @click="clearLogs" style="padding: 6px 12px; background: #444; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    <button v-if="!isFrozen" @click="clearLogs" style="padding: 6px 12px; background: #444; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 1px);">
                         🗑 清空记录
                     </button>
                 </div>
@@ -32,7 +25,7 @@ export const RenderDebugger = {
 
             <!-- 数据列表示图 (未冻结时显示动态断批断点) -->
             <div v-show="!isFrozen" style="flex: 1; min-height: 0; border: 1px solid #333; background: #1a1a1c; overflow-y: auto; border-radius: 4px;">
-                <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 12px; text-align: left;">
+                <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: calc(var(--base-font-size, 13px) - 1px); text-align: left;">
                     <thead style="position: sticky; top: 0; background: #2a2a2a; color: #ccc; z-index: 10;">
                         <tr>
                             <th style="padding: 6px;">打断节点</th>
@@ -45,17 +38,17 @@ export const RenderDebugger = {
                         <tr v-for="record in batchBreakRecords" :key="record.hashKey" style="border-bottom: 1px dashed #333;">
                             <td style="padding: 6px; color: #ff5252; font-weight: bold;">
                                 {{ record.culprit }}
-                                <span v-if="record.culpritId" @click="locateNode(record.culpritId)" style="cursor: pointer; margin-left: 4px; border: 1px solid #ff5252; padding: 0 4px; border-radius: 3px; font-size: 10px; opacity: 0.8;" title="点击定位节点">📌</span>
+                                <span v-if="record.culpritId" @click="locateNode(record.culpritId)" style="cursor: pointer; margin-left: 4px; border: 1px solid #ff5252; padding: 0 4px; border-radius: 3px; font-size: calc(var(--base-font-size, 13px) - 3px); opacity: 0.8;" title="点击定位节点">📌</span>
                             </td>
                             <td style="padding: 6px; color: #81d4fa;">
                                 {{ record.victim }}
-                                <span v-if="record.victimId" @click="locateNode(record.victimId)" style="cursor: pointer; margin-left: 4px; border: 1px solid #81d4fa; padding: 0 4px; border-radius: 3px; font-size: 10px; opacity: 0.8;" title="点击定位节点">📌</span>
+                                <span v-if="record.victimId" @click="locateNode(record.victimId)" style="cursor: pointer; margin-left: 4px; border: 1px solid #81d4fa; padding: 0 4px; border-radius: 3px; font-size: calc(var(--base-font-size, 13px) - 3px); opacity: 0.8;" title="点击定位节点">📌</span>
                             </td>
                             <td style="padding: 6px; color: #e0e0e0;">
                                 <div v-for="(rs, idx) in record.reasons" :key="idx" style="margin-bottom: 2px;">• {{ rs }}</div>
                             </td>
                             <td style="padding: 6px;">
-                                <span style="background: #e65100; color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 11px;">
+                                <span style="background: #e65100; color: #fff; padding: 2px 6px; border-radius: 10px; font-size: calc(var(--base-font-size, 13px) - 2px);">
                                     x{{ record.hitCount }}
                                 </span>
                             </td>
@@ -73,7 +66,7 @@ export const RenderDebugger = {
             <div v-if="isFrozen && frozenSnapshot" style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap; gap: 10px; overflow-y: auto; overflow-x: hidden; margin-top: 5px; align-content: flex-start;">
                 <!-- 左侧：渲染工序拆解 -->
                 <div style="flex: 1 1 200px; min-height: 250px; background: #1a1a1c; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
-                    <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333;">
+                    <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); flex-shrink: 0; border-bottom: 1px solid #333;">
                         渲染队列 ({{ frozenSnapshot.totalDrawCalls }} DCs)
                     </div>
                     <div style="flex: 1; overflow-y: auto; overflow-x: hidden; padding: 5px;" ref="drawCallListDOM">
@@ -81,9 +74,9 @@ export const RenderDebugger = {
                             <div @click="selectDrawCall(dcIdx)" 
                                  :style="{ background: selectedDrawCallIndex === dcIdx ? '#0277bd' : '#222', padding: '6px 8px', cursor: 'pointer', borderRadius: '3px', border: '1px solid #444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }">
                                 <div>
-                                    <span style="color: #4fc3f7; font-weight: bold; margin-right: 5px; font-size: 12px;">DrawCall #{{ dcIdx }}</span>
+                                    <span style="color: #4fc3f7; font-weight: bold; margin-right: 5px; font-size: calc(var(--base-font-size, 13px) - 1px);">DrawCall #{{ dcIdx }}</span>
                                 </div>
-                                <span style="font-size: 10px; color: #aaa; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">Idx: {{ dc.indicesCount }}</span>
+                                <span style="font-size: calc(var(--base-font-size, 13px) - 3px); color: #aaa; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">Idx: {{ dc.indicesCount }}</span>
                             </div>
                             
                             <!-- Command List (只在选中该 DrawCall 时触发展开) -->
@@ -92,14 +85,14 @@ export const RenderDebugger = {
                                      @click.stop="selectCommand(dcIdx, cmdIdx)"
                                      :style="{ background: selectedCommandIndex === cmdIdx ? '#455a64' : 'transparent', padding: '4px 6px', cursor: 'pointer', borderRadius: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333' }">
                                      <div style="display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
-                                         <span style="color: #ffb74d; margin-right: 6px; font-size: 12px;" v-if="cmd.type.includes('Sprite')">🖼️</span>
-                                         <span style="color: #64b5f6; margin-right: 6px; font-size: 12px;" v-else-if="cmd.type.includes('Label')">🅰️</span>
-                                         <span style="color: #81c784; margin-right: 6px; font-size: 12px;" v-else-if="cmd.type.includes('Graphics')">🖌️</span>
-                                         <span style="color: #ba68c8; margin-right: 6px; font-size: 12px;" v-else>🧩</span>
-                                         <span style="font-size: 11px; color: #eee;" :title="cmd.name">{{ cmd.name }}</span>
+                                         <span style="color: #ffb74d; margin-right: 6px; font-size: calc(var(--base-font-size, 13px) - 1px);" v-if="cmd.type.includes('Sprite')">🖼️</span>
+                                         <span style="color: #64b5f6; margin-right: 6px; font-size: calc(var(--base-font-size, 13px) - 1px);" v-else-if="cmd.type.includes('Label')">🅰️</span>
+                                         <span style="color: #81c784; margin-right: 6px; font-size: calc(var(--base-font-size, 13px) - 1px);" v-else-if="cmd.type.includes('Graphics')">🖌️</span>
+                                         <span style="color: #ba68c8; margin-right: 6px; font-size: calc(var(--base-font-size, 13px) - 1px);" v-else>🧩</span>
+                                         <span style="font-size: calc(var(--base-font-size, 13px) - 2px); color: #eee;" :title="cmd.name">{{ cmd.name }}</span>
                                      </div>
                                      <!-- 📌 溯源定位按钮 -->
-                                     <span v-if="cmd.nodeUuid" @click.stop="locateNode(cmd.nodeUuid)" style="cursor: pointer; margin-left: 4px; border: 1px solid #555; padding: 0 4px; border-radius: 3px; font-size: 10px; background: #333; opacity: 0.8;" title="在节点树中定位">📌</span>
+                                     <span v-if="cmd.nodeUuid" @click.stop="locateNode(cmd.nodeUuid)" style="cursor: pointer; margin-left: 4px; border: 1px solid #555; padding: 0 4px; border-radius: 3px; font-size: calc(var(--base-font-size, 13px) - 3px); background: #333; opacity: 0.8;" title="在节点树中定位">📌</span>
                                 </div>
                             </div>
                         </div>
@@ -108,7 +101,7 @@ export const RenderDebugger = {
 
                 <!-- 中央：离屏重绘画布 -->
                 <div style="flex: 2 1 300px; min-height: 300px; background: #000; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
-                    <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); flex-shrink: 0; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #66bb6a;">单步图传</span>
                         <div style="display: flex; gap: 4px;">
                             <button @click="replayStep('prev')" style="background: #444; color: #fff; border: 0; cursor: pointer; padding: 2px 6px; border-radius: 2px;">👈</button>
@@ -117,16 +110,16 @@ export const RenderDebugger = {
                     </div>
                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
                          <img v-if="replayImageData" :src="replayImageData" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
-                         <span v-else style="color: #444; font-size: 13px; font-weight: bold;">( 尚未挂载游戏底层回读算法 )</span>
+                         <span v-else style="color: #444; font-size: var(--base-font-size, 13px); font-weight: bold;">( 尚未挂载游戏底层回读算法 )</span>
                     </div>
                 </div>
 
                 <!-- 右侧：管线明细 -->
                 <div style="flex: 1 1 200px; min-height: 250px; background: #1a1a1c; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
-                    <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333; color: #ffa726;">
+                    <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); flex-shrink: 0; border-bottom: 1px solid #333; color: #ffa726;">
                         批次参数明细
                     </div>
-                    <div style="flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; color: #ccc;">
+                    <div style="flex: 1; overflow-y: auto; padding: 10px; font-size: calc(var(--base-font-size, 13px) - 1px); color: #ccc;">
                         <div v-if="selectedDrawCallIndex > -1 && frozenSnapshot.drawCalls[selectedDrawCallIndex]">
                             <!-- DrawCall Level Details -->
                             <div v-if="selectedCommandIndex === -1">
@@ -184,15 +177,15 @@ export const RenderDebugger = {
 
         <!-- 底层数据嗅探 (小横条) -->
             <div v-if="!isFrozen" style="flex-shrink: 0; padding: 8px 12px; background: #222; border-top: 2px solid #333; margin-top: 10px; border-radius: 4px;">
-                <h4 style="margin: 0 0 8px 0; color: #4caf50; font-size: 13px;">[实时帧快照通道 (底层数据嗅探)]</h4>
-                <div v-if="latestSnapshot" style="color: #00ffcc; font-size: 12px; line-height: 1.5;">
+                <h4 style="margin: 0 0 8px 0; color: #4caf50; font-size: var(--base-font-size, 13px);">[实时帧快照通道 (底层数据嗅探)]</h4>
+                <div v-if="latestSnapshot" style="color: #00ffcc; font-size: calc(var(--base-font-size, 13px) - 1px); line-height: 1.5;">
                     ✅ <strong>接收到渲染管线重组快照！</strong><br/>
                     • 当前帧号: <span style="color:#fff">{{ latestSnapshot.frameId }}</span><br/>
                     • 游戏内共收集到 <span style="background: #e65100; color: #fff; padding: 1px 4px; border-radius: 4px;">{{ latestSnapshot.drawCalls.reduce((s, dc) => s + (dc.commands ? dc.commands.length : 0), 0) }}</span> 个 RenderCommand (渲染指令)<br/>
                     • 最终物理打包为 <span style="background: #1976d2; color: #fff; padding: 1px 4px; border-radius: 4px;">{{ latestSnapshot.drawCalls.length }}</span> 个 GPU DrawCall<br/>
                     • 时间戳: <span style="color:#888">{{ latestSnapshot.timestamp }}</span>
                 </div>
-                <div v-else style="color: #888; font-size: 12px; font-style: italic;">
+                <div v-else style="color: #888; font-size: calc(var(--base-font-size, 13px) - 1px); font-style: italic;">
                     ⏳ 正在等待引擎挂钩回传每帧快照，请确保游戏处于运行状态...
                 </div>
             </div>

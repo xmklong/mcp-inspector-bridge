@@ -172,9 +172,11 @@ export function initMemory() {
         // 3. 构建返回列表、排序，并更新极值记录
         const resultList = [];
         const allRes = [];
+        let totalMem = 0;
 
         for (let bName in bundleDataMap) {
             const block = bundleDataMap[bName];
+            totalMem += block.currentMemory;
 
             if (!memExtrema[bName]) {
                 memExtrema[bName] = { max: block.currentMemory, min: block.currentMemory };
@@ -210,6 +212,7 @@ export function initMemory() {
         allRes.sort((a, b) => b.memory - a.memory);
 
         return {
+            totalMemory: totalMem,
             bundles: resultList,
             allResources: allRes
         };
