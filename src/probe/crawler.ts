@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { Logger } from './logger';
 export function initCrawler() {
     window.__mcpCrawler = {
         findNodeByUuid: function (uuid, root) {
@@ -16,10 +17,33 @@ export function initCrawler() {
         getNodeDetail: function (uuid) {
             const node = this.findNodeByUuid(uuid);
             if (!node) return null;
+
+            if (typeof window.cc !== 'undefined' && node instanceof window.cc.Scene) {
+                return {
+                    id: node.uuid || node.id,
+                    name: node.name,
+                    isScene: true,
+                    active: true,
+                    components: [],
+                };
+            }
+
+            let isActive = true;
+            try { isActive = node.active !== false; } catch(e) {}
+
+            let prefabUuid = null;
+            try {
+                if (node._prefab && node._prefab.asset) {
+                    prefabUuid = node._prefab.asset._uuid || node._prefab.asset.uuid || node._prefab.asset.id;
+                }
+            } catch(e) {}
+
             const detail = {
                 id: node.uuid || node.id,
                 name: node.name,
-                active: node.active !== false,
+                isScene: false,
+                prefabUuid: prefabUuid,
+                active: isActive,
                 x: node.x || 0,
                 y: node.y || 0,
                 rotation: ('angle' in node) ? -node.angle : (node.rotation || 0),
@@ -151,7 +175,7 @@ export function initCrawler() {
         updateNodeProperty: function (uuid, compName, propKey, value, compIndex) {
             const node = this.findNodeByUuid(uuid);
             if (!node || !node.isValid) {
-                console.warn("[MCP Crawler] Node " + uuid + " is invalid or already destroyed.");
+                Logger.warn("[MCP Crawler] Node " + uuid + " is invalid or already destroyed.");
                 return false;
             }
 
@@ -201,7 +225,7 @@ export function initCrawler() {
                             }
                             return true;
                         }
-                        console.warn("[MCP Crawler] Component " + compName + " not found on node " + node.name);
+                        Logger.warn("[MCP Crawler] Component " + compName + " not found on node " + node.name);
                         return false;
                     }
                 }
@@ -214,7 +238,7 @@ export function initCrawler() {
         printComponentData: function (uuid, compIndex) {
             const node = this.findNodeByUuid(uuid);
             if (!node || !node._components || compIndex < 0 || compIndex >= node._components.length) {
-                console.warn("[MCP Crawler] Target node or component not found for printing.", uuid, compIndex);
+                Logger.warn("[MCP Crawler] Target node or component not found for printing.", uuid, compIndex);
                 return;
             }
 
@@ -267,9 +291,9 @@ export function initCrawler() {
                 const match = compName.match(/<([^>]+)>/);
                 if (match) compName = match[1];
 
-                console.log(`%c[MCP] 组件 (${compName}) 数据导出成功 👇`, 'color: #00ff00; font-weight: bold;');
-                console.log(jsonStr);
-                console.log(`%c---------------------------------------`, 'color: #00ff00; font-weight: bold;');
+                Logger.log(`%c[MCP] 组件 (${compName}) 数据导出成功 👇`, 'color: #00ff00; font-weight: bold;');
+                Logger.log(jsonStr);
+                Logger.log(`%c---------------------------------------`, 'color: #00ff00; font-weight: bold;');
 
                 // 尝试写入剪贴板
                 if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
@@ -311,6 +335,7 @@ export function initCrawler() {
 
         setSelectionTarget: function (uuid) {
             if (window.__mcpHighlightData) {
+                Logger.log(`[Selection-Debug] Trigger: Probe-Crawler-setSelectionTarget | NodeID: ${uuid}`);
                 window.__mcpHighlightData.selectId = uuid;
             }
         }
@@ -331,7 +356,7 @@ export function syncNodeTree() {
 
 function serializeNode(node, currentPrefabDepth = 0) {
     if (!node) return null;
-    if (node.name === '__mcp_hover_overlay__' || node.name === '__mcp_select_overlay__') return null; // 排除内部创建的高亮渲染层
+    if (node.name === '__mcp_hover_overlay__' || node.name === '__mcp_select_overlay__' || node.name === 'McpInspectorRoot' || node.name === 'InspectorCamera') return null; // 排除内部创建的高亮渲染层
     
     let isActive = true;
     let isActiveInHierarchy = true;

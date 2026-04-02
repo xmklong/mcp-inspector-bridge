@@ -14,6 +14,7 @@ export function useGameView(
 
     let hasInitialRefreshed = false;
     let isEnvInitialized = false;
+    let pendingRefresh = false;
 
     const executeMacro = (command: string) => {
         const wv: any = gameView.value;
@@ -60,12 +61,20 @@ export function useGameView(
             console.warn('[Bridge] 场景未激活，刷新操作暂被拦截以防报错。');
             return;
         }
+
+        const wv: any = gameView.value;
+        if (wv && (wv.clientWidth === 0 || wv.clientHeight === 0)) {
+            console.log('[Bridge] 面板处于后台或可见区域为零，当前刷新请求已被防黑屏机制挂起 (Pending Refresh)...');
+            pendingRefresh = true;
+            return;
+        }
+
         console.log('[Bridge] 触发手动刷新重载游戏视图...');
+        pendingRefresh = false;
+
         globalState.isGamePaused = false;
         globalState.nodeTree = null;
         globalState.lastTreeUpdate = 0;
-        
-        const wv: any = gameView.value;
 
         if (!globalState.webviewSrc || !globalState.webviewSrc.includes('localhost:')) {
             globalState.webviewSrc = `http://localhost:${globalState.previewPort}`;
@@ -113,7 +122,7 @@ export function useGameView(
                         clearTimeout(timeoutId);
                         console.log(`[Bridge] 成功嗅探到当前真正活跃的预览服务器端口: ${p}`);
                         return p;
-                    } catch (e) {}
+                    } catch (e) { }
                 }
                 console.warn(`[Bridge] 端口自增探针测底失败，被迫退回起始分配端口: ${startPort}`);
                 return startPort;
@@ -154,7 +163,7 @@ export function useGameView(
             } else {
                 refreshGame();
             }
-        } catch (e) { 
+        } catch (e) {
             refreshGame();
         }
     };
@@ -272,6 +281,23 @@ export function useGameView(
     };
 
     const setupGameViewListeners = () => {
+        const gameViewDynamic: any = gameView.value;
+
+        if (typeof window.ResizeObserver !== 'undefined' && gameViewDynamic) {
+            const resizeObserver = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                        if (pendingRefresh) {
+                            pendingRefresh = false;
+                            console.log('[Bridge] 【防黑屏机制】面板恢复有效视窗尺寸，执行此前拦截的挂起刷新...');
+                            refreshGame();
+                        }
+                    }
+                }
+            });
+            resizeObserver.observe(gameViewDynamic);
+        }
+
         window.addEventListener('scene-status-changed', (e: any) => {
             const wasActive = globalState.isEditorSceneActive;
             globalState.isEditorSceneActive = e.detail && e.detail.active !== false;
@@ -307,7 +333,6 @@ export function useGameView(
             }
         } catch (e) { }
 
-        const gameViewDynamic: any = gameView.value;
         if (gameViewDynamic) {
             gameViewDynamic.addEventListener('ipc-message', (event: any) => {
                 if (event.channel === 'handshake') {
@@ -317,6 +342,7 @@ export function useGameView(
                         executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
                     }, 500);
                 } else if (event.channel === 'update-tree') {
+                    // console.log(`[IPC Received] <- update-tree: size=${event.args[0] ? event.args[0].length : 0}`);
                     try {
                         const parsed = JSON.parse(event.args[0]);
                         if (parsed && typeof parsed.tree !== 'undefined') {
@@ -326,10 +352,7 @@ export function useGameView(
                             globalState.nodeTree = parsed;
                         }
                         globalState.lastTreeUpdate = Date.now();
-
-                        if (!globalState.isInspectorHovered && globalState.nodeDetail && globalState.nodeDetail.id) {
-                            onNodeSelectFallback({ id: globalState.nodeDetail.id }, true);
-                        }
+                        // Removed disruptive onNodeSelectFallback that causes erratic Vue selection bouncing
                     } catch (e) { }
                 } else if (event.channel === 'render-debugger-payload') {
                     try {
@@ -343,8 +366,10 @@ export function useGameView(
                         window.dispatchEvent(new CustomEvent('render-debugger-payload', { detail: payload }));
                     } catch (err) { }
                 } else if (event.channel === 'node-picker-selected') {
+                    const uuid = event.args[0];
+                    console.log(`[IPC Received] <- node-picker-selected: uuid=${uuid || 'null'}`);
+                    console.log(`[Selection-Debug] Trigger: IPC-GameView-node-picker-selected | NodeID: ${uuid} | Proceeding to sync expandToNode...`);
                     try {
-                        const uuid = event.args[0];
                         globalState.isNodePickerActive = false;
                         if (uuid) {
                             const nt: any = nodeTreeRef.value;
@@ -367,7 +392,7 @@ export function useGameView(
                             const nt: any = nodeTreeRef.value;
                             if (nt) nt.selectedId = '';
                         }
-                    } catch(err) { }
+                    } catch (err) { }
                 }
             });
 

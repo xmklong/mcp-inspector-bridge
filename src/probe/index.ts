@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { Logger } from './logger';
 import { initCrawler, syncNodeTree } from './crawler';
 import { initHighlighter, startHighlighterHook } from './highlighter';
 import { initProfiler } from './profiler';

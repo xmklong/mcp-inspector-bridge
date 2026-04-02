@@ -18,12 +18,22 @@ export const NodeInspector = {
             </div>
             
             <div v-else class="inspector-content">
-                <!-- 节点基础属性区块 -->
-                <div class="inspector-section node-basics" style="background: #2b2b2b; padding: 10px; border-radius: 4px; border: 1px solid #444; margin-bottom: 10px;">
-                    <div class="flex-row" style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <input type="checkbox" :checked="nodeDetail.active" @change="onUpdateProp(null, 'active', $event.target.checked)" style="margin-right: 8px;" title="激活/禁用节点" />
-                        <input type="text" :value="nodeDetail.name" @change="onUpdateProp(null, 'name', $event.target.value)" style="flex: 1; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; min-width: 0; box-sizing: border-box;" />
-                    </div>
+                
+                <!-- 场景节点专属显示区块 -->
+                <div v-if="nodeDetail.isScene" class="inspector-section scene-hint" style="background: #2b2b2b; padding: 30px 10px; border-radius: 4px; border: 1px solid #444; margin-bottom: 10px; text-align: center; color: #aaa;">
+                    <div style="font-size: 32px; margin-bottom: 12px; filter: grayscale(0.5);">🌍</div>
+                    <div style="font-weight: bold; font-size: 14px; color: #ddd; margin-bottom: 6px;">[场景] {{ nodeDetail.name }}</div>
+                    <div style="font-size: 12px; opacity: 0.7;">场景根节点不可直接编辑变换属性</div>
+                </div>
+
+                <!-- 常规节点属性区块 -->
+                <template v-else>
+                    <div class="inspector-section node-basics" style="background: #2b2b2b; padding: 10px; border-radius: 4px; border: 1px solid #444; margin-bottom: 10px;">
+                        <div class="flex-row" style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <input type="checkbox" :checked="nodeDetail.active" @change="onUpdateProp(null, 'active', $event.target.checked)" style="margin-right: 8px;" title="激活/禁用节点" />
+                            <input type="text" :value="nodeDetail.name" @change="onUpdateProp(null, 'name', $event.target.value)" style="flex: 1; padding: 4px; background: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 3px; min-width: 0; box-sizing: border-box;" />
+                            <span v-if="nodeDetail.prefabUuid" @click.stop="$emit('locate-asset', nodeDetail.prefabUuid)" style="cursor: pointer; font-size: 14px; margin-left: 8px; opacity: 0.8;" title="在资源管理器中定位预制体" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
+                        </div>
                     
                     <div class="transform-grid" style="display: grid; grid-template-columns: 50px 1fr 1fr; gap: 5px; align-items: center; font-size: 12px;">
                         <!-- Position -->
@@ -194,7 +204,7 @@ export const NodeInspector = {
                             </div>
                         </div>
                     </div>
-                </div>
+                </template>
 
             </div>
         </div>

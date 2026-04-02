@@ -201,6 +201,7 @@ export const NodeTree = {
         };
 
         const selectNode = (node: any) => {
+            console.log(`[Selection-Debug] Trigger: Panel-Tree-Click | NodeID: ${node.id} | Name: ${node.name || 'Unknown'}`);
             selectedId.value = node.id;
             // 记录下所有的祖先级 ID 以便清除搜索后能自动连级展开
             if (node.ancestorIds) {
@@ -262,6 +263,8 @@ export const NodeTree = {
                     const el = document.querySelector('.tree-node.active');
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 100);
+
+                console.log(`[Selection-Debug] Trigger: Panel-Tree-ExpandToNode | TargetID: ${targetId}`);
 
                 // 发送给外层通知数据装配
                 emit('select', { id: targetId });

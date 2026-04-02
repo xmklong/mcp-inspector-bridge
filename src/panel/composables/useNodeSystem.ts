@@ -33,6 +33,8 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
     };
 
     const onNodeSelect = (node: any, isAutoRefresh: boolean = false) => {
+        console.log(`[Vue Store Update] onNodeSelect triggered: id=${node.id}, autoRefresh=${isAutoRefresh}`);
+        console.log(`[Selection-Debug] Trigger: Panel-onNodeSelect | NodeID: ${node.id} | AutoRefresh: ${isAutoRefresh} -> Sending setSelectionTarget to WebView`);
         const wv: any = gameView.value;
         if (wv) {
             try {

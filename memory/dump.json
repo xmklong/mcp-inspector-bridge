@@ -1,6 +1,6 @@
 [
   {
-    "type": "cc.Camera",
+    "type": "cc.Sprite",
     "value": {
       "_name": {
         "type": "String",
@@ -12,18 +12,18 @@
       },
       "node": {
         "value": {
-          "name": "Main Camera",
-          "uuid": "b4kRCC16pOd6LmYwSLxI3V"
+          "name": "bj_zjm_jb",
+          "uuid": "2cKipBr4hNPYVL5JJ1t3zT"
         },
         "type": "cc.Node"
       },
       "name": {
         "type": "String",
-        "value": "Main Camera<Camera>"
+        "value": "bj_zjm_jb<Sprite>"
       },
       "uuid": {
         "type": "String",
-        "value": "faQXJEa/RDHK6arUuu3Byx"
+        "value": "7dyXCzylBJnJrLVzrLLxw2"
       },
       "__scriptAsset": {
         "type": "cc.Script",
@@ -47,145 +47,339 @@
         "type": "Float",
         "value": 16384
       },
-      "_cullingMask": {
-        "type": "Float",
-        "value": 4294967295
+      "_materials": {
+        "type": "cc.Material",
+        "value": [
+          {
+            "type": "cc.MaterialVariant",
+            "value": {
+              "uuid": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
+            }
+          }
+        ]
       },
-      "_clearFlags": {
-        "type": "Float",
-        "value": 7
+      "materials": {
+        "type": "cc.Material",
+        "value": [
+          {
+            "type": "cc.MaterialVariant",
+            "value": {
+              "uuid": "eca5d2f2-8ef6-41c2-bbe6-f9c79d09c432"
+            }
+          }
+        ]
       },
-      "_backgroundColor": {
-        "type": "cc.Color",
+      "_srcBlendFactor": {
+        "type": "Float",
+        "value": 770
+      },
+      "_dstBlendFactor": {
+        "type": "Float",
+        "value": 771
+      },
+      "srcBlendFactor": {
+        "type": "Enum",
+        "value": 770
+      },
+      "dstBlendFactor": {
+        "type": "Enum",
+        "value": 771
+      },
+      "_spriteFrame": {
+        "type": "cc.SpriteFrame",
         "value": {
-          "r": 0,
-          "g": 0,
-          "b": 0,
-          "a": 255
+          "uuid": "65ca6eca-d60b-4fc8-bd21-5489db0f6a9e"
         }
       },
-      "_depth": {
+      "_type": {
         "type": "Float",
-        "value": -1
+        "value": 0
       },
-      "_zoomRatio": {
+      "_sizeMode": {
         "type": "Float",
-        "value": 1
+        "value": 0
       },
-      "_targetTexture": {
-        "type": "Object",
-        "value": null
-      },
-      "_fov": {
+      "_fillType": {
         "type": "Float",
-        "value": 60
+        "value": 0
       },
-      "_orthoSize": {
-        "type": "Float",
-        "value": 10
-      },
-      "_nearClip": {
-        "type": "Float",
-        "value": 1
-      },
-      "_farClip": {
-        "type": "Float",
-        "value": 4096
-      },
-      "_ortho": {
-        "type": "Boolean",
-        "value": true
-      },
-      "_rect": {
-        "type": "cc.Rect",
-        "value": {
-          "x": 0,
-          "y": 0,
-          "width": 1,
-          "height": 1
-        }
-      },
-      "_renderStages": {
-        "type": "Float",
-        "value": 1
-      },
-      "_alignWithScreen": {
-        "type": "Boolean",
-        "value": true
-      },
-      "zoomRatio": {
-        "type": "Float",
-        "value": 1
-      },
-      "fov": {
-        "type": "Float",
-        "value": 60
-      },
-      "orthoSize": {
-        "type": "Float",
-        "value": 10
-      },
-      "nearClip": {
-        "type": "Float",
-        "value": 1
-      },
-      "farClip": {
-        "type": "Float",
-        "value": 4096
-      },
-      "ortho": {
-        "type": "Boolean",
-        "value": true
-      },
-      "rect": {
-        "type": "cc.Rect",
+      "_fillCenter": {
+        "type": "cc.Vec2",
         "value": {
           "x": 0,
-          "y": 0,
-          "width": 1,
-          "height": 1
+          "y": 0
         }
       },
-      "cullingMask": {
+      "_fillStart": {
         "type": "Float",
-        "value": 4294967295
+        "value": 0
       },
-      "clearFlags": {
+      "_fillRange": {
         "type": "Float",
-        "value": 7
+        "value": 0
       },
-      "backgroundColor": {
-        "type": "cc.Color",
-        "value": {
-          "r": 0,
-          "g": 0,
-          "b": 0,
-          "a": 255
-        }
-      },
-      "depth": {
-        "type": "Float",
-        "value": -1
-      },
-      "targetTexture": {
-        "type": "Object",
-        "value": null
-      },
-      "renderStages": {
-        "type": "Float",
-        "value": 1
-      },
-      "alignWithScreen": {
+      "_isTrimmedMode": {
         "type": "Boolean",
         "value": true
       },
-      "_is3D": {
+      "_atlas": {
+        "type": "cc.SpriteAtlas",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "spriteFrame": {
+        "type": "cc.SpriteFrame",
+        "value": {
+          "uuid": "65ca6eca-d60b-4fc8-bd21-5489db0f6a9e"
+        }
+      },
+      "type": {
+        "type": "Enum",
+        "value": 0
+      },
+      "fillType": {
+        "type": "Enum",
+        "value": 0
+      },
+      "fillCenter": {
+        "type": "cc.Vec2",
+        "value": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      "fillStart": {
+        "type": "Float",
+        "value": 0
+      },
+      "fillRange": {
+        "type": "Float",
+        "value": 0
+      },
+      "trim": {
         "type": "Boolean",
-        "value": false
+        "value": true
+      },
+      "sizeMode": {
+        "type": "Enum",
+        "value": 0
       },
       "_id": {
         "type": "string",
-        "value": "faQXJEa/RDHK6arUuu3Byx"
+        "value": "7dyXCzylBJnJrLVzrLLxw2"
+      }
+    }
+  },
+  {
+    "type": "cc.Widget",
+    "value": {
+      "_name": {
+        "type": "String",
+        "value": ""
+      },
+      "_objFlags": {
+        "type": "Float",
+        "value": 63488
+      },
+      "node": {
+        "value": {
+          "name": "bj_zjm_jb",
+          "uuid": "2cKipBr4hNPYVL5JJ1t3zT"
+        },
+        "type": "cc.Node"
+      },
+      "name": {
+        "type": "String",
+        "value": "bj_zjm_jb<Widget>"
+      },
+      "uuid": {
+        "type": "String",
+        "value": "2fipzI9JpOOoRksfmsTPmE"
+      },
+      "__scriptAsset": {
+        "type": "cc.Script",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "_enabled": {
+        "type": "Boolean",
+        "value": true
+      },
+      "enabled": {
+        "type": "Boolean",
+        "value": true
+      },
+      "enabledInHierarchy": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isOnLoadCalled": {
+        "type": "Float",
+        "value": 16384
+      },
+      "target": {
+        "type": "cc.Node",
+        "value": {
+          "uuid": ""
+        }
+      },
+      "isAlignTop": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignVerticalCenter": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignBottom": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignLeft": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAlignHorizontalCenter": {
+        "type": "Boolean",
+        "value": false
+      },
+      "isAlignRight": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isStretchWidth": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isStretchHeight": {
+        "type": "Boolean",
+        "value": false
+      },
+      "top": {
+        "type": "Float",
+        "value": 0
+      },
+      "bottom": {
+        "type": "Float",
+        "value": 0
+      },
+      "left": {
+        "type": "Float",
+        "value": 0
+      },
+      "right": {
+        "type": "Float",
+        "value": 0
+      },
+      "horizontalCenter": {
+        "type": "Float",
+        "value": 0
+      },
+      "verticalCenter": {
+        "type": "Float",
+        "value": 0
+      },
+      "isAbsoluteHorizontalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteVerticalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteTop": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteBottom": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteLeft": {
+        "type": "Boolean",
+        "value": true
+      },
+      "isAbsoluteRight": {
+        "type": "Boolean",
+        "value": true
+      },
+      "alignMode": {
+        "type": "Enum",
+        "value": 1
+      },
+      "_wasAlignOnce": {
+        "type": "Object",
+        "value": null
+      },
+      "_target": {
+        "type": "Object",
+        "value": null
+      },
+      "_alignFlags": {
+        "type": "Float",
+        "value": 40
+      },
+      "_left": {
+        "type": "Float",
+        "value": 0
+      },
+      "_right": {
+        "type": "Float",
+        "value": 0
+      },
+      "_top": {
+        "type": "Float",
+        "value": 0
+      },
+      "_bottom": {
+        "type": "Float",
+        "value": 0
+      },
+      "_verticalCenter": {
+        "type": "Float",
+        "value": 0
+      },
+      "_horizontalCenter": {
+        "type": "Float",
+        "value": 0
+      },
+      "_isAbsLeft": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsRight": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsTop": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsBottom": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsHorizontalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_isAbsVerticalCenter": {
+        "type": "Boolean",
+        "value": true
+      },
+      "_originalWidth": {
+        "type": "Float",
+        "value": 750
+      },
+      "_originalHeight": {
+        "type": "Float",
+        "value": 1334
+      },
+      "_id": {
+        "type": "string",
+        "value": "2fipzI9JpOOoRksfmsTPmE"
       }
     }
   }

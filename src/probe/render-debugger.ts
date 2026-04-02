@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { Logger } from './logger';
 export function initRenderDebugger() {
             window.__mcpRenderDebuggerHook = {
                 _isActive: false,
@@ -53,7 +54,7 @@ export function initRenderDebugger() {
                     if (!eng) eng = window.cc;
 
                     if (!eng || !eng.RenderComponent) {
-                        console.warn("[RenderDebugger] 初始化失败：未找到 cc.RenderComponent");
+                        Logger.warn("[RenderDebugger] 初始化失败：未找到 cc.RenderComponent");
                         return;
                     }
 
@@ -61,7 +62,7 @@ export function initRenderDebugger() {
                     const methodName = typeof eng.RenderComponent.prototype._checkBacth === 'function' ? '_checkBacth' : '_checkBatch';
 
                     if (typeof eng.RenderComponent.prototype[methodName] !== 'function') {
-                        console.warn(`[RenderDebugger] 无法定位合批检测函数：${methodName}() 不存在`);
+                        Logger.warn(`[RenderDebugger] 无法定位合批检测函数：${methodName}() 不存在`);
                         return;
                     }
 
@@ -116,7 +117,7 @@ export function initRenderDebugger() {
                                             if (window.__mcpInspector && window.__mcpInspector.sendRenderDebuggerPayload) {
                                                 window.__mcpInspector.sendRenderDebuggerPayload(payload);
                                             } else {
-                                                console.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
+                                                Logger.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
                                             }
                                         }
                                     }
@@ -266,7 +267,7 @@ export function initRenderDebugger() {
                                         window.__mcpInspector.sendRenderDebuggerPayload(payload);
                                     } else {
                                         // 兼容降级模式，由宿主主动拦截 console
-                                        console.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
+                                        Logger.debug(`[RenderDebugger]JSON_DATA:${JSON.stringify(payload)}`);
                                     }
                                 }
 
@@ -398,7 +399,7 @@ export function initRenderDebugger() {
                     }
 
                     self._isActive = true;
-                    console.log("[RenderDebugger] MVP 探针已成功注入游戏内渲染管线 ✅");
+                    Logger.log("[RenderDebugger] MVP 探针已成功注入游戏内渲染管线 ✅");
                 },
 
                 restoreHooks: function () {
@@ -446,7 +447,7 @@ export function initRenderDebugger() {
                     self._currentReplayDrawCallCount = 0;
                     self._currentMcpBatchIndex = 0;
                     self._isFlushingBatcher = false;
-                    console.log("[RenderDebugger] MVP 探针已安全撤出，游戏内归还原生管线 🛑");
+                    Logger.log("[RenderDebugger] MVP 探针已安全撤出，游戏内归还原生管线 🛑");
                 }
             };
 }
