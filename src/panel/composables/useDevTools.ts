@@ -2,7 +2,7 @@ const { nextTick, onUnmounted } = require('vue');
 const { remote } = require('electron');
 declare const Editor: any;
 
-export function useDevTools(globalState: any, gameView: any, devtoolsView: any, activeTab: any) {
+export function useDevTools(globalState: any, gameView: any, devtoolsView: any, activeTab: any, rightPanelWidth: any) {
     const { BrowserView } = remote;
     let devToolsBV: any = null;
     let isDevToolsSetup = false;
@@ -13,19 +13,42 @@ export function useDevTools(globalState: any, gameView: any, devtoolsView: any, 
         if (!devToolsBV) return;
         const container = devtoolsView.value as any;
         if (!container) return;
+        
         const rect = container.getBoundingClientRect();
+        let targetX = rect.left;
+        let targetY = rect.top;
+        let targetWidth = rect.width;
+        let targetHeight = rect.height;
+
+        // 【核心修正】由于当前项目借助 CSS `zoom` 实现面板缩放，
+        // 在 Chromium 59 中，如果元素有 zoom（或者处于有 zoom 的容器内），
+        // 它的 getBoundingClientRect() 所返回的是 **逆向缩放后的 CSS 虚幻绝对坐标**。
+        // 即：真正的物理尺寸 = rect.X * zoom。
+        if (globalState.uiScale && globalState.uiScale !== 1) {
+            targetX = rect.left * globalState.uiScale;
+            targetY = rect.top * globalState.uiScale;
+            targetWidth = rect.width * globalState.uiScale;
+            targetHeight = rect.height * globalState.uiScale;
+        }
+
         try {
             devToolsBV.setBounds({
-                x: Math.round(rect.left),
-                y: Math.round(rect.top),
-                width: Math.round(rect.width),
-                height: Math.round(rect.height)
+                x: Math.round(targetX),
+                y: Math.round(targetY),
+                width: Math.round(targetWidth),
+                height: Math.round(targetHeight)
             });
         } catch (e) { }
     };
 
     const setupDevToolsWatchers = () => {
         const { watch } = require('vue');
+        watch(rightPanelWidth, () => {
+            if (activeTab.value === 1 && devToolsBV) {
+                updateBrowserViewBounds();
+            }
+        });
+        
         watch(activeTab, async (newVal: number) => {
             if (newVal === 1 && !isDevToolsSetup) {
                 await nextTick();

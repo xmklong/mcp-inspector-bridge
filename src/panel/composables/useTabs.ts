@@ -7,7 +7,8 @@ export function useTabs() {
         { id: 4, name: '性能分析', icon: '💡' },
         { id: 5, name: '渲染诊断', icon: '🔮' },
         { id: 2, name: 'Cocos信息', icon: 'ℹ️' },
-        { id: 3, name: '扩展', icon: '🔌' }
+        { id: 3, name: '扩展', icon: '🔌' },
+        { id: 6, name: '设置', icon: '⚙️' }
     ];
 
     const loadTabsOrder = () => {

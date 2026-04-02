@@ -2,7 +2,7 @@ declare const Editor: any;
 import * as fs from 'fs';
 import * as path from 'path';
 
-const { createApp, ref, onMounted } = require('vue');
+const { createApp, ref, onMounted, watch } = require('vue');
 const { NodeTree } = require('./components/NodeTree');
 const { NodeInspector } = require('./components/NodeInspector');
 const { RenderDebugger } = require('./components/RenderDebugger');
@@ -33,6 +33,8 @@ module.exports = Editor.Panel.extend({
     },
 
     ready() {
+        const panelAppElement = this.$app;
+
         const app = createApp({
             components: { NodeTree, 'node-inspector': NodeInspector, 'render-debugger': RenderDebugger },
             setup() {
@@ -61,13 +63,55 @@ module.exports = Editor.Panel.extend({
                     (payload: any, auto: boolean) => nodeSystem.onNodeSelect(payload, auto)
                 );
 
-                const devToolsSystem = useDevTools(globalState, gameView, devtoolsView, activeTab);
+                const devToolsSystem = useDevTools(globalState, gameView, devtoolsView, activeTab, layoutSystem.rightPanelWidth);
+
+                const electron = require('electron');
+                const savedScale = window.localStorage.getItem('mcp-ui-scale');
+                if (savedScale && !isNaN(parseFloat(savedScale))) {
+                    globalState.uiScale = parseFloat(savedScale);
+                }
+                const savedLayout = window.localStorage.getItem('mcp-inspector-layout');
+                if (savedLayout === 'vertical' || savedLayout === 'horizontal') {
+                    globalState.inspectorLayout = savedLayout;
+                }
+
+                watch(() => globalState.inspectorLayout, (newVal: string) => {
+                    try {
+                        window.localStorage.setItem('mcp-inspector-layout', newVal);
+                    } catch(e) {}
+                });
+
+                watch(() => globalState.uiScale, (newVal: number) => {
+                    try {
+                        if (typeof Editor !== 'undefined') {
+                            Editor.log('[MCP Inspector] -> Executing scale:', newVal, '| target:', !!panelAppElement);
+                        } else {
+                            console.log('[MCP Inspector] -> Executing scale:', newVal, '| target:', !!panelAppElement);
+                        }
+                        
+                        // 直接通过插件生命周期的 this.$app 句柄施加原生缩放设置，突破 Shadow DOM 与 Vue 挂载盲区。
+                        if (panelAppElement) {
+                            panelAppElement.style.zoom = newVal.toString();
+                        }
+                        window.localStorage.setItem('mcp-ui-scale', newVal.toString());
+
+                        setTimeout(() => {
+                            if (devToolsSystem.updateBrowserViewBounds) {
+                                devToolsSystem.updateBrowserViewBounds();
+                            }
+                        }, 20);
+                    } catch(e) {}
+                });
 
                 onMounted(() => {
                     layoutSystem.setupResizeObserver();
                     gameViewSystem.setupGameViewListeners();
                     devToolsSystem.setupDevToolsWatchers();
                     profilerSystem.setupProfilerWatchers();
+                    
+                    if (panelAppElement) {
+                        panelAppElement.style.zoom = globalState.uiScale.toString();
+                    }
                 });
 
                 return {

@@ -16,7 +16,7 @@ export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
 
         const onMouseMove = (e: MouseEvent) => {
             if (!isDragging.value) return;
-            const deltaX = e.clientX - startX;
+            const deltaX = (e.clientX - startX) / (globalState.uiScale || 1.0);
             const newWidth = startWidth - deltaX;
 
             if (newWidth > 200 && newWidth < document.body.clientWidth - 300) {
@@ -38,6 +38,7 @@ export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
     };
 
     const nodeTreePanelWidth = ref(250);
+    const nodeTreePanelHeight = ref(250);
     const isNodeTreeDragging = ref(false);
 
     try {
@@ -48,23 +49,45 @@ export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
                 nodeTreePanelWidth.value = wNum;
             }
         }
+        const savedH = window.localStorage.getItem('mcp-inspector-nodetree-height');
+        if (savedH) {
+            const hNum = parseInt(savedH, 10);
+            if (!isNaN(hNum) && hNum >= 100) {
+                nodeTreePanelHeight.value = hNum;
+            }
+        }
     } catch(e) {}
 
     const startNodeTreeDrag = (downEvent: MouseEvent) => {
         isNodeTreeDragging.value = true;
         if (downEvent.preventDefault) downEvent.preventDefault();
         
+        const isVertical = globalState.inspectorLayout === 'vertical';
         const startX = downEvent.clientX;
+        const startY = downEvent.clientY;
         const startWidth = nodeTreePanelWidth.value;
+        const startHeight = nodeTreePanelHeight.value;
 
         const onMouseMove = (e: MouseEvent) => {
             if (!isNodeTreeDragging.value) return;
-            const deltaX = e.clientX - startX;
-            const newWidth = startWidth + deltaX;
-
-            const maxW = rightPanelWidth.value - 250;
-            if (newWidth > 150 && newWidth < (maxW > 150 ? maxW : 9999)) {
-                nodeTreePanelWidth.value = newWidth;
+            
+            if (isVertical) {
+                const deltaY = (e.clientY - startY) / (globalState.uiScale || 1.0);
+                const newHeight = startHeight + deltaY;
+                const wrapCtx = document.querySelector('.right-panel-wrap-ctx') || document.body;
+                const maxH = wrapCtx.clientHeight - 150;
+                
+                if (newHeight > 100 && newHeight < (maxH > 100 ? maxH : 9999)) {
+                    nodeTreePanelHeight.value = newHeight;
+                }
+            } else {
+                const deltaX = (e.clientX - startX) / (globalState.uiScale || 1.0);
+                const newWidth = startWidth + deltaX;
+                const maxW = rightPanelWidth.value - 250;
+                
+                if (newWidth > 150 && newWidth < (maxW > 150 ? maxW : 9999)) {
+                    nodeTreePanelWidth.value = newWidth;
+                }
             }
         };
         const onMouseUp = () => {
@@ -72,7 +95,11 @@ export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             try {
-                window.localStorage.setItem('mcp-inspector-nodetree-width', nodeTreePanelWidth.value.toString());
+                if (isVertical) {
+                    window.localStorage.setItem('mcp-inspector-nodetree-height', nodeTreePanelHeight.value.toString());
+                } else {
+                    window.localStorage.setItem('mcp-inspector-nodetree-width', nodeTreePanelWidth.value.toString());
+                }
             } catch (e) { }
         };
         document.addEventListener('mousemove', onMouseMove);
@@ -177,6 +204,7 @@ export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
         isDragging,
         startDrag,
         nodeTreePanelWidth,
+        nodeTreePanelHeight,
         isNodeTreeDragging,
         startNodeTreeDrag,
         gameContainerStyle,

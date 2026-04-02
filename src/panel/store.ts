@@ -23,5 +23,7 @@ export const globalState = reactive({
     isInspectorHovered: false as boolean,
     isEditorSceneActive: false as boolean,
     isNodePickerActive: false as boolean,
-    previewPort: 7456 as number
+    previewPort: 7456 as number,
+    uiScale: 1.0 as number,
+    inspectorLayout: 'horizontal' as 'horizontal' | 'vertical'
 });

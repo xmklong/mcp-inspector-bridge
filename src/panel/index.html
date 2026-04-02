@@ -13,8 +13,7 @@
 .icon-btn:hover { background: #555; color: #fff; }
 .truncate-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
-/* 响应式：当父级空间不足时，自动收缩的机制通过 Vue JS 监听附加 .narrow-mode 类实现 */
-.narrow-mode .resolution-select { max-width: 100px; }
+/* 分辨率选择框最小宽度保护被更弹性的包裹层级接管，移除旧版基于 order 的换行兼容 */
 
 .narrow-tab-nav .tab-text { display: none; }
 .narrow-tab-nav .tab-item { padding: 8px 10px; justify-content: center; }
@@ -34,6 +33,24 @@
 .resizer:hover { background: #4a4a4a; }
 .resizer::after {
     content: "⋮";
+    color: #888;
+    font-size: 14px;
+}
+
+.h-resizer {
+    height: 6px;
+    background: #333;
+    cursor: row-resize;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid #111;
+    border-bottom: 1px solid #111;
+    z-index: 100;
+}
+.h-resizer:hover { background: #4a4a4a; }
+.h-resizer::after {
+    content: "⋯";
     color: #888;
     font-size: 14px;
 }
@@ -75,7 +92,7 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
     <!-- 左侧 Game Panel -->
     <div :class="['left-panel', globalState.isNarrow ? 'narrow-mode' : '']" style="flex: 1; display: flex; flex-direction: column; border-right: 1px solid #111; overflow: hidden; min-width: 0;">
         <!-- 顶部操作栏 -->
-        <div style="height: 35px; background: #3c3c3c; display: flex; align-items: center; padding: 0 10px; gap: 5px; overflow: hidden;">
+        <div :style="{ minHeight: '35px', background: '#3c3c3c', display: 'flex', alignItems: 'center', padding: globalState.isNarrow ? '4px 10px' : '0 10px', gap: '5px', flexWrap: 'wrap', rowGap: '4px' }">
             <div class="btn-group">
                 <button class="icon-btn" title="刷新页面" @click="refreshGame">↻</button>
                 <button class="icon-btn" :title="globalState.isGamePaused ? '恢复播放' : '暂停引擎'" @click="togglePause">{{ globalState.isGamePaused ? '▶️' : '⏸' }}</button>
@@ -84,17 +101,17 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                 <button class="icon-btn" title="静音/开启游戏声音" @click="toggleMute">{{ isAudioMuted ? '🔇' : '🔊' }}</button>
                 <button :class="['icon-btn', globalState.isNodePickerActive ? 'active' : '']" :style="{ color: globalState.isNodePickerActive ? '#09f' : '#ccc', borderColor: globalState.isNodePickerActive ? '#09f' : '#555' }" title="场景节点拾取" @click="toggleNodePicker">🎯</button>
             </div>
-            <!-- 分辨率限制控件 -->
-            <select v-model="selectedResolution" class="resolution-select truncate-text" style="background:#555; color:#fff; border:1px solid #777; padding:3px; outline:none; border-radius:3px; flex-shrink: 1;">
-                <option value="FIT">自动充满 (Fit Window)</option>
-                <option value="750x1334">Apple iPhone 7 (750x1334)</option>
-                <option value="1125x2436">Apple iPhone X (1125x2436)</option>
-                <option value="1080x1920">Android 1080p (1080x1920)</option>
-                <option value="1284x2778">Apple iPhone 12 Pro Max (1284x2778)</option>
-            </select>
-            <button class="icon-btn" title="横竖屏切换" @click="rotateScreen">🔄</button>
-            <div style="flex: 1; min-width: 0;"></div>
-            <div class="truncate-text" style="font-size: 12px; color: #aaa; flex-shrink: 2;" :style="globalState.isNarrow ? { fontSize: '10px' } : {}">MCP Bridge</div>
+            <!-- 分辨率与横竖屏分组 (保证自动换行时不被切割) -->
+            <div style="display: flex; gap: 5px; flex: 1; min-width: 200px;">
+                <select v-model="selectedResolution" class="truncate-text" style="background:#555; color:#fff; border:1px solid #777; padding:3px; outline:none; border-radius:3px; flex: 1;">
+                    <option value="FIT">自动充满 (Fit Window)</option>
+                    <option value="750x1334">iPhone 7 (750x1334)</option>
+                    <option value="1125x2436">iPhone X (1125x2436)</option>
+                    <option value="1080x1920">Android 1080p (1080x1920)</option>
+                    <option value="1284x2778">iPhone 12 Pro Max (1284x2778)</option>
+                </select>
+                <button class="icon-btn" title="横竖屏切换" @click="rotateScreen">🔄</button>
+            </div>
         </div>
 
         <!-- 游戏 Webview 容器底板 (深渊灰色，负责居中缩放) -->
@@ -155,15 +172,15 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                 <div v-if="globalState.showFallbackWarning" style="padding: 10px; background: #fff3e0; color: #ef6c00; font-size: 11px; border-bottom: 1px solid #ffe0b2;">
                     ⚠️ [降级容错模式] 原生 IPC 数据链路受阻，当前面板正通过主动 DOM 轮询模式拉取。
                 </div>
-                <div style="flex: 1; display: flex; flex-direction: row; min-height: 0;">
-                    <div :style="{ width: nodeTreePanelWidth + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', overflowY: 'hidden', background: '#252525' }">
+                <div :style="{ flex: 1, display: 'flex', flexDirection: globalState.inspectorLayout === 'vertical' ? 'column' : 'row', minHeight: 0 }">
+                    <div :style="{ [globalState.inspectorLayout === 'vertical' ? 'height' : 'width']: (globalState.inspectorLayout === 'vertical' ? nodeTreePanelHeight : nodeTreePanelWidth) + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', overflowY: 'hidden', background: '#252525' }">
                         <div v-if="!globalState.nodeTree" style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">(等待加载场景节点树)</div>
                         <node-tree ref="nodeTreeRef" v-else :tree-data="globalState.nodeTree" @select="onNodeSelect" @hover="onNodeHover"></node-tree>
                     </div>
                     
-                    <div class="resizer" @mousedown="startNodeTreeDrag" title="拖拉调整侧栏宽度"></div>
+                    <div :class="globalState.inspectorLayout === 'vertical' ? 'h-resizer' : 'resizer'" @mousedown="startNodeTreeDrag" title="拖拉调整侧栏尺寸"></div>
 
-                    <div style="flex: 1; overflow-y: hidden; background: #202020; min-width: 0; position: relative;">
+                    <div style="flex: 1; overflow-y: hidden; background: #202020; min-width: 0; min-height: 0; position: relative;">
                         <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp" @hover-change="globalState.isInspectorHovered = $event" @locate-node="onLocateNode" @locate-asset="onLocateAsset" @print-comp="onPrintComp"></node-inspector>
                         <div v-show="isNodeTreeDragging" style="position: absolute; inset: 0; z-index: 99;"></div>
                     </div>
@@ -298,6 +315,34 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
             <!-- Tab 5: 渲染调试器 MVP -->
             <div v-show="activeTab === 5" style="position: absolute; inset: 0; background: #1a1a1a;">
                 <render-debugger @toggle="onRenderDebuggerToggle" @locate-node="onRenderDebuggerLocate"></render-debugger>
+            </div>
+
+            <!-- Tab 6: 偏好设置 -->
+            <div v-show="activeTab === 6" style="position: absolute; inset: 0; padding: 15px; background: #1e1e1e; color: #ddd; overflow-y: auto;">
+                <h4 style="margin: 0 0 15px 0; color: #88c; border-bottom: 1px solid #333; padding-bottom: 5px;">偏好设置</h4>
+                
+                <div style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
+                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">UI 界面缩放比例 (UI Scale)</div>
+                    <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">如果面板在低分辨率屏幕下显示拥挤，可调低此比例（修改后将立即在本地缓存）。</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="range" v-model.number="globalState.uiScale" min="0.5" max="1.5" step="0.05" style="width: 200px;">
+                        <span style="font-family: monospace; font-size: 13px; background: #111; padding: 3px 6px; border-radius: 3px; min-width: 40px; text-align: center;">{{ (globalState.uiScale * 100).toFixed(0) }}%</span>
+                        <button class="icon-btn" style="padding: 2px 8px; width: auto;" @click="globalState.uiScale = 1.0" title="重置">重置</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
+                    <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px;">检查器排布方向 (Inspector Layout)</div>
+                    <div style="font-size: 12px; color: #aaa; margin-bottom: 10px;">控制左侧节点树和右侧属性面板的排列方式。</div>
+                    <div style="display: flex; gap: 15px; align-items: center; font-size: 13px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" v-model="globalState.inspectorLayout" value="horizontal"> 横向并排 (左右)
+                        </label>
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <input type="radio" v-model="globalState.inspectorLayout" value="vertical"> 纵向并排 (上下)
+                        </label>
+                    </div>
+                </div>
             </div>
 
         </div>

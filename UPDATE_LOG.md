@@ -4,6 +4,38 @@
 
 ---
 
+## [0.0.9] - 2026-04-02
+
+### ✨ 新特性
+
+- **支持全局 UI 缩放与设置面板 (Global UI Scaling and Settings Panel)**
+  - 在右侧标签栏增加了专属的“设置 (⚙️)”入口。
+  - 通过操作 `#app` DOM 容器级的独立 CSS `zoom` 取代全局 `webFrame` 倍率，防范了缩放对其他编辑器面板的跨界污染。
+  - 通过注入基于除法 `uiScale` 基数的拖曳像素对冲，修复了因 zoom 引发的侧边手柄原生坐标断轴偏移问题。
+
+- **检查器专属排版选项 (Inspector Layout Toggle)**
+  - 偏好设置中增加“检查器排布方向”控制，支持“横向并排”与“纵向并排”。
+  - 将节点树和检查器的固定水平排布解锁，增加了垂直方向拖曳控制 `nodeTreePanelHeight` 及专属手柄样式。
+  - 用户偏好的排版将即时存入 localStorage 并在热重载时平滑恢复。
+
+- **渲染诊断面板响应式适应 (Render Debugger Responsive UI)**
+  - 弃用固定的按百分比硬性切割 `width` 方案。
+  - 引入原生 Flexbox 的 `flex-wrap: wrap` 以及 `flex-basis`/`min-width` 折行响应策略。
+  - 极窄视窗下，诊断三栏将优雅折断为上下平铺的三重堆叠层级，防范文本重叠失真。
+  - 全面精简渲染面板的说明：剔除括号内冗余的英文释义，将“前进一步”收缩为纯极简的图示控制。
+
+### 🐛 缺陷修复
+
+- **修复 UI 缩放与面板宽边界变动时开发者工具视图未同步裁切对齐问题 (BrowserView Out-of-Sync Fix)**
+  - **问题**：原生脱离 DOM 的 BrowserView 没有主动响应 CSS `zoom` 和窗体宽窄拖拉的机制；且在 Chromium 59 旧内核下，带有 `zoom` 属性的容器调用 `getBoundingClientRect()` 会返回被虚假拉伸放大的不标准坐标，导致包围盒投影不仅没有收缩对齐，反而向外越界漂移穿模。
+  - **方案**：引入 `rightPanelWidth` 侦听绑定，以及 `setTimeout(20ms)` 的脱管空窗补偿；并在最终包围盒校准环节废除锚点求差法，直接将返回的 `rect` 属性执行 `* uiScale` 重组为纯粹的绝对物理屏幕像素轴。
+
+- **修复极窄面板下分辨率选择框不可读 (Toolbar Responsive Wrap)**
+  - **问题**：操作栏固定 `height: 35px` + `overflow: hidden`，极窄时分辨率 `<select>` 被压扁到 0px
+  - **方案**：`min-height` + `flex-wrap: wrap` 自动折行 + `min-width: 120px` 保护 + CSS `order` 重排窄模式元素布局
+
+---
+
 ## [0.0.8] - 2026-04-02
 
 ### ✨ 新特性

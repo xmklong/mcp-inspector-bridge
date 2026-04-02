@@ -5,38 +5,38 @@ export const RenderDebugger = {
     template: `
         <div style="padding: 10px; color: #eee; font-family: sans-serif; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
             <!-- 头部控制栏 -->
-            <div style="flex-shrink: 0; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-                <div>
+            <div style="flex-shrink: 0; margin-bottom: 10px; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="flex: 1 1 300px;">
                     <h3 style="margin: 0 0 5px 0; color: #fff;">Render Pipeline 流水线诊断</h3>
                     <div style="font-size: 12px; color: #aaa;">
                         <span v-if="!isFrozen">底层动态探测会导致 DrawCall 断流的深层根因。</span>
                         <span v-else>快照已锁定（帧号 {{ frozenSnapshot?.frameId }}）。可逐层追溯每一个 DrawCall 与原始 RenderCommand 的绑定及物理画面。</span>
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 auto; justify-content: flex-end;">
                     <label v-if="!isFrozen" style="display: flex; align-items: center; cursor: pointer; background: #222; padding: 6px 12px; border-radius: 4px; border: 1px solid #555;">
                         <input type="checkbox" v-model="isCapturing" style="margin-right: 8px;" />
                         <span style="font-size: 13px; font-weight: bold;" :style="{ color: isCapturing ? '#4caf50' : '#ccc' }">
-                            {{ isCapturing ? '断流侦听中...' : '开启断流侦听' }}
+                            {{ isCapturing ? '侦听中' : '开启侦听' }}
                         </span>
                     </label>
                     <button @click="toggleFreeze" :disabled="!latestSnapshot && !isFrozen"
                             :style="{ background: isFrozen ? '#e65100' : (latestSnapshot ? '#1976d2' : '#333'), color: '#fff', border: '1px solid #555', padding: '6px 12px', borderRadius: '4px', cursor: (latestSnapshot||isFrozen) ? 'pointer' : 'not-allowed', fontWeight: 'bold' }">
-                        {{ isFrozen ? '⏸ 恢复实时嗅探' : '⏺ 截流当前帧做深入分析' }}
+                        {{ isFrozen ? '⏸ 恢复嗅探' : '⏺ 截取当前帧' }}
                     </button>
                     <button v-if="!isFrozen" @click="clearLogs" style="padding: 6px 12px; background: #444; color: #fff; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                        🗑 清空历史断批
+                        🗑 清空记录
                     </button>
                 </div>
             </div>
 
             <!-- 数据列表示图 (未冻结时显示动态断批断点) -->
             <div v-show="!isFrozen" style="flex: 1; min-height: 0; border: 1px solid #333; background: #1a1a1c; overflow-y: auto; border-radius: 4px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                <table style="width: 100%; min-width: 500px; border-collapse: collapse; font-size: 12px; text-align: left;">
                     <thead style="position: sticky; top: 0; background: #2a2a2a; color: #ccc; z-index: 10;">
                         <tr>
-                            <th style="padding: 6px;">打断节点 (Culprit)</th>
-                            <th style="padding: 6px;">上游节点 (Victim)</th>
+                            <th style="padding: 6px;">打断节点</th>
+                            <th style="padding: 6px;">上游节点</th>
                             <th style="padding: 6px;">断批特征原因</th>
                             <th style="padding: 6px; width: 60px;">频次</th>
                         </tr>
@@ -70,9 +70,9 @@ export const RenderDebugger = {
             </div>
 
             <!-- 全景三栏布局区 (快照冻结时显示) -->
-            <div v-if="isFrozen && frozenSnapshot" style="flex: 1; min-height: 0; display: flex; gap: 10px; overflow: hidden; margin-top: 5px;">
+            <div v-if="isFrozen && frozenSnapshot" style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap; gap: 10px; overflow-y: auto; overflow-x: hidden; margin-top: 5px; align-content: flex-start;">
                 <!-- 左侧：渲染工序拆解 -->
-                <div style="width: 25%; background: #1a1a1c; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="flex: 1 1 200px; min-height: 250px; background: #1a1a1c; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
                     <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333;">
                         渲染队列 ({{ frozenSnapshot.totalDrawCalls }} DCs)
                     </div>
@@ -107,12 +107,12 @@ export const RenderDebugger = {
                 </div>
 
                 <!-- 中央：离屏重绘画布 -->
-                <div style="width: 50%; background: #000; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="flex: 2 1 300px; min-height: 300px; background: #000; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
                     <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #66bb6a;">单步图传 (Step Replay)</span>
+                        <span style="color: #66bb6a;">单步图传</span>
                         <div style="display: flex; gap: 4px;">
-                            <button @click="replayStep('prev')" style="background: #444; color: #fff; border: 0; cursor: pointer; padding: 2px 6px; border-radius: 2px;">👈 前进一步</button>
-                            <button @click="replayStep('next')" style="background: #444; color: #fff; border: 0; cursor: pointer; padding: 2px 6px; border-radius: 2px;">👉 后进一步</button>
+                            <button @click="replayStep('prev')" style="background: #444; color: #fff; border: 0; cursor: pointer; padding: 2px 6px; border-radius: 2px;">👈</button>
+                            <button @click="replayStep('next')" style="background: #444; color: #fff; border: 0; cursor: pointer; padding: 2px 6px; border-radius: 2px;">👉</button>
                         </div>
                     </div>
                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
@@ -122,9 +122,9 @@ export const RenderDebugger = {
                 </div>
 
                 <!-- 右侧：管线明细 -->
-                <div style="width: 25%; background: #1a1a1c; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
+                <div style="flex: 1 1 200px; min-height: 250px; background: #1a1a1c; border: 1px solid #333; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden;">
                     <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #333; color: #ffa726;">
-                        批次参数明细 (Details)
+                        批次参数明细
                     </div>
                     <div style="flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; color: #ccc;">
                         <div v-if="selectedDrawCallIndex > -1 && frozenSnapshot.drawCalls[selectedDrawCallIndex]">
@@ -132,19 +132,19 @@ export const RenderDebugger = {
                             <div v-if="selectedCommandIndex === -1">
                                 <h4 style="margin: 0 0 10px 0; color: #4fc3f7; border-bottom: 1px solid #333; padding-bottom: 5px;">DrawCall #{{ selectedDrawCallIndex }} 全局状态</h4>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">物理类型 (Primitive)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">物理类型</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].primitiveType === 4 ? 'PT_TRIANGLES' : 'UNKNOWN' }}</div>
                                 </div>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">填充索引数 (Indices Count)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">填充索引数</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px; color: #69f0ae;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].indiceCount }}</div>
                                 </div>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">预估顶点数 (Vertices Count)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">预估顶点数</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px;">~{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].vertexCount }}</div>
                                 </div>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">合计合并指令 (Commands)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">合计合并指令</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].commands ? frozenSnapshot.drawCalls[selectedDrawCallIndex].commands.length : 0 }} 个</div>
                                 </div>
                             </div>
@@ -152,15 +152,15 @@ export const RenderDebugger = {
                             <div v-else-if="frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex]">
                                 <h4 style="margin: 0 0 10px 0; color: #ffb74d; border-bottom: 1px solid #333; padding-bottom: 5px;">Command #{{ selectedCommandIndex }} 独立状态</h4>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">指令类型 (Type)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">指令类型</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px; color: #e1bee7;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].type }}</div>
                                 </div>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">节点名称 (Node Name)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">节点名称</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px; word-break: break-all;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].name }}</div>
                                 </div>
                                 <div style="margin-bottom: 10px;">
-                                    <div style="color: #888; margin-bottom: 2px;">材质哈希 (Material Hash)</div>
+                                    <div style="color: #888; margin-bottom: 2px;">材质哈希</div>
                                     <div style="background: #111; padding: 4px 6px; border-radius: 3px; font-family: monospace;">{{ frozenSnapshot.drawCalls[selectedDrawCallIndex].commands[selectedCommandIndex].materialHash }}</div>
                                 </div>
                                 <div style="margin-bottom: 10px; display: flex; gap: 10px;">
