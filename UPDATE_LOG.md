@@ -2,275 +2,283 @@
 
 本项目记录 `mcp-inspector-bridge` 的重大里程碑、架构变更与缺陷修复记录。
 
+---
+
 ## [0.0.8] - 2026-04-02
-### ✨ 新特性与架构变更
-- **紧凑型工具栏重塑与悬浮提示引擎 (Compact Icon-Only Toolbar with Tooltips)**:
-  - **核心痛点**：在进行竖屏开发或者极致缩减插件分栏宽度时，原有的“图标+文字”型按钮矩阵会因为占用过多横向物理空间，而强制触发换行遮挡或者将重要的机型分辨率下拉框完全挤出视口，整体界面显得拥挤且不从容。
-  - **全貌压缩与按需填补**：在前端 DOM 彻底开刀移除了陈旧死板的内联文字占位。将操作栏统一部署为纯正方形列阵 (`26x26`) 的极简纯图标骨架，一举释出庞大的留白空间。并借助打通的原生 HTML5 `title` 管线实现精准鼠标悬停说明（Hover Tooltips）补偿！它还能针对引擎暂停等运行时动态响应，呈现如“ ▶️ 恢复播放”等带有状态感知文字指引的动态漂浮窗。在保障工具全貌的清爽底座下，实现了最高效的屏占比。
-- **纯代码级全局调试日志开关与警告降噪 (Debug Log Toggle & Noise Reduction)**:
-  - **核心痛点**：此前的探针在挂载节点、搜寻组件以及摄像机重建时会频发大量用于验证状态的 `console.log` 与防呆常态化报警的 `console.warn`，使得原本应服务于游戏本源业务的开发者控制台被插件自身的诊断信息严重污染。
-  - **全局探长代理 (Logger Module)**：新增了 `src/probe/logger.ts` 代理层，彻底废弃了各子模块里散乱的 `isDebug` 判断。引入基于 `window.__MCP_DEBUG__` 变量的纯代码级门禁机制 (默认 `false`)。系统精准评估了所有警告反馈，将无关于主线死锁的降级预警（如节点销毁后的未命中重查）悉数降级为静默态。只有直接影响存亡的报错方可直达界面。真正还给开发者一个 100% 的极净排查视野空间。
-- **全物理视界包角渲染与精准贴合边框 (Bounding Box Render Overhaul)**:
-  - **核心痛点**：此前的节点拾取及悬浮体系由于严重依赖原生极不安分的矩阵提取方法，且缺乏宽高的容错降级短路，导致即使选取成功，高亮反馈也往往因为报错堕落而回退为一个简陋的“圆点与十字准心”，完全丧失节点在实际游戏界面占据物理容积的体现。
-  - **逆映射重构重塑边缘**：彻底抛弃旧版直接获取 `getWorldMatrix` 强行自乘的方法。系统现利用节点原生态强壮的 `convertToWorldSpaceAR` 沿着本地宽高比例与 `anchor` 原点发射推导 4 枚角标，借此完美吞噬父级嵌套导致的错位、旋转带来的边缘倾斜透视等复杂变化。不仅在常态下呈现出了完美裹边的半透明选框多边形，更在目标节点长宽彻底归零时丝滑无缝接力跌落至十字标记模式。真正实现了视觉辅助全量无所不包的大满贯式大修补。
-- **禁用场景根节点属性编辑保护 (Scene Node Readonly Shield)**:
-  - 针对 `active is not defined in the Scene` 的报错进行了根除。探针层现已支持前置拦截检测 `cc.Scene`，并在属性面板呈现友好的“[场景] 不可直接编辑”占位 UI 隔离带，保留选中高亮状态的同时切断了非法的属性穿透与报错渲染。
-- **预制体节点快速逆向定位器 (Prefab Asset Locator 🎯)**:
-  - 为所有挂载着预制体的节点头部，一键接入了与内存分析面板平级的 `[🎯]` 深度追踪通道。在右侧属性检查器面板顶部点击图标，便能发出 IPC 唤起指令跨界驱动 Cocos Native 的引擎管理器高亮对应的物理资源 `.prefab`，实现了体验上的深度闭环。
-- **节点树视图交互体验完善 (Node Tree Blank Area Deselection)**:
-  - **核心痛点**：在节点树结构中选中节点后，由于原架构缺乏对全局点击边界的防御判定，导致用户即使点击了空白处也无法执行反向逻辑“取消选中”，致使查阅属性后的目标一直残留粘滞，无法快速清屏。
-  - **交互体验再升级**：为节点树容器添加了包含 DOM 事件委托与安全 `closest` 校验的底层空白点击拦截器。不仅实现了点击空白即刻重置高亮与解除锁定的流线型响应，还完美打通了双通道：连带触发 Probe 管线中的高亮线网解绑及右侧属性编辑器（Property Inspector）的即时净化归零，还给开发者最清爽利落的交互视觉反馈。
+
+### ✨ 新特性
+
+- **紧凑型图标工具栏 (Compact Icon-Only Toolbar)**
+  - 移除工具栏按钮文字标签，统一为 `26x26` 纯图标矩阵
+  - 通过 HTML5 原生 `title` 属性提供悬浮提示，支持引擎状态感知的动态提示文案（如 "▶️ 恢复播放"）
+  - 释放大量横向空间，极窄面板下也不变形
+
+- **全局调试日志开关 (Debug Log Toggle)**
+  - 新增 `src/probe/logger.ts` 统一日志代理，废弃各模块散乱的 `isDebug` 判断
+  - 基于 `window.__MCP_DEBUG__` 门禁，默认静默所有探针日志
+  - 非致命警告自动降级，控制台 100% 留给游戏业务
+
+- **包围盒渲染重构 (Bounding Box Overhaul)**
+  - 弃用不稳定的 `getWorldMatrix` 提取法，改用 `convertToWorldSpaceAR` + 锚点逆推生成 4 角多边形
+  - 零宽高节点自动降级为十字准星标记
+  - 完美处理父级嵌套旋转、倾斜等复杂变换
+
+- **Scene 节点只读保护 (Scene Node Readonly Shield)**
+  - 探针前置拦截 `cc.Scene`，属性面板展示"[场景] 不可直接编辑"占位 UI
+  - 根治 `active is not defined in the Scene` 报错
+
+- **预制体资源定位器 (Prefab Asset Locator 🎯)**
+  - 挂载预制体的节点头部新增 `🎯` 按钮，一键跳转至编辑器资源管理器定位 `.prefab` 文件
+
+- **节点树空白取消选中 (Blank Area Deselection)**
+  - 点击节点树空白区域即可清除选中，联动属性面板归零 + 高亮退场
 
 ### 🐛 缺陷修复
-- **彻底击杀多摄像机下 CullingMask 引起的遍历断层与拾取隐身 Bug (CullingMask Traversal Fix)**:
-  - **核心痛点**：在此前的多摄像机架构中，由于顶级 UI 相机往往只渲染特定的 UI 分组，导致当层级遍历器 (`walkSceneForCamera`) 撞击到父级（如默认 Group 0 的 Canvas 节点）时，由于不满足 CullingMask 掩码，整个包含所有合法 UI 节点的巨型子树均被错误地整块“剪枝 (return null)”并抛弃；此外，部分使用 `default` 分组但依附于 `UI_2D` 父级从而被渲染的节点，由于自身 Group 掩码不符也惨遭剔除。更甚者，完全不挂载图像仅靠外框拦截触摸的 `cc.Button` 或 `cc.BlockInputEvents` 会发生越级透视穿透选错，而纯净版位对齐排版的 `cc.Widget` 又被误囊括进可见拦截。
-  - **重修精简与基因隔离穿透**：全量取消了粗暴树形前置拦截。建立全新的递归基因继承体制 `parentValidated`：当且仅当子节点严格处于 `default` 原生渲染池时，才会允许跨级向下传递曾经被相机首肯的免疫放行特权护身符！此外并在拦截列表中精密增加了 `[ Button / ScrollView / BlockInputEvents 等 ]` 构成的“非可视但极度极权拦截交互”特权组予以拦截选中判定，同时剔除并清洗了诸如 `TiledObjectGroup` 与纯排版组壳组件 `Widget`。最后重装关联倒推算法至 `highlighter` 让画板随心溯源追踪，达成无死角的绝对实体与逻辑壁垒精确点击还原。
-- **修复并回退二次视口映射导致的选取区域向下偏置/脱靶报错 (Dual-Scale Offset Reversion)**:
-  - **核心痛点**：在修正了断层后，发现虽然能点选，但鼠标光标必须拉到目标可视区域的极下方边缘才能点中目标，整体拾取区域仿佛患上了重力下垂。
-  - **解构引擎逆向接口**：经过彻底排查剥析，确认了 Cocos Creator 2.4.x 的 `camera.getScreenToWorldPoint` 是一个挂着 Screen 羊头卖着 Design 狗肉的方法！它本质上需要接收已经被摘除黑边且除掉全局屏幕缩放后的“设计分辨率坐标 (`baseWorldPos`)”。通过及时发现该误导并执行紧急坐标回退修正，一键恢复了由于多套了一层物理硬件屏幕坐标映射所导致的二次视口放大畸变。现已全面支持在带有偏移 (Offset) 与缩放比 (ZoomRatio) 的摄像机矩阵中进行无缝、零偏差的像素级点选。
-- **高亮引擎适配多相机的二次透视修正 (Highlighter Cross-Camera Alignment)**:
-  - 完善了包围盒绘制。将子相机的角点在向 `InspectorCamera` (全局绘笔相机) 交接转换时，强行加上了一层跨域逆投影校准，让所有被捕获的焦点完美严丝合缝罩于目标上方。
-- **彻底根治编辑器热更复用引发的摄像机坐标断链与黑盒罢工 (Highlighter Hot-Reload Camera Reuse Fix)**:
-  - **核心痛点**：在插件面板高频重载的开发期，由于底层的 Scene 未曾随 Webview 销毁而清理，高亮引擎虽然正常依靠 `McpInspectorRoot` 成功实现了节点复生挂载防抖，但其复活分支漏掉了指认内载子相机关联 (`window.__mcpInspectorCamera = camera`)。缺失逆矩阵转化后全量画笔坐标打偏到了宇宙边缘，最终导致了“毫无报错且流程连贯、但肉眼却死活都憋不出一根边框”的薛定谔式盲区 BUG。
-  - **全貌诊断与防断流修复**：先通过向主干架构 `_initHighlightLayer` 埋入全生命周期的异常 Try-Catch 与极详尽的“退避/成功/复用”卡点日志打破沉默黑盒。随后顺藤摸瓜在早退复用分支强制寻回补上了 `camNode.getComponent(cc.Camera)` 以实现无死角闭环绑定。从此不管面板经历何等疯狂的热撕裂和重新入局，包围盒依旧雷打不动死死焊死咬合于靶心之上！
-- **彻底根治面板后台激活导致的游戏视图黑屏死板 (Background Preview Black Screen Fix)**:
-  - **核心痛点**：当插件面板处于后台未激活或被其他标签页折叠遮挡时如果恰逢编辑器触发了场景更新等操作，此前的核心虽然能防止崩塌，但因试图让隐藏状态下尺寸为 0x0 的 Webview 强行刷新而导致了致命的“全黑屏罢工”；用户切回焦点时只能绝望地面对一片漆黑并手动重试。
-  - **彻底拦截与自适应恢复机制**：引入前置的 Webview DOM 物理尺寸防御 (`clientWidth/Height === 0`) 以及状态机级别的刷新挂起标记 (`pendingRefresh`)。不再盲动去对隐藏无感知的面板滥发重载资源命令。伴随着底座注入的 `ResizeObserver` 后台监控哨兵，任何一次带着脏标记的切回与面板激活，皆能在获悉安全非 0 尺寸的瞬间立刻发起自我矫正补救及渲染更新。真正做回了 100% 同步恢复，全方位防脱防黑无痛归位。
-- **修复横屏模式下游戏预览画面滚动条复发 (Landscape Scrollbar Recurrence Fix)**:
-  - **核心痛点**：此前在 `v0.0.1` 中已修复的预览区滚动条问题，在用户切换至**横屏模式**后再度复发。根因在于横屏宽高互换（如 iPhone 7 竖屏 `750x1334` → 横屏 `1334x750`）后，Cocos 预览模板内部的 `.contentWrap` / `#GameDiv` 等容器会按照引擎设计分辨率设定绝对宽度，超出 Webview 物理像素边界导致溢出。旧版 CSS 注入仅覆盖了 `overflow: hidden` 与 `margin/padding` 重置，缺失对容器 `width`/`height`/`max-width`/`max-height` 的刚性约束。
-  - **双层 CSS 时间夹击全量封锁**：在 `preload.ts`（DOMContentLoaded 早期注入）与 `useGameView.ts`（dom-ready 运行时注入）两个生命周期节点同步扩充 CSS 规则。对 `.content, .contentWrap, .wrapper, #GameDiv` 全量追加 `width: 100% !important; height: 100% !important; max-width: 100vw !important; max-height: 100vh !important; box-sizing: border-box !important` 铁壁约束；对 `#GameCanvas` 追加 `max-width/max-height` 上限封顶；并使用通配符 `*::-webkit-scrollbar` 全局无差别灭绝一切滚动条残余。形成时间夹击闭环，无论 Cocos 引擎 `boot.js` 在何时动态修改 DOM 样式，最终均被 `!important` 强制覆盖。
+
+- **修复多摄像机 CullingMask 遍历断层 (CullingMask Traversal Fix)**
+  - **问题**：UI 相机只渲染特定分组时，父节点（如 Canvas）不满足掩码会导致整棵子树被剪枝
+  - **方案**：取消前置拦截，引入 `parentValidated` 递归基因继承；`default` 分组子节点允许继承父级的相机放行特权
+  - 新增交互组件白名单：`Button` / `ScrollView` / `BlockInputEvents` 等
+  - 剔除排版组件：`Widget` / `TiledObjectGroup`
+
+- **修复视口映射偏置导致的选取脱靶 (Dual-Scale Offset Fix)**
+  - **问题**：`camera.getScreenToWorldPoint` 实际需要设计分辨率坐标而非屏幕坐标，导致拾取区域整体下移
+  - **方案**：剥离黑边偏移和全局缩放，提取纯净的 `BaseWorldPos` 后喂给摄像机逆投影
+
+- **修复高亮引擎跨相机对齐 (Highlighter Cross-Camera Alignment)**
+  - 子相机角点转交 `InspectorCamera` 时追加跨域逆投影校准
+
+- **修复热重载后高亮相机断链 (Hot-Reload Camera Reuse Fix)**
+  - **问题**：节点复用分支遗漏了 `__mcpInspectorCamera` 绑定，导致包围盒坐标偏至屏幕外
+  - **方案**：复用分支强制执行 `camNode.getComponent(cc.Camera)` 闭环绑定
+
+- **修复后台切回黑屏 (Background Preview Black Screen Fix)**
+  - **问题**：面板后台时 Webview 尺寸为 0x0，强行刷新导致黑屏
+  - **方案**：`clientWidth/Height === 0` 前置拦截 + `pendingRefresh` 挂起标记 + `ResizeObserver` 切回自动恢复
+
+- **修复横屏滚动条复发 (Landscape Scrollbar Fix)**
+  - **问题**：横屏宽高互换后（如 750x1334 → 1334x750），Cocos 模板容器绝对宽度溢出
+  - **方案**：`preload.ts` + `useGameView.ts` 双层 CSS 注入，全容器 `width/height: 100%` + `max-width/max-height: 100vw/100vh` + `*::-webkit-scrollbar` 全局隐藏
+
+---
 
 ## [0.0.7] - 2026-04-01
-### ✨ 新特性与架构变更
-- **巨型探针架构解耦与防幻觉模块化拆分 (Probe Architecture Decoupling)**:
-  - **核心痛点**：随着项目的功能飙升，原本单文件 1700 余行的 `probe.ts` 已沦为臃肿恐怖的意大利面条代码大熔炉（巨石应用）。涵盖爬虫、高亮、绘制、性能、射线、属性读写等所有生命周期。不仅难以排查，更是严重威胁到了接下来扩展开发时的上下文截断与 AI 阅读认知负担引发幻觉报错的重度风险。
-  - **模块化重生**：将原本揉杂于全局的 `probe.ts` 无情撕裂，以高内聚单一职责的完美范式拆分为七大子模块星系：统一聚合口 `index.ts`、爬网专家 `crawler.ts`、画面绘笔 `highlighter.ts`、极速表调 `profiler.ts`、资产嗅探 `memory.ts`、原生 Hook 管线 `render-debugger.ts` 以及穿透枪 `picker.ts`。逻辑层次一目了然，将开发者对于特性的扩展精度逼至原子级坐标。
-- **引入极速构建引擎构建纯净闭包防线 (ESBuild Fast-Bundler Integration)**:
-  - 为开发生态环境新置了轻量级的全速打包机 `esbuild`。介入 `package.json` 中的并行构建节点（Build / Watch）；在 tsc 转译普通文件的同时，瞬发捕捉探针内的各个子组件导入行为，经过毫秒级的编译坍缩后“熨平”并封禁进统一无痕的绝对闭环 IIFE 函数 (`dist/probe.js`)。向 `preload.ts` 呈现出 100% 毫无污染、且一模一样的调用镜像！完美地做到了“系统底层大翻修结构崩解重聚，调用端却分毫不觉”的安全静默升级传说。
+
+### ✨ 新特性
+
+- **探针架构模块化拆分 (Probe Architecture Decoupling)**
+  - 将 1700+ 行的单文件 `probe.ts` 拆分为 7 个高内聚子模块：
+    `index.ts` / `crawler.ts` / `highlighter.ts` / `profiler.ts` / `memory.ts` / `render-debugger.ts` / `picker.ts`
+
+- **ESBuild 集成 (Fast-Bundler Integration)**
+  - 引入 `esbuild` 将探针子模块打包为单一 IIFE 闭包 (`dist/probe.js`)
+  - `npm run build` 同时执行 tsc + esbuild，`preload.ts` 调用方式不变
 
 ### 🐛 缺陷修复
-- **彻底斩断节点树选取引发的 IPC 进程递归循环崩溃 (IPC Bouncing Loop Fix)**:
-  - **核心痛点**：此前的节点拾取体系在 UI 面板节点树中切换点击时，会发出 `setSelectionTarget` 给探针，不料探针内部竟画蛇添足地附赠了一套强同步逻辑 (`sendNodeSelected`) 将原原本本的自身又抛掷回了 UI 频道。导致 `Vue 展开定位 -> 驱动底层更新 -> 底层再次通知 Vue -> Vue 再次判定展开`，形成了首尾相接、疯狂弹扯抽搐的“递归闪烁地狱”。
-  - **解耦切断重构**：严厉规范了单向数据流机制。彻底铲除了潜伏在 `setSelectionTarget` 接收端的非法反弹反馈。从今以后：所有的状态变更是极其清爽的定向瀑布。界面点击只会驱动游标固化，不再自我反噬弹回；只有真正的物理拾取枪（Picker 悬浮针）被按下时，才会合乎逻辑地触发一次向上广播。这从根本上终结了多通道同时反馈引发的树形结构竞态颤抖！
-- **彻底根治 Cocos 编辑器多态摄像机与降维矩阵的 UI 点选塌陷 (Multi-Camera Viewport Scaling & Offset Fix)**:
-  - **核心痛点**：此前的节点拾取体系在面对编辑器内的 2D Camera 发生平移或是场景具有 `Fit Height/Width` 黑边缩放时，会爆发出不可理喻的选区脱靶现象。经勘查引擎底层 API `camera.getScreenToWorldPoint` 于编辑器环境下执行屏幕投影反算时，竟然被发现“偷工减料”——彻底遗落了应当计入的 Viewport 分辨率缩放与黑边裁剪偏量，任由宏观物理鼠标像素强硬介入引擎微观逻辑坐标内引发灾难性的换算偏移。
-  - **降维倒逼反补重构**：全套移除了对 `camera` 不稳定原装 API 的盲目迷信单传；取而代之的是全新设计的复合推导倒逼链：首发强制捕获全局 `cc.view.getViewportRect()` 与 `getScale()` 物理算子，将鼠标真实的绝对物理偏移残骸反向拆解清洗、剥离黑边阻垢，降维淬炼出毫无偏差的源头 `BaseWorldPos`；随后将该点当作最终逻辑标靶，逆向防脱喂给因缺件而只能处理纯“视图及旋转位移”特性的问题相机，去做底度倒推。
-  - **逆向安全熔断扫描**：针对由于奇葩情况导致部分组件摄像机完全“装死”罢工（例如原样退回一模一样毫无缩尺的物理点阵偏移）引发的错误循环，防线系统现已加装亚像素级别的极距反弹跳扫描仪。一旦拦截验证失败，即刻掐灭其特权，自动切回默认降维防波堤，全天候实现了从单画布到超宏大多镜头拼接混合架构间的 100% 同比例无损指哪点哪实装！
+
+- **修复 IPC 递归死循环 (IPC Bouncing Loop Fix)**
+  - **问题**：面板选中节点 → `setSelectionTarget` → 探针反弹 `sendNodeSelected` → 面板再次展开 → 无限循环
+  - **方案**：严格单向数据流，移除 `setSelectionTarget` 接收端的反弹反馈；仅物理拾取器触发上行广播
+
+- **修复多摄像机 + Fit 缩放下的拾取偏移 (Multi-Camera Viewport Fix)**
+  - **问题**：`camera.getScreenToWorldPoint` 未计入 Viewport 缩放与黑边裁剪
+  - **方案**：通过 `cc.view.getViewportRect()` + `getScale()` 提取物理算子，降维到纯净 `BaseWorldPos` 后喂给摄像机
+
+---
 
 ## [0.0.6] - 2026-03-31
-### ✨ 新特性与架构变更
-- **全景节点基础属性扩展填补 (Node Transform & Layout Properties Completion)**:
-  - **多维属性面板阵列扩充**：彻底改变了属性面板以往局限于“位移、缩放、尺寸”的基础限制。全面新增对齐了 `Anchor`（锚点）、`Color`（颜色）、`Opacity`（透明度）、`Skew`（倾斜度）及 `Group`（渲染分层）的操作表单。赋予开发者完整级的节点空间及几何渲染属性掌控力。
-  - **特权降维与逆向补偿解析**：深入探针层编写了将前端十六进制色值（Hex）与引擎底层 `cc.Color` 对象进行安全互译拦截的映射管线。智能截取暴露 `cc.game.groupList` 阵列序列，将生硬孤立的 `groupIndex` 数字游标平滑变幻为具备人类可读防错兜底语义的 `<select>` 拉选框；全程附着防脱限数字封标（Clamp）截断防波壁，根除由于越级传值导致的引擎渲染内核卡挂。
-- **组件数据层级遍历与 JSON 控制台一键导出 (Component Data JSON Export)**:
-  - **引擎对象防护屏障**：在属性面板挂载了高亮显眼的 🖨️ 打印功能按键。深入探针底层（`probe.ts`）编写了定制化的、带强阻断特性的序列化 `replacer` 代理，专攻拦截 `cc.Node`、`cc.Asset` 等极易导致原生态 `JSON.stringify` 抛出 `Converting circular structure to JSON` 致命崩溃的复杂实例，并将其格式化降维成高可读性的结构路径，如 `[ cc.Node: path/to/node/name ]`。
-  - **同级防环路系统**：基于原生 `WeakSet` 在单次爬取期间搭建了访问登记机制，完美阻击同层级普通对象的意外复用及自环路。同时自动拦截被销毁引擎实例并追贴 `(Destroyed)` 死信标签，为复杂的组件（尤其是自带长链自定结构与嵌套的脚本）打开了安全的一键输出排错快车道。
-- **自选排序与数据驱动化标签栏 (Draggable Data-Driven Tabs)**:
-  - 取消了原有对功能标签硬编码绑定的死板 UI，全面重塑为使用 Vue `v-for` 代理的强扩展性多维数据模型，为随时增加的周边功能打好底座并原生统一了交互风格。
-  - **原生拖放 API 平滑支持 (HTML5 Drag & Drop)**：基于核心 Web 引擎特性打通标签页之间的拖动与挤占换位判定，添加了左/右边防呆蓝线指示器；搭载强效兼容的 `.stop` 截断锁以及延时施加 CSS 策略（`setTimeout`），使它完美绕开了 Cocos Editor 主环境对捕获阶段（Capture）全局防拖动锁死与 WebKit 自身阴影快照黑屏漏洞，在底层实现了坚不可摧的原生跟手感。
-  - **防裂化的状态持久持录 (Persistent Context Storage)**：每次用户操作的排序终态（Id Array）都会同步下探至 `localStorage` 当中进行快充备忘。加载初始化阶段更是引入了对残缺、未兼容新增组件序列的智能纠偏尾部重聚防线（Appending Strategy），绝对杜绝由于新版本带来功能缺失或是 `TypeError` 崩溃报错问题！
-- **节点树与属性面板横向视界重构与拖拽定级 (Horizontal Split Pane & Draggable Divider)**:
-  - 彻底打破 Tab 0 (主体功能区) 原始的“上树下属性”的刻板垂直拥挤布局。将其全面重构为符合现代 IDE 生产级体验的并排式横向 (Row) 开阔矩阵。
-  - **原生极流拖拉阀与防溢出锁死**：在两侧核心组件之间斩获并入列全新的可视拖动劈墙（Resizer）。完全抛弃绝对捕获跳变，而是基于鼠标真实的增量追踪（`deltaX`）配合 `flex-shrink: 0` 对左侧容器进行亚像素级平滑拓宽。底部分配了不可逆的 `150px` Clamp 钳制底线保障树形空间不被生吞，并在 `mouseup` 生命周期结尾与 Vue 持久化存储深度联动打通，你的私人黄金比例永不丢失。
-- **IPC 降级容错机制平滑自毁防御 (Fallback Polling Toast Auto-Dismiss)**:
-  - 为了拯救当由于引擎内核拦截等原因导致原生 IPC 推拉链路休克时，探针触发“主动 DOM 降级轮询预案”而长久顶置占取 UI 横幅空间的刺点体验。
-  - 为 `isFallbackMode` 加装了 2000ms 定时销毁闭包，实现了从底层状态强绑定到纯前端视觉呈现 (`showFallbackWarning`) 的巧妙解耦分离。并在 `onUnmounted` 挂载了清理钩解决因极速重复进入标签页引发悬空作用域导致的抛出异常，在警示尽责与画面极净之间获取完美平衡！
-- **节点悬停与选中高亮边框系统 (Node Highlight Overlay System)**:
-  - **沉浸式所见即所得定位**：现在用户在节点树中悬停或点击选中节点时，游戏的真实渲染画面中会立即出现对应的可视化包围框（Bounding Box）。悬停状态以浅蓝色半透明框呈现，方便快速游走定位；选中状态以高对比度的橙色金边框常驻展示。不仅彻底省去了开发者反复隐藏/显示节点测试的繁琐劳动，针对那些 Width/Height 为 0 的抽象逻辑节点，更能自适应贴绘出“十字中心准星坐标”图腾，再小的特征也无所遁形。
-  - **双轨独立图层与绝对置顶防御**：为了完美适配复杂场景中“节点身处截然不同的渲染分组（或摄像机层级）”导致的镜头 Culling 遮挡碰撞 Bug。我们在后端彻底摒弃了单画板结构，将高亮底层重构为互相物理隔离的特权节点双管线（`__mcp_hover_overlay__` 与 `__mcp_select_overlay__`）。当执行绘制时，它们会分别动态嗅探并窃取场内深度（`depth`）最顶端摄像机可见的分组进行强制换绑！这项极其强硬的“越级透视”技术赋予了画笔100%的无死角置顶呈现——无论您的目标处于后置画布、上层 UI 抑或自身节点隐身，光环始终完美笼罩于一切游戏元素最上方。
-  - **非侵入与去中心化坐标换算**：直接规避抛弃了一切在多层级节点由于矩阵 API 废弃兼容和 `activeInHierarchy` Getter 空置导致的 `NaN` 偏心计算报错重灾区。彻底拥抱底层的 `convertToWorldSpaceAR` 锚点逆向投射坐标，保证游戏环境自身的节点树列表依然一尘不染不出脏树，以纯净的数据流态达成了毫无侧漏的防碰撞对齐。
-- **强化预览节点拾取器交互闭环 (Preview Node Picker Hit & Sync System)**:
-  - **基于面积的深度穿透算法**：彻底抛弃了“首位命中即返回”的粗暴射线碰撞逻辑。引入 `Candidate Pool` (候选检测池)，将鼠标落点的全部穿透层级节点录入。随后辅以面积权重升序排序算法（优先选取面积小、层级最靠前的元件）。绝杀解决了以往大面积背景遮罩（如全屏的 Mask 或 ClickGuard 层）强行霸占射线焦点，导致底下小巧组件与按钮完全无法被触及的世纪痛点。
-  - **原生触控事件双重劫持引擎 (Native Delegated HitTest)**：为了根除在开启节点拾取器时，面对 `Canvas` 各种刁钻的 `Fit Height/Width` 等比屏幕拉伸、或是含有异形缩放焦距 (`zoomRatio`) 等多摄像机交汇混合场景时，自定义矩阵换算常招致的鼠标命中“向中心点收拢偏移”或测算偏差瀑布；本次重构从底向外彻底剥离了手动对 `camera.getScreenToWorldPoint` 穷举追踪的越矩行为。并且精准剥离计算得出无损的 `BaseWorldPos`，彻底解决了逆向矩阵转换时因摄入原始物理落点而导致坐标又弹拽回深层错位的怪象。配合降维到底层 `node._hitTest(worldPos)` 的强行灌入接引，附以自动下降级至 `convertToNodeSpaceAR` 本地倒转矩阵兜底，实现了极度强韧及 100% 毫无偏差的原汁原味游标点选映射。
-  - **脱壳级别 DOM 物理探针护航 (Bullet-proof DOM Tracker)**：面对难以捉摸的引擎侧多摄像机错位引发的肉眼核对障碍。我们在系统上层首度引入了极高图层的外挂级 HTML 原生追踪准星（红心小圆点）；在抓取期间全量无形地追猎系统的 `clientX` 并在视觉上阻击出界。依靠此绝对原生的防弹真理靶心去审视游戏引擎绘制的选中虚框，一眼看破偏差！
-  - **双通道节点树同步与自动降级折叠保护**：自底层 `__mcpInspector.sendNodeSelected` 打通且纠正了至前端 Vue 面板的 IPC 投送。利用全场景寻路带滚动的 `expandToNode(uuid)` 替换原先硬邦邦死板的强设选中；在遇到面板树因场景重排引发残影、或被点击目标由于刚刚诞生未在缓存时（孤儿节点），该方法会自发掷出 800ms 的超时挂起配合强制 `Fallback Tree Refresh` 实施自我治愈救赎，让拾取器真正做到跨域点选如臂使指。不仅如此，系统一并追加搭载了 `__mcpCrawler.setSelectionTarget` 功能闭环，圆满实现了成功点击完毕后绿框的驻守固化，不随拾取器的消散而“过河拆桥”。
+
+### ✨ 新特性
+
+- **全景节点属性扩展 (Node Transform Properties Completion)**
+  - 新增 `Anchor`（锚点）、`Color`（颜色）、`Opacity`（透明度）、`Skew`（倾斜度）、`Group`（渲染分层）编辑支持
+  - `Color` 支持 Hex ↔ `cc.Color` 安全互译；`Group` 自动提取 `cc.game.groupList` 生成下拉框
+
+- **组件数据 JSON 导出 (Component Data JSON Export)**
+  - 组件头部新增 🖨️ 打印按钮
+  - 定制 `replacer` 代理拦截 `cc.Node` / `cc.Asset` 循环引用，降维为 `[ cc.Node: path/to/name ]`
+  - `WeakSet` 防环路 + 已销毁实例自动标记 `(Destroyed)`
+
+- **可拖拽排序标签页 (Draggable Data-Driven Tabs)**
+  - Vue `v-for` 数据驱动 + HTML5 原生拖放 API + 蓝色插入指示器
+  - 排序结果持久化至 `localStorage`，新增标签自动追加兼容
+
+- **横向双栏布局 (Horizontal Split Pane)**
+  - 节点树/属性面板并排展示，中缝可拖拽分割线
+  - 基于 `deltaX` 增量追踪的亚像素级平滑拖拽 + `150px` 最小宽度钳制 + 宽度持久化
+
+- **IPC 降级容错自毁 (Fallback Toast Auto-Dismiss)**
+  - 降级轮询模式的浮窗警告 2 秒后自动消失
+
+- **节点高亮系统 (Node Highlight Overlay System)**
+  - 悬停蓝框 + 选中橙框双轨独立图层
+  - 使用 `convertToWorldSpaceAR` 防矩阵 NaN 崩溃
+  - 双管线 (`__mcp_hover_overlay__` / `__mcp_select_overlay__`) 自动嗅探最顶层摄像机分组，保证置顶显示
+
+- **屏幕节点拾取器 (Preview Node Picker)**
+  - 面积权重候选池算法，穿透全屏遮罩层（ClickGuard / Mask）
+  - `BaseWorldPos` 清洗 + `_hitTest(worldPos)` / `convertToNodeSpaceAR` 双路降级
+  - DOM 追踪准星辅助校准 + `expandToNode(uuid)` 双通道同步 + 选中框驻守
+
 ### 🐛 缺陷修复
-- **彻底根并修复了全境设备下的 Node Picker 点击倒置偏移与射线脱靶错位 (Ultimate Picker Raycast Offset Fix)**:
-  - **核心痛点**：此前的节点拾取体系虽然升级为了面积计算但没有剔除浏览器黑边，以及错误地让引擎摄像机的逆向反射器吃进了原生的客户端分辨率，致使位于极地、边框附近乃至经过非标 Fit 拉伸的 UI 按钮均遭遇惨烈的指鹿为马选偏现象。
-  - **重构防线**：全套重写了 `Rect` 与 `Viewport` 扣除提取公式并剔除错误的屏幕投喂基点。将原以为是 BUG 但其实是由于错误打靶调用导致的漏洞：`isHit = node._hitTest(screenPt)` 彻底正规化修正为 `_hitTest(worldPos)`，终结了由于最后一步传参断流而枉费前期完美坐标提取的乌龙。
-- **彻底根除编辑器早期探测引发的底层 `stashScene` 崩溃与断连 (Startup Probe Crash Recovery)**:
-  - **核心痛点**：当前端插件过早随编辑器启动时，默认激进地先手触发了 Webview 的网络探测与挂载加载。由于此刻底层的 Cocos Preview Server 及编辑器原生 Scene 还根本没有初始化完毕，前端在 `onMounted` 里抢跑发出的端口嗅探请求（如 `fetch('http://localhost:${p}/settings.js')`）会刺激引诱引擎去强行存储未就绪的空场景，进而引发 `TypeError: Cannot read property 'name' of null at Object.stashScene` 核爆报错卡死后台。
-  - **彻底剥离抢跑嗅探探针**：将原先在 Vue 挂载周期里粗暴执行的 `probeAlivePort` 测活流程，以及所有针对分辨率、音效、面板设置的预拉取同步交互，全部封装并切断，打包装入独立的 `initializePreviewEnvironment` 安全初始化沙盒中。
-  - **防御性状态屏障与防抖锁释放**：严格信托编辑器的 IPC 回调。只有通过异步 `query-scene-active` 真正拿到 `isActive: true` 或在静默中监听到 `scene:ready` 信号翻转后，才放行扣下沙盒侦测的扳机。配合内置防抖锁，实现了 100% 绝对安全的运行时接入，不仅斩草除根了引爆空指针崩溃的根源脉络，更免除了场景频繁切换引发的盲目重刷骚扰。
-- **修复运行时节点树双重数据源引发的高频频闪 (Dual-Source Tree Flickering Fix)**:
-  - **核心痛点**：由于部分环境加载时探针握手信号可能丢失导致 `cocosInfo` 缺失，触发了面板保守的 DOM 降级轮询预案。而后台正常的探针心跳实质并未挂死从而导致两股携带轻微偏差的 JSON 树被同时投塞给 Vue 组件响应，造成持续无法停歇的画面剧烈抽搐。
-  - **重构路线**：摒除针对通讯对象的强依赖。直接依附于 `lastTreeUpdate` 这个毫秒级活跃基准线。阻断由于单点数据丢包引发的降级连环车祸，并以此一劳永逸平息所有视图抖动。
-- **修复刷新按钮失效以及视觉延宕死锁 (Refresh Button Freeze Remediation)**:
-  - **核心痛点**：点击面板顶栏刷新后毫无所察、响应迟钝并在引擎未激活时暗中报吞错。
-  - **处理方案**：在点击下达的一瞬即下放 `globalState.nodeTree = null` 等状态清零封锁指令。并打出了合理的终端警告，根除玩家无休止盲点和挂死错觉。
-- **修复原生静音穿透失效与白噪声泄露漏洞 (Engine-Level Audio Gate Injection)**:
-  - **核心痛点**：原版的 `<webview>.setAudioMuted` 无法抵抗 WebAudio 缓存与引擎播放器的越级执行，导致点击静音后依然有爆炸性游戏底噪传出。且场景刷新后状态瞬间漂移报废。
-  - **宏截断降维打击**：利用崭新研制的 `executeMacro` 指令流线直降引擎系统层，以极权执行 `cc.audioEngine.setMusicVolume(0)` 强行拔阻了所有的发声线程。并将该状态捆绑挂载至每一次场景的 `dom-ready` 中转期，真正落实全天候的跨生命周期无声沙盒开发体验。
-- **深度修复属性检查器反写更新阻断与底层越权警告 (`updateNodeProperty is not a function` Fix)**:
-  - **核心痛点**：当在操作属性面板改变如 `active` 等勾选状态试图同步回游戏实体时，遭遇 `__mcpCrawler` 底层的核心投递管道函数缺失，伴随着双通道备选计划导致的大规模大段意大利面条式 (Spaghetti) JS 脚本执行抛出运行时冲突与长串红底抛错。
-  - **正规军合拢重构**：剥离并在前端灭绝原始恶心的底层 JS 拼图越代执行流。在预填入组件端 (`probe.ts`) 原生构建出包含完美边界检验，且包含 `compIndex` 无损寻址、附带布局刷新回调 `updateAlignment` 等超级全域容灾保护特性的 `updateNodeProperty` O(1) 指针实体。实现了零延迟、零刷屏报错的极度平滑“点哪更哪”操控感。
-- **彻底击穿并发多开时的画面串联死锁 (Multi-Instance Preview Port Alignment)**:
-  - **核心痛点**：由于 Cocos Editor 在检测出底层 Node 服务器 `7456` 端口被占据后，会自动发起端口递增（如 `7457`），但我们前期获取 IPC 所依赖的 `userPort` 仍旧冥顽死守配置默认的 7456 不放。而前台为了容错，一旦扫描 7456 本身连通（实为访问了第一个开的窗体）就立即装载错误画面，导致第二个窗体内赫然呈现的是前者的游戏进度。
-  - **主线程挖掘与全栈探流反制**：放弃了对常规挂载项的方法探测，直接通过底层原型剥壳并逆向定位引擎的活体私有变量 `. _previewPort`。并将主进程送回的信息打入前台由 `probeAlivePort` 构建的 10 次递增异步重试队列中核验，做到 100% 同步游戏真实运行的 Web 套接端口。
+
+- **修复 Picker 全境设备射线脱靶 (Ultimate Picker Raycast Offset Fix)**
+  - 修正 `_hitTest(screenPt)` → `_hitTest(worldPos)` 参数错误，剔除浏览器黑边
+
+- **修复启动时 `stashScene` 崩溃 (Startup Probe Crash Recovery)**
+  - 将抢跑嗅探封装至 `initializePreviewEnvironment` 沙盒
+  - 以 `query-scene-active` IPC 回调为唯一放行条件 + 防抖锁
+
+- **修复双数据源节点树闪烁 (Dual-Source Tree Flickering Fix)**
+  - 以 `lastTreeUpdate` 时间戳为活跃基准，阻断降级轮询与探针心跳的冲突
+
+- **修复刷新按钮无响应 (Refresh Button Freeze Fix)**
+  - 点击即刻清零 `globalState.nodeTree = null`，引擎未激活时输出终端警告
+
+- **修复静音穿透失效 (Engine-Level Audio Gate Injection)**
+  - 通过 `executeMacro` 直降引擎层 `cc.audioEngine.setMusicVolume(0)`
+  - 绑定至 `dom-ready` 生命周期，跨场景持久静音
+
+- **修复属性修改报错 (`updateNodeProperty` Fix)**
+  - 移除前端拼接 JS 的意大利面条式代码
+  - 探针层原生构建 `updateNodeProperty` 方法，含 `compIndex` 寻址 + `updateAlignment` 布局刷新
+
+- **修复多实例端口串台 (Multi-Instance Port Alignment)**
+  - 逆向提取引擎 `_previewPort` 私有变量 + `probeAlivePort` 10 次递增重试
+
+---
 
 ## [0.0.5] - 2026-03-30
 
-### ✨ 新特性与架构变更
-- **渲染合批断流诊断器 (Render Batch Debugger MVP)**:
-  - **无侵入底层拦截网**：安全劫获 Cocos 渲染管线核心 `RenderComponent.prototype._checkBacth`。在不破坏原有渲染生态的前提下，精准抓取诸如 `材质内部参数变动`、`Culling Mask 变动` 等隐秘的断批元凶。
-  - **彻底静默的 IPC 通信桥墩**：完全抛弃原始简单粗暴的 `console.warn` 警告流刷屏。探针脚本现已打通 Webview 的 `nodeIntegration` 特权，使用纯原生的 `ipcRenderer.sendToHost` 秘密投递分析诊断数据，让原生控制台恢复100%清净整洁。
-  - **万级去重与频次计分板 (Deduplication Core)**：专门为断批报错构建了一套带有 Hash 算法（追踪 `肇事者+受害者+打断原因` 三元组）的聚合列表面板。面对哪怕 60FPS 连环绘制断流，也不会使得 UI 无限滚动卡死，而是高频引爆条目右侧的「触发次数 📈」徽章动画，直接暴露游戏最严重的性能溃裂点。
-  - **同级跨面板深空跳转 (Cross-Panel Jump Locator)**：不仅能查报错误，表格现在内置了互动按钮 `[📌]`。利用拦截时顺便挖出的节点底层 UUID，点击肇事节点后插件将光速滑跪至 Main 控制台，使用特制的 `expandToNode(uuid)` 广度展开算法将嵌套深渊中的游戏节点一举曝光并高亮挂载至属性检查器中，体验一气呵成。
-- **全景渲染快照与单步溯源面板 (Frame Debugger & Step Replay MVP)**:
-  - **高维指令树映射 (Command Tree View)**：在截帧分析模式下，左侧列表破维展开。完美解析引擎单帧从顶层 `DrawCall` 到每一个打包装填的 `RenderCommand` 层级。配合内联小图标展现对应的 `(Sprite, Label, Graphics)` 等不同组件身份及节点关联。
-  - **管线状态参数表盘 (Pipeline Detail Dashboard)**：右侧提供深度的 `BlendSrc/BlendDst`、`IndicesCount`、材质哈希监控面板。无论是整个 DrawCall 的宏观物理类型（`PT_TRIANGLES`）还是单独某一条绘制指令的排版代价皆能一览无遗。
-  - **离屏防抖单步回放技术 (Debounced Offscreen Render)**：中央黑板实现了震撼的物理渲染复盘功能。随着用户在左侧列表的点击游走，底层探针会接管 `device.draw` 的绘制上限阈值（`_replayLimit`），并于主循环结束前高速执行回读切片。前端借由 100ms 信号阀拦截防抖处理，化巨量请求洪流于无形，为您流畅再现出游戏界面从第一片瓦砾堆叠至完整状态的演进动画。
-- **内存剖析器资源逆向导航 (Asset Manager Quick Locator)**:
-  - **沉浸式反向追踪视图**：深度打通了内存探测器数据表与编辑器底层资产管理器的交互壁垒。在“全局资源总榜”及“各 Bundle 包分类列表”旁增派了极权定位枢纽（`🎯`），点击资源对应的图标即可通过原生 IPC 链路光速唤醒或高亮对应的 Cocos 编辑器原始物理文件，实现“从性能黑盒揪出泄漏，直达硬盘清理”的高效体验。
-  - **内建虚拟材质与冗余拦截锁**：系统配置了 UUID 长度嗅探与内置前缀拦截矩阵。能够自我阻断所有因点按引擎衍生出的 `default-`，`preview-` 等内部虚空缓存所抛向原生编辑器的悬空通信请求。再附带针对卡顿下高频重击的强制 `Debounce` 节流阀门，保障插件不会发生丝毫的请求洪泛卡挂。
+### ✨ 新特性
 
-- **属性检查器深空跳转与引用阵列渗透 (Inspector Deep Navigation & Array Penetration)**:
-  - **全属性跨域追踪系统**：重构了属性面板内针对 `node_ref` 与 `asset_ref` 的渲染逻辑。为所有的引用类型附加了极权追踪交互枢纽（`🎯`）。节点对象点击能够精准呼唤左侧实时引擎树执行广度重构与平滑的居中聚焦滚动 (`scrollIntoView`)；资源对象点击则直落底层发射 IPC 指令，实现全时段跨面板定位。
-  - **突破序列化二维屏障 (Array Struct Penetration)**：打破了旧版将 `prop.type === 'array'` 内部统统抹平为单纯文本字符缩影的僵化体制。现在的运行时探针能够深层判定阵列中每一个实体的对象血统。即使将数十款模型、素材揉杂在同一个组件的 `Array` 变量下，引擎依旧能够在复杂的嵌套迭代里，成功渲染出带有明确色彩区分的高级资源图腾（蓝色 Node，橙红色 Asset）以及对应的精确定位锚点。
+- **渲染合批断流诊断器 (Render Batch Debugger)**
+  - AOP 劫持 `RenderComponent._checkBatch`，零 `console` 污染
+  - Hash 三元组 (肇事者+受害者+原因) 聚合去重 + 触发次数徽章
+  - `[📌]` 按钮跨面板跳转至肇事节点
 
-- **节点树搜索算法重定向与架构升维 (Node Tree Search Optimization)**:
-  - **严格路径净化与背景降噪 (Strict Path Filtering)**：重塑了 `visibleNodes` 的渲染分发管道，彻底推翻了搜索过滤导致展示序列丧失父级嵌套关系或遭到同级平庸节点乱入污染的历史。如今一旦进入字词检索模式，系统将即时阻断并拒读常规静默状态下的节点展开标记；无论树有多深，仅强制曝光“匹配物”与必须托举起它的“每一代直系长须祖先”。无关同级树枝、偏系长尾将承受绝对屏蔽。
-  - **无界的高亮与层级穿透识别**：针对组件跨层级捕获搜索 (`Animation` 等)，如果深层子代因为此组件特质匹配上了搜索要求，全数其必经的生直系长辈都会被悉心挂载渲染，并严格抑制长辈们未匹配名字时发生不合理的黄色代码高亮。彻底为拥有海量嵌套与复制组件层的大型游戏界面开辟出了一条纯粹至上、绝无偏移的结构大视口。
+- **帧快照三栏分析 (Frame Debugger)**
+  - 左栏：`DrawCall` → `RenderCommand` 多级指令树 + 组件类型图标
+  - 中栏：离屏单步回绘，劫持 `device.draw` + 100ms 防抖，逐步复现渲染过程
+  - 右栏：`BlendSrc/BlendDst` 枚举直译 + 索引总计 + 材质 Hash + `[📌]` 逆向定位
+
+- **内存资源反向导航 (Asset Manager Quick Locator 🎯)**
+  - 内存排行榜 + Bundle 分类列表旁新增 `🎯` 定位按钮
+  - 内置前缀拦截矩阵，自动屏蔽 `default-` / `preview-` 等引擎内建资源
+  - 高频点击 Debounce 节流
+
+- **属性检查器引用追踪 (Inspector Deep Navigation)**
+  - `node_ref` 点击 → 节点树展开聚焦；`asset_ref` 点击 → 编辑器资源管理器定位
+  - 突破 `Array` 属性的扁平化渲染，逐个提取实体类型并生成专属色板 + 定位锚点
+
+- **节点树搜索优化 (Node Tree Search Optimization)**
+  - 严格路径过滤：仅展示命中节点 + 直系祖先，隐藏无关分支
+  - 组件类名穿透搜索时，祖先节点不做名称高亮，避免误导
 
 ### 🐛 缺陷修复
-- **修复快照数据在 Vue 层响应解析引爆的死锁卡挂 (Undefined Length Crash)**:
-  - **核心痛点**：为了完美构筑分层指令树，后端探针全面重构了底层的帧截取模型，将原先简单粗暴的平铺 `commands` 阵列拆分散装到了各个实际的物理 `drawCalls[i]` 内部。然而这直接导致左下角处于实况监听大屏的 UI 遭遇 `TypeError: Cannot read property 'length' of undefined` 原生越界错误而瘫痪了整个重绘组件流程。
-  - **修复方案**：将监听横幅展示的数据来源由直读修正为使用复合防崩溃安全的高级 `reduce` / 三元混合计算管道扫描，重新计算总计的下挂资源命令并安然过界。
-- **重构 UIBatcher 底层断批层级截断算法 (Array Shift Sequence Strategy)**:
-  - **核心痛点**：在 Cocos 2.4 的 Forward 渲染器中，`WebGLSpriteBatcher` 已抛弃旧版常驻的 `_batches` 数组记录，而是完全依赖私有的 `_flush()`, `_flushIA()` 等底层派发函数随录随抛。原版探针试图静态读取其长度自然永远为 0，导致整帧上百个节点排版组件被迫全部聚合拥挤在了不可思议的 `DrawCall #0` 这个无底巨大盲盒内，而真正产生的其余的几十条兄弟 DrawCall 却因吃不到数据而全部降级显示为无意义的虚拟总称“New Node”。
-  - **修复重写**：抛弃了通过猜变量来定刻度的静态做法，转而激进地使用 AOP (面向切面编程) **全面夺取并拦截了 `batcher` 所有的 flush 族派发入口**。只要 Cocos 底层发生真实缓冲区上传，探针就严格锁死抛除当前的组件记录队列，同步开启下一个空箱。并在随后的原生 `device.draw` 喷射期，使用极度贴合管线命运的自动无缝 `.shift()` 逐次出库消费。从物理时间轴彻底对齐，斩除一切归属时差和乱代，实现 1 对 1 完美还原。
-- **修复渲染流水线诊断 Blend 混合模式参数丢失 (Blend Factor Extraction & Representation)**:
-  - **核心痛点**：在“批次参数明细”面板中，由于探针在装配层未将其透传，以及面对 UI 组件材质缺省时下探读取失效，导致分析器右侧的 `Blend Src` 与 `Blend Dst` 始终显示为 N/A。
-  - **深度修复**：为底层的 `_checkBatch` 重构装配了组件挂载属性 (`srcBlendFactor`) 的强力降级回退拾取。并在 Vue 前端层部署了一套完备的 WebGL 混合常量映射字典（例如精准将隐晦的 `770` 翻译为高语义化的 `SRC_ALPHA` 等枚举字眼），实现了所点所见即所得。
-- **修复插件以“单独窗口”模式启动时的长久死锁假死 (Standalone Window Auto-Connect Deadlock)**:
-  - **核心痛点**：当用户将插件抽出为独立面板或延后启动时，面板因跨窗口 IPC 路由限制无法接收主编辑器的 `scene:ready` 广播同步，导致画面永久卡死在“等待场景初始化”遮罩层。
-  - **重构方案**：全面弃用、移除了 `tryAutoConnect` 内对脆弱编辑器 IPC 状态钩子（`isSceneReady`）的强制约束阻断。实现了完全信赖目标预览服务器地址 `localhost:7456` 的轻量化后台网络心跳轮询，将其作为判定引擎就绪的唯一绝对标准。极大地增加了架构系统的抗干扰性，即便使用单独弹窗开局也能实现秒级无感热启动。
-- **修复切换“多标签面板”时开发者悬浮窗残留与失忆问题 (DevTools Residual & Context Loss)**:
-  - **针对内嵌模式 (Docked)**：由于 Cocos 在同级面板来回点击切页（Tab）时并不会调用底层的 `hide` 生命钩子导致悬窗漂移残留，我们强力引入了渲染级物理 `ResizeObserver`。其通过捕获视口宽高的瞬间萎缩坍塌准确探知后台隐藏行为，无缝拔出 `BrowserView` 解决该残留痼疾。
-  - **针对独立弹窗 (Standalone)**：摒弃了前身应对重影残留而粗暴调用的 `closeDevTools()` 物理灭绝手段。新引入 Electron 底层反射提取宿主 `BrowserWindow` 句柄，辅以非销毁式的 `win.hide()` / `win.show()` 指令达成真正意义上的隐匿潜伏。使开发者切走再切回时，控制台原有的全部 HTTP 报错记录、审查元素深层展开焦点等一切上下文状态悉数保持完好，达成“绝不强删的免刷新纯净开发体验”。
-- **彻底根治场景未激活引发的底层 `stashScene` 崩溃与断连 (Inactive Scene Nuclear Crash Recovery)**:
-  - **核心痛点**：当 Cocos 编辑器未打开任何可用场景时，底层 Webview 主动查询或发送到 `localhost:7456` 的哪怕一次微弱嗅探请求，都会致使内置预览服务器尝试强行序列化空场景而抛出 `Cannot read property 'name' of null`，直接致使编辑器后台报错乃至重载死锁。
-  - **重构防线1：拦截器绝对禁区**：完全清除了不稳定的 HTTP `tryAutoConnect` 嗅探机制及冗余的 `isPreviewReady` 标志。直接利用编辑器 IPC 确立 `isEditorSceneActive` 为单一真相来源。一旦场景失联，不仅弹出物理遮罩防护，更瞬间将后台存活的 `<webview>` 源清空剥离至 `about:blank` 丢弃执行权，杜绝任何访问。
-  - **重构防线2：安全自愈与多开兼容**：依赖精准捕捉的 `scene-status-changed` 翻转事件。无论插件被挂起多久，只要玩家切回有效工作区，底层便全自动脱离锁定区并重设渲染路径。配合全新升级针对多实例（编辑器多开临时递增端口如 7457 7458...）而设计的 `.includes('localhost:')` 防覆盖包容校验，实现全天候无接缝秒级热补载复活。
+
+- **修复快照数据 Vue 解析崩溃** — `commands` 移入 `drawCalls[i]` 后旧路径 `length` 越界，改用 `reduce` 安全聚合
+- **重构断批层级截断算法** — AOP 拦截 `batcher._flush` 族方法 + `.shift()` 逐次出库消费，实现 DrawCall ↔ 组件 1:1 映射
+- **修复 Blend 混合参数丢失** — 补充 `srcBlendFactor` 降级回退 + WebGL 枚举常量字典直译
+- **修复独立窗口启动死锁** — 弃用 `tryAutoConnect` 的 IPC 依赖，改用 `localhost` 网络心跳轮询
+- **修复多标签切换 DevTools 残留** — 内嵌模式用 `ResizeObserver` 探测隐藏；独立模式用 `win.hide()/show()` 保持上下文
+- **修复空场景 `stashScene` 崩溃** — `isEditorSceneActive` 为唯一真相源 + `about:blank` 剥离 + `scene-status-changed` 自愈
+
+---
 
 ## [0.0.4] - 2026-03-29
 
-### ✨ 新特性与架构变更
-- **内存剖析器与极值水文追踪 (Memory Profiler & Extrema Tracking)**:
-  - **双轨探查矩阵**：为面板单独引入了低频（1000ms）内存数据采集轮询道，彻底与 150ms 的 FPS/渲染探测隔离。防止成百上千资产被提取时瞬间堵塞 IPC 管道而引发卡盘报错。
-  - **按域收纳聚合与自动排位**：在底层构建了按 `Bundle` 的分仓存储逻辑，并且独创性地植用了驻留内存式的极值状态机。即便底层资产因为换景被卸载，面板上每个捆绑包的 `[最低] (Min)` 与 `[最高] (Max)` 数据仍可被安全追溯。同时面板现今已可利用该维度对 Bundle 包体实施强制占用排序。
-  - **心电波浪式实时动效**：通过在接收端建立历史快照环 (`oldMemMap`)，对所有的 `当前 (Current)` 主屏内存添加了跳变感知系统。一旦由于业务加载导致内存突破上扬，面板会实时亮起红色警告上升箭头 (↑)，释放后则回落出舒缓的绿色下降箭头 (↓)。
-- **资产深层解混淆定位与除乱码体系 (Deep Asset Deobfuscation & Naming)**:
-  - **多栈穿透反查法**：彻底清剿了由于小游戏/原生编译强行压缩或者基于 `new cc.Texture()` 虚空生成而导致的极大规模 `[Unnamed]` 和长串 36 位原生无意义 UUID 的屠版废名现象。
-  - **所有权映射图反向溯源引擎 (Reverse Reference Mapping)**：独家编写了极为轻量级但十分有效的依附溯源逻辑 (`ownerMap`)。为了救援脱稿的底层废散图集与内建资源，探针在回传前将逆向扫描全场 `SpriteFrame` 的引用，一旦查实，随即把从属的父级名称“引为己用”（如：`[Tex] icon_newgift`）。
-  - **极权越级反解 (Panel IPC UuidToUrl)**：充分发挥了 Webview 作为 Editor 插件宿主内页特权的强大地位。面对经过多重打磨仍然混淆的冥顽残余与孤零资源，面板直接跨界利用编辑器大杀器全局呼叫 `Editor.assetdb.remote.uuidToUrl()`。配合 `uuidNameCache` 级别的防穿透锁（0 IPC卡滞干扰），将绝大部分元素瞬间翻译并彻底还原为极度清晰直白的 `db://assets/textures/...` 同源实录路径。
+### ✨ 新特性
+
+- **内存剖析器 (Memory Profiler)**
+  - 低频(1000ms)独立采集通道，与 FPS 探测隔离
+  - 按 `Bundle` 分仓聚合 + 极值状态机（Min/Max 持久追踪）+ 趋势箭头 ↑↓
+
+- **资源深层解混淆 (Deep Asset Deobfuscation)**
+  - `SpriteFrame` → `Texture2D` 所有权反向溯源：`[Tex] icon_newgift`
+  - 终极手段：`Editor.assetdb.remote.uuidToUrl()` 跨界解码 + `uuidNameCache` 防重复查询
 
 ### 🐛 缺陷修复
-- **修复面板响应式指针因为折叠参数引发的无端奔溃报错 (`TypeError: property 'internal' of undefined`)**:
-  - 由于引擎内部强插一根不可抗力的内建 Bundle 树 (`internal`) 而此前我们在 Vue 组件未实施完全对应的空洞防御填充导致，现已彻底在顶链占位修复，且各路视图不再闪断。
+
+- **修复内建 Bundle `internal` 导致的面板崩溃** — 顶链空洞防御填充
+
+---
 
 ## [0.0.3] - 2026-03-29
 
-### ✨ 新特性与架构变更
-- **节点树搜索能力全面跃升 (Node Tree Search Evolution)**:
+### ✨ 新特性
 
-## [0.0.3] - 2026-03-29
+- **节点树搜索增强 (Node Tree Search Evolution)**
+  - 多关键词 AND 逻辑（空格分词）
+  - 组件类名穿透搜索（如输入 `Animation` 定位挂载该组件的节点）
+  - 命中组件自动标注灰色副文本 `(cc.Animation)`
 
-### ✨ 新特性与架构变更
-- **节点树搜索能力全面跃升 (Node Tree Search Evolution)**:
-  - **多关键词 AND 逻辑**: 搜索栏现已支持通过空格分割多个关键词。算法将验证节点是否同时包含所有切片词汇，极大提高了庞大场景下标定复数特征节点的准确率。
-  - **组件类名穿透搜索 (Component Deep Match)**: 搜索机制打破了仅比对层级节点 `name` 的局限。现已深度接管探针底层序列化的组件列表（如 `cc.Animation`, `cc.Sprite`），真正实现对不可见特征的跨层即搜即得。
-  - **命中组件可视化反哺**: 针对纯组件名命中但在节点名上无法直观体现的节点，搜索面板会在右侧的徽章前部，自适应贴敷灰色的直列标记注释（如 `(cc.Animation)`）供用户确认，体验对标生产级 IDE 环境。
-- **面板右侧分栏响应式适配 (Right Panel Narrow Optimization)**:
-  - 增强了主视图下方的分栏区域布局逻辑。当面板通过拖拉缩进至极窄空间阈值时，顶部的“Main/开发者/Cocos/扩展”文字标签群将自动卸下文本累赘而保留纯图标体系 (Icon-Only Text-Hidden)，彻底阻断因断崖式溢出的多行竖文霸屏现象。
-  - 为整个组件展示区域的数值属性修饰了强力的柔性挤压抗体。即便在宽度极小的情况下，带有绝对定长文字内容的组件名称输入框 (`Main Camera` 等) 也能乖巧回缩而绝不再超出界面边缘划出乱阵。
-- **全局基础配置持久化扩容 (Global Layout & Toggles Auto-Save)**:
-  - **动态面板拖拽记录**：彻底击碎每次重启时侧边栏无理复原的尴尬，实现了鼠标拉扯放手即抓的 IPC 记录。结合越级 `Clamp` 钳制阀防御由于不同显示器更换而可能招致的反噬越界。
-  - **工具图标状态自适应**：原生 FPS 分析盖板不复呆板文本展示，更替为“状态”及带有 `📊` 和 `📉` 微动效展现；静音设置亦随之接管存档，享受长效维持体验。
-- **无侵入的原生级媒体闭环拦截器 (Native Webview Audio Gate)**:
-  - 增设全局“音效”截流快关。不渗入任何关于 `cc.audioEngine` 的控制权，通过 Chromium Webview 原生指令进行强有力的全域静音切断。同时配防 `dom-ready` 下刷新的状态逆回防线，屏蔽了一切不可预测的轰鸣重播音。
+- **右侧面板响应式适配** — 极窄宽度时标签自动切为纯图标模式，组件属性框柔性收缩不溢出
+
+- **全局配置持久化扩容**
+  - 面板分割线宽度拖拽即存 + Clamp 钳制防越界
+  - FPS/静音状态自动存档，引擎重握手时逆注覆写
+
+- **原生级音频静音** — Chromium Webview 原生静音 + `dom-ready` 状态保持
 
 ### 🐛 缺陷修复
-- **修复跨组件坐标拖拽对峙崩溃 (Docked Mouse Misalignment Fix)**:
-  - 针对分栏中轴手柄在原本脱位时依靠全屏绝对偏移减去定长产生的漂移闪跳计算做出了彻底根治。在 `startDrag` 新增记录瞬间快照起点，并将渲染偏移改为只吸收 `deltaX` 的增量捕获计算，使在何等嵌套深度的 Cocos 插槽里，拉拽始终拥有紧密顺滑的像素级同步跟随。
-- **修复 cc.Node.rotation 被弃用产生的警告风暴 (Deprecated Rotation Fallback)**:
-  - 将所有在运行时读取以及覆盖角度属性的路径全面接合了 `('angle' in node)` 特性的无感预热嗅探倒逼。实现了在适配新版本的 Cocos 引擎时原生使用 `-angle` 属性下发数值，完美兼容旧版的冗余 `rotation` 遗孤字段并自动执行了严格的镜像数值倒置逻辑，彻底扑灭了调试控制面板疯狂堆积废弃 Getter 的刺点黄字。
 
-### 🧹 代码整理与优化
-- **全域隔离测试日志与情绪废注清理 (Log & Comment Cleanup)**:
-  - 主动清除了早期在探针层 (`probe.ts`)、桥接通道 (`preload.ts`)、IPC 侦听 (`main.ts`) 及前端控制台 (`panel/index.ts`) 中存留的大量嗅探级 `console` 输出与 `Editor.log` 占位符。
-  - 彻底移除了 `postToConsole` 等向游戏内 DevTools 发送“已更新”、“测试 Ping”等刷屏级通信干扰。确立了运行时日志的极简纯净态，不再对正常的业务联调产生可见干扰。
-  - 删减去除了历史重构迭代中遗留的包含主观情感、冗长或不再具有架构推敲价值的多行注释段落。增强了整个插槽插件源码层的可读性与信噪比。
+- **修复拖拽分割线漂移** — 用 `deltaX` 增量替代全局绝对偏移减法
+- **修复 `cc.Node.rotation` 废弃警告** — 自动检测 `angle` 属性存在性，使用 `-angle` 倒置映射
+
+### 🧹 代码整理
+
+- 清除探针/桥接/IPC/面板中的调试日志和 `postToConsole` 刷屏通信
+- 移除历史重构遗留的冗长注释段落
+
+---
 
 ## [0.0.2] - 2026-03-28
 
-### ✨ 新特性与架构变更
-- **面板窄视图响应式重构 (Responsive Narrow Panel UI)**:
-  - 全面解构并增强了主控制上方的工具栏区域。在左右侧板被用户挤压导致极限空间时，含有说明文字的主操作按键（如：刷新、播放、FPS等）将自动启动隐蔽模式，无缝切入“纯图标(Icon-Only)”展现模式。
-  - 其余长文本标签区域将利用 Flex Shrink 特性与文本溢出工具类强制维持单行运作，彻底粉碎了生硬的换行换排重叠乱局。
-- **后台死寂场景的安全嗅探拦截与自愈系统 (Ghost Scene Safe-Connection & Auto-Recovery)**:
-  - 核心痛点击破：彻底消灭了当插件由于记忆布局随着编辑器开局启动时，因后台不可见的 Scene Panel 还未建档而引爆底层 `TypeError: Cannot read property 'name' of null at Object.stashScene` 大停电报错。
-  - 前台 Webview 转为动态惰性加载（Lazy Load）。在嗅探确认存活前呈现巨幕场记板 🎬 进行引导阻断。
-  - 创建了高可用性轮询与焦点响应（Focus Event）唤醒的复合验证侦测防线，通过对 Editor 发送无副作用的低开销 IPC `scene:query-hierarchy` 请求，能自发判定出编辑器主背景是否就绪并瞬息内剥除遮罩完成连接闭环。
-- **全局引擎资源解析与下拉控件拓展 (Global Asset Crawler & Dynamic Dropdowns)**:
-  - 重组了 `typeof val === "object"` 的前端爬虫逻辑拦截网，打破了之前只有 `cc.Node` 才能被记录的限制，现已开放并全局接管了所有派生自 `cc.Asset` 的骨骼、纹理和音频等各类素材引用。在属性列表内以带有类名前缀的专属样式（`asset_ref`）安全呈现，彻底弥合因复杂数据类型退化导致的属性显示盲地。
-  - **Spine 针对性体验升维**：自 `sp.SkeletonData` 突破封锁正常上报后，爬虫脚本更进一步发起了向其内部数据源 `getRuntimeData()` 的向下窥探，精准提炼出引擎已实例化的动画与皮肤表单，合成并随对象抛出 `enumList` 枚举。前台拦截此附加标记后，完美将 `defaultSkin` 与 `animation` 从危险且盲目的 `<input>` 型文本录板，涅槃重生为极度安全的下拉甄选器（`<select>`），体验全面比肩甚至超越原生系统。
-- **持久化用户偏好配置 (User Preference Persistence)**:
-  - 新增了分辨率边界宽高的本地记忆功能。依靠 `Editor.Profile` 与主进程建立专线存储（严格保存在独立工程的 `settings/mcp-inspector-bridge.json` 专属环境内），彻底终结了每次重载插件均需手动复原设备窗口比例的冗余操作。
-  - FPS 高级分析面板检测同步加入归档阵列。原先的按钮开关状态已全面转正为受控长效状态机制，不仅持久锁定选择，更在因重载、热更导致引擎内核发生下层 `handshake` 重握手的毫秒级瞬间主动将截获状态强势逆注覆写回运行时系统层，提供永不断档即开即见的高级顺滑体验。
-- **纯运行时级数据注入 (Pure Runtime Data Injection)**:
-  - 彻底移除了原先基于 Editor IPC（`scene-script.js` 和 Undo Group）的属性跨进程修改架构。
-  - 现在 Inspector 的所有属性修改（包括节点 Transform 和所有 Components）将完全绕过编辑器序列化管线，通过在 `gameView` (Webview) 中原生执行 JavaScript 直接对内存中的 `cc.Node` 与 `cc.Component` 实例进行赋值。
-  - **核心收益**：大幅度提升属性同步率与真实表现一致性；彻底解决了修改属性后引发编辑器“场景已修改，是否保存”的误拦截弹窗；彻底根除撤销系统抛出的 `Unknown object to record` 致命警告。
-- **组件通用启停控制器 (Universal Component Enable/Disable Toggle)**:
-  - 在 Node Inspector 的所有组件（如 `cc.Widget`, `cc.Sprite` 等）名称旁，新增了全局统一的复选框层。
-  - 玩家现在可以实时勾选控制运行沙盒中针对该组件的 `enabled` 状态，实现运行时引擎排版或重渲染的强行唤醒与休眠，极大提升了调试时的状态流转控制能力。
-- **引擎时钟与单步帧控制 (Global Frame Step & Pause Sync)**:
-  - 增强了主控制面板栏上的“单帧运行”逻辑。当游戏正在运行时点击该按钮，系统将在下发单步命令前，自动下令挂起主循环 (`cc.game.pause()`)，实现了先定格再推帧的精确干预。
-  - 面板接入了游戏暂停状态的双向响应。通过 `probe.ts` 持续轮询附带 `cc.game.isPaused()` 的心跳回传，控制栏按钮能够实时流转变为动态绑定的“⏸ 暂停”和“▶️ 播放”响应态；并具备点击瞬间立刻生效的乐观预测覆写，消除网络传递的视觉阻回感。
+### ✨ 新特性
+
+- **面板窄视图响应式重构** — 工具栏极窄时自动切为纯图标模式 + Flex Shrink 防溢出
+- **空场景安全拦截与自愈** — 惰性加载 + 🎬 引导遮罩 + IPC `scene:query-hierarchy` 轮询检测就绪
+- **全局资源引用解析** — `cc.Asset` 派生类（骨骼/纹理/音频）统一识别展示
+- **Spine 枚举下拉框** — 自动提取 `getRuntimeData()` 的 animations/skins 列表，`<input>` 升级为 `<select>`
+- **用户偏好持久化** — 分辨率、FPS 面板状态存入 `Editor.Profile` 项目级配置
+- **纯运行时属性注入** — 绕过编辑器序列化管线，直接操作内存实例，消灭"是否保存"弹窗
+- **组件 enabled 开关** — 所有组件统一复选框，运行时控制启停
+- **引擎暂停/单步控制** — 先 `pause()` 再推帧 + `isPaused()` 心跳双向同步
 
 ### 🐛 缺陷修复
-- **修复 Widget 属性修改后页面表现无响应问题**：由于绕过了同步流的副作用，目前所有的 `cc.Widget` 变更操作后，执行链会自动追猎调用 `comp.updateAlignment()` 以驱动 Cocos 的流式排版强制刷新边距，实现视觉对齐。
-- **修复面板后台挂起切回时的动画抖动 (Webview Resize Bounce Fix)**：
-  - 针对带有物理限定的测试分辨率预览框，在面板切至后台隐藏而失去宽度为 0 随后再次切回时，因 CSS 过度滥用造成的容器尺寸从 100% 回弹的扭曲形变。
-  - 通过在探针挂起时对 `ResizeObserver` 及旧版 `window.resize` 添加强制防零短路，并结合 `index.html` 内移除 `transition: all`，完美遏制恢复显示时的闪烁错视。
-- **修复重载刷新丢失暂停同步标记的 Bug**：填埋漏洞，强行在触发 `refreshGame()` 初始化重载的时刻并入 `globalState.isGamePaused = false` 归零指令，使重启后的操作拦恢复稳定，清缴了当游戏停歇时按刷新依旧错误残留的“▶️ 播放”表象。
+
+- **修复 Widget 修改无响应** — 变更后自动调用 `updateAlignment()` 触发排版刷新
+- **修复面板切回动画抖动** — `ResizeObserver` 防零短路 + 移除 `transition: all`
+- **修复刷新后暂停状态残留** — `refreshGame()` 时同步重置 `isGamePaused = false`
 
 ---
 
 ## [0.0.1] - 2026-03-27
-### ✨ 新特性与架构变更
-- **运行时节点树 (Runtime Node Tree)**:
-  - 实现类似 Unity 的场景节点实时监察面板。通过插入爬虫预加载器（`runtime-crawler.js`），每秒以 JSON 序列化形式通过 IPC 推送最新的节点树结构。
-  - **动态组件图标与染色支持**：增加预制体 (Prefab) 以及深层级解构支持，深度渲染不同的文本颜色以反映潜逃等级（深蓝、海蓝、紫粉等），根 Scene 节点使用专属 🌐 图标。
-  - **搜索与定位增强**：新增树状结构的名称过滤（包含高亮），并在一键清除搜索时能够准确留存路径祖先（`ancestorIds`），防止列表暴力重折叠。
-- **节点属性审查器 (Node Inspector)**：
-  - **装饰器属性精准映射**：深入剖析并打通了 Cocos 2.4 原生 `@property` 注册机制。优先遍历 `__props__` 及内置 `hiddenBuiltins` 黑名单过滤 `_objFlags` 等字段，并通过读取 `__attrs__.visible` 以及检查私有下划线前缀确保暴露层的绝对安全。
-  - **基础与数组类型的跨域处理**：实现 `string`, `number`, `boolean` 的双端响应式挂载及编辑；完成对 `Array` 类型的降级只读序列化（防回环卡死），并实现了特殊资源 `[cc.Prefab]` 等格式的名字提取及可视化罗列展示。
-  - **内置隔离的控制台 Debug 日志浮窗**：在 `runtime-crawler` 前端引入静默工作制，在控制面板上加装 Checkbox 开关。开启后即可在画面左上角挂载半透绿色骇客级防刷屏输出台，实时打出 `__attrs__` 序列诊断日记，用完即关。
-- **彻底抛弃 Webview 挂载模式 (原生架构跃升)**：
-  - 由于 Cocos 插件基于旧版 Chromium 内核，`<webview>` 的默认 `about:blank` 导航锁死了 `webContents.setDevToolsWebContents()`。
-  - 采用了更为稳定的底层 `BrowserView` 原生框架层方案。
-  - 完成了双分栏视图：游戏画面为 Webview，DevTools 为上层悬浮绝对定位的 `BrowserView` 映射。
-- **完善的视图占位引擎**：监听 `resize` 事件与 `getBoundingClientRect()`，实时同步 `BrowserView` 尺寸至左侧 Vue 面板内的伪占位 `<div ref="devtoolsView">`。
+
+### ✨ 新特性
+
+- **运行时节点树** — 预加载爬虫 JSON 序列化推送 + 深层级染色 + 搜索高亮 + 祖先折叠记忆
+- **节点属性审查器** — `__props__` / `__attrs__` 精准映射 + `string`/`number`/`boolean` 双端编辑 + 内置 Debug 浮窗
+- **BrowserView 架构** — 弃用 `<webview>` 挂载 DevTools，改用 Electron 原生 `BrowserView` 解决 `about:blank` 死锁
+- **视图占位引擎** — `resize` + `getBoundingClientRect()` 实时同步 BrowserView 尺寸
 
 ### 🐛 缺陷修复
-- **修复 DOM Tree 初始化黑屏问题**：根源在于 `<webview>` DOM 生命周期紊乱，切至 `BrowserView` 后彻底解决"有壳无树"的 `DevTools` 连接问题，使 CDP 前端完全捕获目标页面的结构树。
-- **捕获并压制 `cc.Scene` Getter 崩溃**：
-  - **症状**：Cocos 2.4 当 `node instanceof cc.Scene` 时，任何对其 `node.active` 的求值均会触发内部警告日志不断刷屏。
-  - **修复策略**：在探针代码 `src/probe.ts` 与主面板 `src/panel/index.ts` 中加入双重预检防御。如果是引擎 `cc.Scene` 类型对象，直接设置其标识位为 `true`，切断危险属性嗅探，保证 Console 日志清洁无乱码。
-- **修复游戏预览区域不可控的滚动条问题**：
-  - **症状**：在部分特殊的分辨率模拟模式下（例如 iPhone X / Android 1080p），或者拖动窗口缩放导致产生浮点比例时，预览区会不自主地爆出原生水平或垂直的滚动轴，且可以直接干预游戏画面中心点。
-  - **修复策略**：重构了 `gameContainerStyle` 取回基于 `Math.floor()` 的亚像素下取整安全宽度保障；在面板 `index.html` 层级全面增加 `overflow: hidden;`；并且利用 `insertCSS` 对 `webview` 生命周期发起了跨域样式篡写，深度摧毁隐藏了原生的 `body` 以及 Cocos 测试壳底层的 `.contentWrap` 自动溢出属性与 Webkit 控制杆。
+
+- **修复 DevTools 初始化黑屏** — 切至 `BrowserView` 后 CDP 连接正常
+- **修复 `cc.Scene.active` 刷屏警告** — 双重预检防御，Scene 对象直接短路返回标识位
+- **修复预览区滚动条** — `Math.floor()` 亚像素取整 + 多层 `overflow: hidden` + `insertCSS` 跨域样式注入
 
 ---
 
 ## [0.0.1-alpha] - 2026-03-26
 
-### ✨ 早期探索历程
-- **挂载首测**：测试单栏到双栏的 UI 改造。
-- **抢占式探测机制**：通过 Vue 3 引入 20ms 微秒级轮询池 `setInterval` 用于捕获 Webview ID。
-- **预加载流建立**：撰写 `preload.ts` 将 IPC 和通信能力安全地注入到 Cocos 原生 `gameWV` 窗口。
+### ✨ 早期探索
+
+- 测试单栏到双栏的 UI 改造
+- Vue 3 引入 20ms 微秒级轮询池捕获 Webview ID
+- 撰写 `preload.ts` 建立 IPC 通信桥
 
 ### 🐞 遗留问题
-- DevTools 会渲染出一个没有 DOM Tree、网络连接状态的死实例（现已全力攻破）。
+
+- DevTools 会渲染出没有 DOM Tree 的死实例（后续版本已攻克）
