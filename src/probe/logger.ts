@@ -6,7 +6,7 @@ declare global {
 
 export const Logger = {
     get isDebug(): boolean {
-        return true; // 临时为了调试商业项目大包围框问题强制打开
+        return window.__MCP_DEBUG__ === true;
     },
 
     log(...args: any[]) {
