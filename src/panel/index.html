@@ -1,88 +1,280 @@
 <style>
-/* CSS Reset for extension panel */
-#app { width: 100%; height: 100%; display: flex; background: #2b2b2b; color: #ccc; font-family: sans-serif; overflow: hidden; position: relative; }
-.tab-nav { display: flex; background: #1e1e1e; border-bottom: 1px solid #000; font-size: var(--base-font-size, 13px); }
-.tab-item { padding: 8px 8px; cursor: pointer; border-right: 1px solid #333; white-space: nowrap; overflow: hidden; transition: background 0.2s, opacity 0.2s; user-select: none; -webkit-user-drag: element; }
-.tab-item:hover { background: #2a2a2a; }
-.tab-item.active { background: #3c3c3c; color: #fff; font-weight: bold; border-top: 2px solid #09f; }
-.tab-item.dragging { opacity: 0.5; background: #111; }
-.tab-item.drag-over-left { border-left: 2px solid #09f; padding-left: 13px; }
-.tab-item.drag-over-right { border-right: 2px solid #09f; padding-right: 13px; }
-.btn-group { display: flex; gap: 5px; flex-shrink: 0; }
-.icon-btn { background: transparent; border: 1px solid #555; color: #ccc; cursor: pointer; padding: 4px; width: 26px; height: 26px; justify-content: center; border-radius: 3px; font-size: var(--base-font-size, 13px); white-space: nowrap; display: flex; align-items: center; gap: 0; }
-.icon-btn:hover { background: #555; color: #fff; }
-.truncate-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    /* CSS Reset for extension panel */
+    #app {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        background: #2b2b2b;
+        color: #ccc;
+        font-family: sans-serif;
+        overflow: hidden;
+        position: relative;
+    }
 
-/* 分辨率选择框最小宽度保护被更弹性的包裹层级接管，移除旧版基于 order 的换行兼容 */
+    .tab-nav {
+        display: flex;
+        background: #1e1e1e;
+        border-bottom: 1px solid #000;
+        font-size: var(--base-font-size, 13px);
+    }
 
-.narrow-tab-nav .tab-text { display: none; }
-.narrow-tab-nav .tab-item { padding: 8px 10px; justify-content: center; }
+    .tab-item {
+        padding: 8px 8px;
+        cursor: pointer;
+        border-right: 1px solid #333;
+        white-space: nowrap;
+        overflow: hidden;
+        transition: background 0.2s, opacity 0.2s;
+        user-select: none;
+        -webkit-user-drag: element;
+    }
 
-/* Split Pane Divider */
-.resizer {
-    width: 6px;
-    background: #333;
-    cursor: col-resize;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-left: 1px solid #111;
-    border-right: 1px solid #111;
-    z-index: 100;
-}
-.resizer:hover { background: #4a4a4a; }
-.resizer::after {
-    content: "⋮";
-    color: #888;
-    font-size: 14px;
-}
+    .tab-item:hover {
+        background: #2a2a2a;
+    }
 
-.h-resizer {
-    height: 6px;
-    background: #333;
-    cursor: row-resize;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-top: 1px solid #111;
-    border-bottom: 1px solid #111;
-    z-index: 100;
-}
-.h-resizer:hover { background: #4a4a4a; }
-.h-resizer::after {
-    content: "⋯";
-    color: #888;
-    font-size: 14px;
-}
+    .tab-item.active {
+        background: #3c3c3c;
+        color: #fff;
+        font-weight: bold;
+        border-top: 2px solid #09f;
+    }
 
-/* Node Tree Styles */
-.node-tree-wrap { display: flex; flex-direction: column; height: 100%; flex: 1; min-height: 0; }
-.search-bar { padding: 5px; background: #1a1a1a; border-bottom: 1px solid #333; }
-.search-bar input { width: 100%; box-sizing: border-box; background: #333; border: 1px solid #555; color: #eee; padding: 4px 6px; border-radius: 3px; font-size: calc(var(--base-font-size, 13px) - 1px); outline: none; }
-.search-bar input:focus { border-color: #09f; }
-.tree-content { flex: 1; overflow-y: auto; font-family: monospace; font-size: calc(var(--base-font-size, 13px) - 1px); padding: 5px 0; }
-.tree-node { display: flex; align-items: center; padding: 3px 0; cursor: pointer; user-select: none; white-space: nowrap; }
-.tree-node:hover { background: #3a3a3a; }
-.prefab-depth-1 { color: #569cd6; }
-.prefab-depth-2 { color: #4ec9b0; }
-.prefab-depth-3 { color: #c586c0; }
-.tree-node.active { background: #005a9e; color: #fff; }
-.tree-node.inactive { opacity: 0.5; color: #a9a9a9; }
-.caret { width: 14px; display: inline-block; text-align: center; color: #888; font-size: calc(var(--base-font-size, 13px) - 3px); transition: transform 0.1s; }
-.caret.expanded { transform: rotate(90deg); }
-.caret.hidden { visibility: hidden; }
-.node-icon { margin-right: 5px; font-size: calc(var(--base-font-size, 13px) - 2px); }
-.comp-badge { background: #444; color: #aaa; border-radius: 8px; padding: 0 4px; font-size: calc(var(--base-font-size, 13px) - 4px); margin-left: auto; margin-right: 5px;}
-mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
-.empty-hint { text-align: center; color: #666; padding-top: 20px; font-size: calc(var(--base-font-size, 13px) - 1px); }
+    .tab-item.dragging {
+        opacity: 0.5;
+        background: #111;
+    }
+
+    .tab-item.drag-over-left {
+        border-left: 2px solid #09f;
+        padding-left: 13px;
+    }
+
+    .tab-item.drag-over-right {
+        border-right: 2px solid #09f;
+        padding-right: 13px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+
+    .icon-btn {
+        background: transparent;
+        border: 1px solid #555;
+        color: #ccc;
+        cursor: pointer;
+        padding: 4px;
+        width: 26px;
+        height: 26px;
+        justify-content: center;
+        border-radius: 3px;
+        font-size: var(--base-font-size, 13px);
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 0;
+    }
+
+    .icon-btn:hover {
+        background: #555;
+        color: #fff;
+    }
+
+    .truncate-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
+    /* 分辨率选择框最小宽度保护被更弹性的包裹层级接管，移除旧版基于 order 的换行兼容 */
+
+    .narrow-tab-nav .tab-text {
+        display: none;
+    }
+
+    .narrow-tab-nav .tab-item {
+        padding: 8px 10px;
+        justify-content: center;
+    }
+
+    /* Split Pane Divider */
+    .resizer {
+        width: 6px;
+        background: #333;
+        cursor: col-resize;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-left: 1px solid #111;
+        border-right: 1px solid #111;
+        z-index: 100;
+    }
+
+    .resizer:hover {
+        background: #4a4a4a;
+    }
+
+    .resizer::after {
+        content: "⋮";
+        color: #888;
+        font-size: 14px;
+    }
+
+    .h-resizer {
+        height: 6px;
+        background: #333;
+        cursor: row-resize;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-top: 1px solid #111;
+        border-bottom: 1px solid #111;
+        z-index: 100;
+    }
+
+    .h-resizer:hover {
+        background: #4a4a4a;
+    }
+
+    .h-resizer::after {
+        content: "⋯";
+        color: #888;
+        font-size: 14px;
+    }
+
+    /* Node Tree Styles */
+    .node-tree-wrap {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .search-bar {
+        padding: 5px;
+        background: #1a1a1a;
+        border-bottom: 1px solid #333;
+    }
+
+    .search-bar input {
+        width: 100%;
+        box-sizing: border-box;
+        background: #333;
+        border: 1px solid #555;
+        color: #eee;
+        padding: 4px 6px;
+        border-radius: 3px;
+        font-size: calc(var(--base-font-size, 13px) - 1px);
+        outline: none;
+    }
+
+    .search-bar input:focus {
+        border-color: #09f;
+    }
+
+    .tree-content {
+        flex: 1;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: calc(var(--base-font-size, 13px) - 1px);
+        padding: 5px 0;
+    }
+
+    .tree-node {
+        display: flex;
+        align-items: center;
+        padding: 3px 0;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+    .tree-node:hover {
+        background: #3a3a3a;
+    }
+
+    .prefab-depth-1 {
+        color: #569cd6;
+    }
+
+    .prefab-depth-2 {
+        color: #4ec9b0;
+    }
+
+    .prefab-depth-3 {
+        color: #c586c0;
+    }
+
+    .tree-node.active {
+        background: #005a9e;
+        color: #fff;
+    }
+
+    .tree-node.inactive {
+        opacity: 0.5;
+        color: #a9a9a9;
+    }
+
+    .caret {
+        width: 14px;
+        display: inline-block;
+        text-align: center;
+        color: #888;
+        font-size: calc(var(--base-font-size, 13px) - 3px);
+        transition: transform 0.1s;
+    }
+
+    .caret.expanded {
+        transform: rotate(90deg);
+    }
+
+    .caret.hidden {
+        visibility: hidden;
+    }
+
+    .node-icon {
+        margin-right: 5px;
+        font-size: calc(var(--base-font-size, 13px) - 2px);
+    }
+
+    .comp-badge {
+        background: #444;
+        color: #aaa;
+        border-radius: 8px;
+        padding: 0 4px;
+        font-size: calc(var(--base-font-size, 13px) - 4px);
+        margin-left: auto;
+        margin-right: 5px;
+    }
+
+    mark {
+        background: #0078d4;
+        color: white;
+        padding: 0 2px;
+        border-radius: 2px;
+    }
+
+    .empty-hint {
+        text-align: center;
+        color: #666;
+        padding-top: 20px;
+        font-size: calc(var(--base-font-size, 13px) - 1px);
+    }
 </style>
 
 <div id="app" v-cloak>
     <!-- 场景未激活时的全屏拦截遮罩 -->
-    <div v-if="!globalState.isEditorSceneActive" style="position: absolute; inset: 0; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(30, 30, 30, 0.95); color: #aaa; backdrop-filter: blur(4px);">
+    <div v-if="!globalState.isEditorSceneActive"
+        style="position: absolute; inset: 0; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(30, 30, 30, 0.95); color: #aaa; backdrop-filter: blur(4px);">
         <div style="font-size: 60px; margin-bottom: 20px;">💤</div>
         <div style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 15px;">场景编辑器未激活</div>
-        <div style="font-size: 14px; text-align: center; line-height: 1.8; color: #ccc; max-width: 400px; background: #2a2a2a; padding: 20px; border-radius: 8px; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+        <div
+            style="font-size: 14px; text-align: center; line-height: 1.8; color: #ccc; max-width: 400px; background: #2a2a2a; padding: 20px; border-radius: 8px; border: 1px solid #444; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
             当前尚未在 Cocos 主界面激活任何 <b>场景(Scene)</b> 或 <b>预制体(Prefab)</b>。<br><br>
             为防止由于底层上下文缺失引发的数据异常与程序崩溃，<br>MCP Inspector Bridge 已自动挂起。<br><br>
             <span style="color: #09f;">请在主界面随便打开一个场景或预制体，面板将自动恢复。</span>
@@ -90,23 +282,32 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
     </div>
 
     <!-- 左侧 Game Panel -->
-    <div :class="['left-panel', globalState.isNarrow ? 'narrow-mode' : '']" style="flex: 1; display: flex; flex-direction: column; border-right: 1px solid #111; overflow: hidden; min-width: 0;">
+    <div :class="['left-panel', globalState.isNarrow ? 'narrow-mode' : '']"
+        style="flex: 1; display: flex; flex-direction: column; border-right: 1px solid #111; overflow: hidden; min-width: 0;">
         <!-- 顶部操作栏 -->
-        <div :style="{ minHeight: '35px', background: '#3c3c3c', display: 'flex', alignItems: 'center', padding: globalState.isNarrow ? '4px 10px' : '0 10px', gap: '5px', flexWrap: 'wrap', rowGap: '4px' }">
+        <div
+            :style="{ minHeight: '35px', background: '#3c3c3c', display: 'flex', alignItems: 'center', padding: globalState.isNarrow ? '4px 10px' : '0 10px', gap: '5px', flexWrap: 'wrap', rowGap: '4px' }">
             <div class="btn-group">
                 <button class="icon-btn" title="刷新页面" @click="refreshGame">↻</button>
-                <button class="icon-btn" :title="globalState.isGamePaused ? '恢复播放' : '暂停引擎'" @click="togglePause">{{ globalState.isGamePaused ? '▶️' : '⏸' }}</button>
+                <button class="icon-btn" :title="globalState.isGamePaused ? '恢复播放' : '暂停引擎'" @click="togglePause">{{
+                    globalState.isGamePaused ? '▶️' : '⏸' }}</button>
                 <button class="icon-btn" title="单帧运行" @click="stepGame">⏭</button>
                 <button class="icon-btn" title="性能状态 (FPS)" @click="toggleFPS">{{ isShowFPS ? '📊' : '📉' }}</button>
                 <button class="icon-btn" title="静音/开启游戏声音" @click="toggleMute">{{ isAudioMuted ? '🔇' : '🔊' }}</button>
-                <button :class="['icon-btn', globalState.isNodePickerActive ? 'active' : '']" :style="{ color: globalState.isNodePickerActive ? '#09f' : '#ccc', borderColor: globalState.isNodePickerActive ? '#09f' : '#555' }" title="场景节点拾取" @click="toggleNodePicker">🎯</button>
-                <button class="icon-btn" style="cursor:help" :title="globalState.mcpStatus.active ? 'MCP已启动，端口：' + globalState.mcpStatus.port : 'MCP启动失败，原因：' + globalState.mcpStatus.error">
-                    <div :style="{ width: '10px', height: '10px', borderRadius: '50%', background: globalState.mcpStatus.active ? '#4caf50' : '#f44336' }"></div>
+                <button :class="['icon-btn', globalState.isNodePickerActive ? 'active' : '']"
+                    :style="{ color: globalState.isNodePickerActive ? '#09f' : '#ccc', borderColor: globalState.isNodePickerActive ? '#09f' : '#555' }"
+                    title="场景节点拾取" @click="toggleNodePicker">🎯</button>
+                <button class="icon-btn" style="cursor:help"
+                    :title="globalState.mcpStatus.active ? 'MCP已启动，端口：' + globalState.mcpStatus.port : 'MCP启动失败，原因：' + globalState.mcpStatus.error">
+                    <div
+                        :style="{ width: '10px', height: '10px', borderRadius: '50%', background: globalState.mcpStatus.active ? '#4caf50' : '#f44336' }">
+                    </div>
                 </button>
             </div>
             <!-- 分辨率与横竖屏分组 (保证自动换行时不被切割) -->
             <div style="display: flex; gap: 5px; flex: 1; min-width: 200px;">
-                <select v-model="selectedResolution" class="truncate-text" style="background:#555; color:#fff; border:1px solid #777; padding:3px; outline:none; border-radius:3px; flex: 1;">
+                <select v-model="selectedResolution" class="truncate-text"
+                    style="background:#555; color:#fff; border:1px solid #777; padding:3px; outline:none; border-radius:3px; flex: 1;">
                     <option value="FIT">自动充满 (Fit Window)</option>
                     <option value="750x1334">iPhone 7 (750x1334)</option>
                     <option value="1125x2436">iPhone X (1125x2436)</option>
@@ -118,22 +319,21 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
         </div>
 
         <!-- 游戏 Webview 容器底板 (深渊灰色，负责居中缩放) -->
-        <div id="game-mount-wrap" ref="wrapMount" style="flex: 1; background: #1a1a1c; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative;">
-            
+        <div id="game-mount-wrap" ref="wrapMount"
+            style="flex: 1; background: #1a1a1c; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative;">
+
             <!-- 被严格限制特定分辨率比例的物理容器 -->
-            <div :style="gameContainerStyle" style="background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); flex-shrink: 0; display: flex; transition: transform 0.2s ease-out; overflow: hidden;">
+            <div :style="gameContainerStyle"
+                style="background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); flex-shrink: 0; display: flex; transition: transform 0.2s ease-out; overflow: hidden;">
                 <!-- 携带特权的 Webview -->
-                <webview id="game-view" ref="gameView"
-                    preload="PRELOAD_PLACEHOLDER"
-                    :src="globalState.webviewSrc"
-                    disablewebsecurity="true"
-                    partition="persist:game"
-                    nodeintegrationinsubframes="true"
+                <webview id="game-view" ref="gameView" preload="PRELOAD_PLACEHOLDER" :src="globalState.webviewSrc"
+                    disablewebsecurity="true" partition="persist:game" nodeintegrationinsubframes="true"
                     webpreferences="contextIsolation=false"
                     style="width: 100%; height: 100%; border: none; display: flex; flex: 1; background:#000; overflow: hidden;">
                 </webview>
                 <!-- 拖动时的屏蔽罩，防止 webview 吞噬鼠标事件 -->
-                <div v-show="isDragging" style="position: absolute; inset: 0; background: transparent; z-index: 999;"></div>
+                <div v-show="isDragging" style="position: absolute; inset: 0; background: transparent; z-index: 999;">
+                </div>
             </div>
         </div>
     </div>
@@ -142,49 +342,53 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
     <div class="resizer" @mousedown="startDrag"></div>
 
     <!-- 右侧 Tabs Panel (固定或弹性宽度) -->
-    <div :style="{ width: rightPanelWidth + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#252525' }">
-        
+    <div
+        :style="{ width: rightPanelWidth + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#252525' }">
+
         <!-- Tab 切换菜单 (Draggable) -->
         <div :class="['tab-nav', rightPanelWidth < 280 ? 'narrow-tab-nav' : '']">
-            <div v-for="(tab, index) in tabsList" :key="tab.id"
-                 :class="[
+            <div v-for="(tab, index) in tabsList" :key="tab.id" :class="[
                      'tab-item', 
                      activeTab === tab.id ? 'active' : '', 
                      draggingTabId === tab.id ? 'dragging' : '',
                      hoverTargetId === tab.id && hoverDropPos === 'left' ? 'drag-over-left' : '',
                      hoverTargetId === tab.id && hoverDropPos === 'right' ? 'drag-over-right' : ''
-                 ]"
-                 @click="activeTab = tab.id"
-                 :title="tab.name"
-                 draggable="true"
-                 @dragstart.stop="onDragStart(tab, index, $event)"
-                 @dragover.prevent.stop="onDragOver(tab, $event)"
-                 @dragenter.prevent.stop
-                 @dragleave.stop="onDragLeave(tab, $event)"
-                 @drop.stop="onDrop(tab, index, $event)"
-                 @dragend.stop="onDragEnd">
+                 ]" @click="activeTab = tab.id" :title="tab.name" draggable="true"
+                @dragstart.stop="onDragStart(tab, index, $event)" @dragover.prevent.stop="onDragOver(tab, $event)"
+                @dragenter.prevent.stop @dragleave.stop="onDragLeave(tab, $event)"
+                @drop.stop="onDrop(tab, index, $event)" @dragend.stop="onDragEnd">
                 {{ tab.icon }} <span class="tab-text">{{ tab.name }}</span>
             </div>
         </div>
 
         <!-- 内容渲染层 -->
         <div style="flex: 1; position: relative;">
-            
+
             <!-- Tab 0: Node Tree & Props -->
             <div v-show="activeTab === 0" style="position: absolute; inset: 0; display: flex; flex-direction: column;">
-                <div v-if="globalState.showFallbackWarning" style="padding: 10px; background: #fff3e0; color: #ef6c00; font-size: 11px; border-bottom: 1px solid #ffe0b2;">
+                <div v-if="globalState.showFallbackWarning"
+                    style="padding: 10px; background: #fff3e0; color: #ef6c00; font-size: 11px; border-bottom: 1px solid #ffe0b2;">
                     ⚠️ [降级容错模式] 原生 IPC 数据链路受阻，当前面板正通过主动 DOM 轮询模式拉取。
                 </div>
-                <div :style="{ flex: 1, display: 'flex', flexDirection: globalState.inspectorLayout === 'vertical' ? 'column' : 'row', minHeight: 0 }">
-                    <div :style="{ [globalState.inspectorLayout === 'vertical' ? 'height' : 'width']: (globalState.inspectorLayout === 'vertical' ? nodeTreePanelHeight : nodeTreePanelWidth) + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', overflowY: 'hidden', background: '#252525' }">
-                        <div v-if="!globalState.nodeTree" style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">(等待加载场景节点树)</div>
-                        <node-tree ref="nodeTreeRef" v-else :tree-data="globalState.nodeTree" @select="onNodeSelect" @hover="onNodeHover"></node-tree>
+                <div
+                    :style="{ flex: 1, display: 'flex', flexDirection: globalState.inspectorLayout === 'vertical' ? 'column' : 'row', minHeight: 0 }">
+                    <div
+                        :style="{ [globalState.inspectorLayout === 'vertical' ? 'height' : 'width']: (globalState.inspectorLayout === 'vertical' ? nodeTreePanelHeight : nodeTreePanelWidth) + 'px', flexShrink: 0, display: 'flex', flexDirection: 'column', overflowY: 'hidden', background: '#252525' }">
+                        <div v-if="!globalState.nodeTree"
+                            style="color: #666; font-size: 12px; text-align: center; margin-top: 50px;">(等待加载场景节点树)
+                        </div>
+                        <node-tree ref="nodeTreeRef" v-else :tree-data="globalState.nodeTree" @select="onNodeSelect"
+                            @hover="onNodeHover"></node-tree>
                     </div>
-                    
-                    <div :class="globalState.inspectorLayout === 'vertical' ? 'h-resizer' : 'resizer'" @mousedown="startNodeTreeDrag" title="拖拉调整侧栏尺寸"></div>
 
-                    <div style="flex: 1; overflow-y: hidden; background: #202020; min-width: 0; min-height: 0; position: relative;">
-                        <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp" @hover-change="globalState.isInspectorHovered = $event" @locate-node="onLocateNode" @locate-asset="onLocateAsset" @print-comp="onPrintComp"></node-inspector>
+                    <div :class="globalState.inspectorLayout === 'vertical' ? 'h-resizer' : 'resizer'"
+                        @mousedown="startNodeTreeDrag" title="拖拉调整侧栏尺寸"></div>
+
+                    <div
+                        style="flex: 1; overflow-y: hidden; background: #202020; min-width: 0; min-height: 0; position: relative;">
+                        <node-inspector :node-detail="globalState.nodeDetail" @update-prop="onUpdateNodeProp"
+                            @hover-change="globalState.isInspectorHovered = $event" @locate-node="onLocateNode"
+                            @locate-asset="onLocateAsset" @print-comp="onPrintComp"></node-inspector>
                         <div v-show="isNodeTreeDragging" style="position: absolute; inset: 0; z-index: 99;"></div>
                     </div>
                 </div>
@@ -197,13 +401,18 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                 pointerEvents: activeTab === 1 ? 'auto' : 'none',
                 opacity: activeTab === 1 ? 1 : 0
             }">
-                <div v-if="globalState.devToolsError" style="padding: 15px; background: #ffebee; color: #c62828; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ffcdd2;">
+                <div v-if="globalState.devToolsError"
+                    style="padding: 15px; background: #ffebee; color: #c62828; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ffcdd2;">
                     ⚠️ DevTools 挂载异常: {{ globalState.devToolsError }}
-                    <div style="font-weight: normal; font-size: 11px; margin-top: 5px; color: #555;">(内嵌模式不可用，请尝试独立窗口)</div>
-                    <button @click="openDevToolsExternal" style="margin-top: 8px; padding: 4px 12px; background: #1976d2; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">🔧 在独立窗口中打开 DevTools</button>
+                    <div style="font-weight: normal; font-size: 11px; margin-top: 5px; color: #555;">(内嵌模式不可用，请尝试独立窗口)
+                    </div>
+                    <button @click="openDevToolsExternal"
+                        style="margin-top: 8px; padding: 4px 12px; background: #1976d2; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">🔧
+                        在独立窗口中打开 DevTools</button>
                 </div>
                 <!-- Phase 7: BrowserView 占位 div，BrowserView 将覆盖此区域 -->
-                <div ref="devtoolsView" style="width: 100%; flex: 1; background: #242424; display: flex; align-items: center; justify-content: center; color: #666; font-size: 13px;">
+                <div ref="devtoolsView"
+                    style="width: 100%; flex: 1; background: #242424; display: flex; align-items: center; justify-content: center; color: #666; font-size: 13px;">
                     <span v-if="!globalState.devToolsError">DevTools 加载中...</span>
                 </div>
             </div>
@@ -224,32 +433,47 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
             </div>
 
             <!-- Tab 4: 性能分析 (Phase 1 Barebones) -->
-            <div v-show="activeTab === 4" style="position: absolute; inset: 0; padding: 15px; background: #1a1a1a; display: flex; flex-direction: column; gap: 8px;">
+            <div v-show="activeTab === 4"
+                style="position: absolute; inset: 0; padding: 15px; background: #1a1a1a; display: flex; flex-direction: column; gap: 8px;">
                 <div style="flex-shrink: 0; padding-bottom: 10px; border-bottom: 1px solid #333;">
                     <h4 style="margin: 0 0 10px 0; color: #88c;">性能探测数据</h4>
                     <div style="display: flex; gap: 15px;">
-                        <span style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #4CAF50;">FPS: {{ globalState.profiler?.tick?.fps }}</span>
-                        <span style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #FF9800;">DrawCall: {{ globalState.profiler?.tick?.drawCall }}</span>
-                        <span style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #2196F3;">Render: {{ globalState.profiler?.tick?.renderTime?.toFixed(2) }} ms</span>
-                        <span style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #9C27B0;">Logic: {{ globalState.profiler?.tick?.logicTime?.toFixed(2) }} ms</span>
+                        <span
+                            style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #4CAF50;">FPS:
+                            {{ globalState.profiler?.tick?.fps }}</span>
+                        <span
+                            style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #FF9800;">DrawCall:
+                            {{ globalState.profiler?.tick?.drawCall }}</span>
+                        <span
+                            style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #2196F3;">Render:
+                            {{ globalState.profiler?.tick?.renderTime?.toFixed(2) }} ms</span>
+                        <span
+                            style="font-family: monospace; font-size: calc(var(--base-font-size, 13px) + 1px); color: #9C27B0;">Logic:
+                            {{ globalState.profiler?.tick?.logicTime?.toFixed(2) }} ms</span>
                     </div>
                 </div>
 
                 <!-- 资源内存占用排行 -->
-                <div style="flex: 1; display: flex; gap: 10px; min-height: 0; overflow: hidden; margin-top: 5px;" :style="globalState.isNarrow ? { flexDirection: 'column' } : {}">
-                    
+                <div style="flex: 1; display: flex; gap: 10px; min-height: 0; overflow: hidden; margin-top: 5px;"
+                    :style="globalState.isNarrow ? { flexDirection: 'column' } : {}">
+
                     <!-- 左侧/上方：全局资源池排行 -->
-                    <div style="flex: 1; display: flex; flex-direction: column; background: #222; border: 1px solid #333; border-radius: 4px; min-height: 0;">
-                        <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); border-bottom: 1px solid #444; color: #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
+                    <div
+                        style="flex: 1; display: flex; flex-direction: column; background: #222; border: 1px solid #333; border-radius: 4px; min-height: 0;">
+                        <div
+                            style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); border-bottom: 1px solid #444; color: #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
                             <span>资源内存排行</span>
-                            <span v-if="globalState.profiler?.memoryStats?.totalMemory !== undefined" style="color: #e57373;">
+                            <span v-if="globalState.profiler?.memoryStats?.totalMemory !== undefined"
+                                style="color: #e57373;">
                                 总计: {{ formatBytes(globalState.profiler.memoryStats.totalMemory) }}
                             </span>
                         </div>
                         <div style="flex: 1; overflow-y: auto;">
                             <!-- 为了防止上万资源卡死，使用了 slice 截取前 100 -->
-                            <table style="width: 100%; border-collapse: collapse; font-size: calc(var(--base-font-size, 13px) - 2px); text-align: left;">
-                                <thead style="position: sticky; top: 0; background: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+                            <table
+                                style="width: 100%; border-collapse: collapse; font-size: calc(var(--base-font-size, 13px) - 2px); text-align: left;">
+                                <thead
+                                    style="position: sticky; top: 0; background: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.5);">
                                     <tr>
                                         <th style="padding: 4px 6px;">资源名称</th>
                                         <th style="padding: 4px 6px;">类型</th>
@@ -258,17 +482,23 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(res, idx) in globalState.profiler?.memoryStats?.allResources?.slice(0, 100) || []" :key="res.id || idx" style="border-bottom: 1px solid #2a2a2a;">
-                                        <td style="padding: 4px 6px; word-break: break-all; max-width: 150px; display: flex; align-items: center; justify-content: space-between;" :title="res.name">
+                                    <tr v-for="(res, idx) in globalState.profiler?.memoryStats?.allResources?.slice(0, 100) || []"
+                                        :key="res.id || idx" style="border-bottom: 1px solid #2a2a2a;">
+                                        <td style="padding: 4px 6px; word-break: break-all; max-width: 150px; display: flex; align-items: center; justify-content: space-between;"
+                                            :title="res.name">
                                             <span class="truncate-text" style="flex: 1;">{{ res.name }}</span>
-                                            <span @click.stop="locateResource(res)" style="cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 1px); flex-shrink: 0; padding-left: 4px; opacity: 0.8; transition: opacity 0.2s;" title="在资源管理器中定位" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
+                                            <span @click.stop="locateResource(res)"
+                                                style="cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 1px); flex-shrink: 0; padding-left: 4px; opacity: 0.8; transition: opacity 0.2s;"
+                                                title="在资源管理器中定位" onmouseover="this.style.opacity='1'"
+                                                onmouseout="this.style.opacity='0.8'">🎯</span>
                                         </td>
                                         <td style="padding: 4px 6px; color: #88c;">{{ res.type }}</td>
                                         <td style="padding: 4px 6px; color: #e57373;">{{ formatBytes(res.memory) }}</td>
                                         <td style="padding: 4px 6px; color: #aaa;">{{ res.refCount }}</td>
                                     </tr>
                                     <tr v-if="!globalState.profiler?.memoryStats?.allResources">
-                                        <td colspan="4" style="text-align: center; padding: 20px; color: #666;">等待探针传输数据...</td>
+                                        <td colspan="4" style="text-align: center; padding: 20px; color: #666;">
+                                            等待探针传输数据...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -276,41 +506,65 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
                     </div>
 
                     <!-- 右侧/下方：按 Bundle 聚合排行 -->
-                    <div style="flex: 1; display: flex; flex-direction: column; background: #222; border: 1px solid #333; border-radius: 4px; min-height: 0;">
-                        <div style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); border-bottom: 1px solid #444; color: #e0e0e0;">
+                    <div
+                        style="flex: 1; display: flex; flex-direction: column; background: #222; border: 1px solid #333; border-radius: 4px; min-height: 0;">
+                        <div
+                            style="background: #2a2a2a; padding: 6px 10px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px); border-bottom: 1px solid #444; color: #e0e0e0;">
                             已激活 Bundle 层级排行
                         </div>
                         <div style="flex: 1; overflow-y: auto; padding: 5px;">
-                            <div v-for="(bundle, bIndex) in globalState.profiler?.memoryStats?.bundles || []" :key="bundle.name" style="margin-bottom: 5px;">
-                                <div style="display: flex; align-items: center; background: #333; padding: 4px 8px; border-radius: 3px; cursor: pointer; user-select: none;" 
-                                     @click="globalState.profiler.expandedBundles[bundle.name] = !globalState.profiler.expandedBundles[bundle.name]">
-                                    <span style="font-size: calc(var(--base-font-size, 13px) - 3px); color: #888; width: 14px; text-align: center;">
+                            <div v-for="(bundle, bIndex) in globalState.profiler?.memoryStats?.bundles || []"
+                                :key="bundle.name" style="margin-bottom: 5px;">
+                                <div style="display: flex; align-items: center; background: #333; padding: 4px 8px; border-radius: 3px; cursor: pointer; user-select: none;"
+                                    @click="globalState.profiler.expandedBundles[bundle.name] = !globalState.profiler.expandedBundles[bundle.name]">
+                                    <span
+                                        style="font-size: calc(var(--base-font-size, 13px) - 3px); color: #888; width: 14px; text-align: center;">
                                         {{ globalState.profiler.expandedBundles[bundle.name] ? '▼' : '▶' }}
                                     </span>
-                                    <strong style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #e0e0e0; margin-left: 2px;">{{ bundle.name }}</strong>
-                                    <span style="font-size: calc(var(--base-font-size, 13px) - 3px); color: #999; margin-left: 10px; background: #444; padding: 1px 4px; border-radius: 4px;">{{ bundle.resourceCount }} 资源</span>
-                                    
+                                    <strong
+                                        style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #e0e0e0; margin-left: 2px;">{{
+                                        bundle.name }}</strong>
+                                    <span
+                                        style="font-size: calc(var(--base-font-size, 13px) - 3px); color: #999; margin-left: 10px; background: #444; padding: 1px 4px; border-radius: 4px;">{{
+                                        bundle.resourceCount }} 资源</span>
+
                                     <div style="flex: 1;"></div>
-                                    <div style="font-size: calc(var(--base-font-size, 13px) - 3px); display: flex; gap: 10px; align-items: center;">
-                                        <span style="color: #9e9e9e;" title="历史最低内存">最低: {{ formatBytes(bundle.minMemory) }}</span>
-                                        <span style="color: #FF9800;" title="历史最高内存">最高: {{ formatBytes(bundle.maxMemory) }}</span>
-                                        <span style="color: #03a9f4;" title="当前内存大小">当前: {{ formatBytes(bundle.currentMemory) }}<span v-if="bundle.trend === 'up'" style="color: #f44336; margin-left: 2px;">↑</span><span v-else-if="bundle.trend === 'down'" style="color: #4caf50; margin-left: 2px;">↓</span></span>
+                                    <div
+                                        style="font-size: calc(var(--base-font-size, 13px) - 3px); display: flex; gap: 10px; align-items: center;">
+                                        <span style="color: #9e9e9e;" title="历史最低内存">最低: {{
+                                            formatBytes(bundle.minMemory) }}</span>
+                                        <span style="color: #FF9800;" title="历史最高内存">最高: {{
+                                            formatBytes(bundle.maxMemory) }}</span>
+                                        <span style="color: #03a9f4;" title="当前内存大小">当前: {{
+                                            formatBytes(bundle.currentMemory) }}<span v-if="bundle.trend === 'up'"
+                                                style="color: #f44336; margin-left: 2px;">↑</span><span
+                                                v-else-if="bundle.trend === 'down'"
+                                                style="color: #4caf50; margin-left: 2px;">↓</span></span>
                                     </div>
                                 </div>
-                                <div v-if="globalState.profiler.expandedBundles[bundle.name]" style="padding-left: 15px; margin-top: 2px;">
-                                    <table style="width: 100%; border-collapse: collapse; font-size: calc(var(--base-font-size, 13px) - 3px); text-align: left;">
-                                        <tr v-for="(bres, bri) in bundle.resources.slice(0, 50)" :key="bres.id || bri" style="border-bottom: 1px dashed #333;">
-                                            <td style="padding: 3px; max-width: 120px; display: flex; align-items: center; justify-content: space-between;" :title="bres.name">
+                                <div v-if="globalState.profiler.expandedBundles[bundle.name]"
+                                    style="padding-left: 15px; margin-top: 2px;">
+                                    <table
+                                        style="width: 100%; border-collapse: collapse; font-size: calc(var(--base-font-size, 13px) - 3px); text-align: left;">
+                                        <tr v-for="(bres, bri) in bundle.resources.slice(0, 50)" :key="bres.id || bri"
+                                            style="border-bottom: 1px dashed #333;">
+                                            <td style="padding: 3px; max-width: 120px; display: flex; align-items: center; justify-content: space-between;"
+                                                :title="bres.name">
                                                 <span class="truncate-text" style="flex: 1;">└ {{ bres.name }}</span>
-                                                <span @click.stop="locateResource(bres)" style="cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 2px); flex-shrink: 0; padding-left: 4px; opacity: 0.8; transition: opacity 0.2s;" title="在资源管理器中定位" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">🎯</span>
+                                                <span @click.stop="locateResource(bres)"
+                                                    style="cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 2px); flex-shrink: 0; padding-left: 4px; opacity: 0.8; transition: opacity 0.2s;"
+                                                    title="在资源管理器中定位" onmouseover="this.style.opacity='1'"
+                                                    onmouseout="this.style.opacity='0.8'">🎯</span>
                                             </td>
                                             <td style="padding: 3px; color: #777;">{{ bres.type }}</td>
-                                            <td style="padding: 3px; color: #e57373;">{{ formatBytes(bres.memory) }}</td>
+                                            <td style="padding: 3px; color: #e57373;">{{ formatBytes(bres.memory) }}
+                                            </td>
                                         </tr>
                                     </table>
                                 </div>
                             </div>
-                            <div v-if="!globalState.profiler?.memoryStats?.bundles" style="text-align: center; padding: 20px; color: #666; font-size: calc(var(--base-font-size, 13px) - 1px);">
+                            <div v-if="!globalState.profiler?.memoryStats?.bundles"
+                                style="text-align: center; padding: 20px; color: #666; font-size: calc(var(--base-font-size, 13px) - 1px);">
                                 等待探针传输数据...
                             </div>
                         </div>
@@ -320,36 +574,155 @@ mark { background: #0078d4; color: white; padding: 0 2px; border-radius: 2px;}
 
             <!-- Tab 5: 渲染调试器 MVP -->
             <div v-show="activeTab === 5" style="position: absolute; inset: 0; background: #1a1a1a;">
-                <render-debugger @toggle="onRenderDebuggerToggle" @locate-node="onRenderDebuggerLocate"></render-debugger>
+                <render-debugger @toggle="onRenderDebuggerToggle"
+                    @locate-node="onRenderDebuggerLocate"></render-debugger>
             </div>
 
             <!-- Tab 6: 偏好设置 -->
-            <div v-show="activeTab === 6" style="position: absolute; inset: 0; padding: 15px; background: #1e1e1e; color: #ddd; overflow-y: auto;">
-                <h4 style="margin: 0 0 15px 0; color: #88c; border-bottom: 1px solid #333; padding-bottom: 5px;">偏好设置</h4>
-                
-                <div style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
-                    <div style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 8px;">UI 界面缩放比例 (UI Scale)</div>
-                    <div style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #aaa; margin-bottom: 10px;">如果面板在低分辨率屏幕下显示拥挤，可调低此比例（修改后将立即在本地缓存）。</div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="range" v-model.number="globalState.uiScale" min="0.5" max="1.5" step="0.05" style="width: 200px;">
-                        <span style="font-family: monospace; font-size: var(--base-font-size, 13px); background: #111; padding: 3px 6px; border-radius: 3px; min-width: 40px; text-align: center;">{{ (globalState.uiScale * 100).toFixed(0) }}%</span>
-                        <button class="icon-btn" style="padding: 2px 8px; width: auto;" @click="globalState.uiScale = 1.0" title="重置">重置</button>
+            <div v-show="activeTab === 6"
+                style="position: absolute; inset: 0; padding: 15px; background: #1e1e1e; color: #ddd; overflow-y: auto;">
+                <h4 style="margin: 0 0 15px 0; color: #88c; border-bottom: 1px solid #333; padding-bottom: 5px;">偏好设置
+                </h4>
+
+                <div
+                    style="margin-bottom: 20px; background: #2a3a2a; padding: 12px; border-radius: 4px; border: 1px solid #3a5a3a; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div
+                        style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 12px; color:#4caf50; border-bottom: 1px solid #334; padding-bottom: 6px;">
+                        🛡️ 客户端配置</div>
+
+                    <div v-if="globalState.mcpScanning" style="color: #ffb74d; margin-bottom: 10px;">正在扫描系统 AI 客户端配置...
+                    </div>
+
+                    <div v-if="!globalState.mcpScanning && globalState.mcpClientList.length > 0">
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span
+                                    style="color: #aaa; width: 65px; font-size: calc(var(--base-font-size, 13px) - 1px);">宿主平台:</span>
+                                <select v-model="globalState.mcpSelectedClientId"
+                                    style="background:#111; color:#fff; padding:4px; border-radius: 3px; border:1px solid #555; width: 160px; font-size: calc(var(--base-font-size, 13px) - 1px);">
+                                    <option v-for="client in globalState.mcpClientList" :key="client.id"
+                                        :value="client.id">{{ client.name }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 状态显示 -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; background: #222; padding: 8px; border-radius: 4px;"
+                            v-if="globalState.mcpClientList[globalState.mcpSelectedClientId]">
+                            <div
+                                style="display: flex; align-items: center; gap: 6px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 1px);">
+                                <span v-if="globalState.mcpClientList[globalState.mcpSelectedClientId].isError"
+                                    style="color: #f44336; font-size: calc(var(--base-font-size, 13px) + 1px);">🔴
+                                    配置损坏</span>
+                                <template v-else>
+                                    <span v-if="!globalState.mcpClientList[globalState.mcpSelectedClientId].isInstalled"
+                                        style="color: #f44336; font-size: calc(var(--base-font-size, 13px) + 1px);">🔴
+                                        未安装</span>
+                                    <span
+                                        v-else-if="globalState.mcpClientList[globalState.mcpSelectedClientId].isConfigured"
+                                        style="color: #4caf50; font-size: calc(var(--base-font-size, 13px) + 1px);">🟢
+                                        已连通</span>
+                                    <span v-else
+                                        style="color: #ff9800; font-size: calc(var(--base-font-size, 13px) + 1px);">🟡
+                                        需验证配置</span>
+                                </template>
+                            </div>
+                            <button :disabled="!globalState.mcpClientList[globalState.mcpSelectedClientId].isInstalled"
+                                :style="{ padding: '5px 15px', background: globalState.mcpClientList[globalState.mcpSelectedClientId].isInstalled ? '#1976d2' : '#555', color: 'white', border: 'none', borderRadius: '4px', cursor: globalState.mcpClientList[globalState.mcpSelectedClientId].isInstalled ? 'pointer' : 'not-allowed', fontWeight:'bold', fontSize: 'calc(var(--base-font-size, 13px) - 1px)' }"
+                                @click="configureMcpClient(globalState.mcpSelectedClientId)">
+                                一键配置
+                            </button>
+                        </div>
+
+                        <!-- Manual Configuration 折叠面板 -->
+                        <details style="margin-bottom: 15px; border-top: 1px dashed #444; padding-top: 10px;">
+                            <summary
+                                style="cursor: pointer; color: #aaa; user-select: none; margin-bottom: 10px; font-size: calc(var(--base-font-size, 13px) - 1px); outline: none;">
+                                手动配置</summary>
+
+                            <div v-if="globalState.mcpClientList[globalState.mcpSelectedClientId] && globalState.mcpClientList[globalState.mcpSelectedClientId].path"
+                                style="margin-bottom: 15px;">
+                                <div
+                                    style="color: #aaa; font-size: calc(var(--base-font-size, 13px) - 1px); margin-bottom: 4px;">
+                                    配置存储路径:</div>
+                                <div style="display: flex; gap: 5px;">
+                                    <input type="text"
+                                        v-model="globalState.mcpClientList[globalState.mcpSelectedClientId].path"
+                                        style="flex:1; background:#111; color:#bbb; border:1px solid #333; border-radius: 3px; padding: 4px; font-size: calc(var(--base-font-size, 13px) - 2px);" />
+                                    <button
+                                        style="padding: 2px 8px; background: #444; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 1px);"
+                                        @click="copyMcpPath(globalState.mcpClientList[globalState.mcpSelectedClientId].path)">复制</button>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4px;">
+                                    <div style="color: #aaa; font-size: calc(var(--base-font-size, 13px) - 1px);">
+                                        数据载荷:</div>
+                                    <button
+                                        style="padding: 2px 8px; background: #444; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: calc(var(--base-font-size, 13px) - 2px);"
+                                        @click="copyMcpPayload">复制 JSON</button>
+                                </div>
+                                <textarea v-model="globalState.mcpPayload"
+                                    style="width: 100%; height: 160px; background: #000; color: #4caf50; border: 1px solid #444; border-radius: 4px; padding: 8px; font-family: monospace; font-size: calc(var(--base-font-size, 13px) - 2px); box-sizing: border-box; resize: vertical;"></textarea>
+                            </div>
+                        </details>
+
+                        <button
+                            style="width: 100%; padding: 8px; background: #424242; color: #ccc; border: 1px solid #555; border-radius: 4px; cursor: pointer; text-align: center; transition: background 0.2s; font-size: calc(var(--base-font-size, 13px) - 1px);"
+                            @click="configureMcpClient(-1)">
+                            尝试向所有平台分发配置
+                        </button>
+                    </div>
+
+                    <div v-if="globalState.mcpInjectLog"
+                        style="margin-top: 10px; color: #8bc34a; font-size: calc(var(--base-font-size, 13px) - 1px); white-space: pre-wrap; background: #111; padding: 6px; border-radius: 3px; border-left: 3px solid #8bc34a;">
+                        {{ globalState.mcpInjectLog }}
                     </div>
                 </div>
 
-                <div style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
-                    <div style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 8px;">基础字号 (Base Font Size)</div>
-                    <div style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #aaa; margin-bottom: 10px;">作为全局排版基准值 (修改后将立即在本地缓存)。</div>
+                <div
+                    style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
+                    <div style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 8px;">UI
+                        界面缩放比例</div>
+                    <div style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #aaa; margin-bottom: 10px;">
+                        如果面板在低分辨率屏幕下显示拥挤，可调低此比例（修改后将立即在本地缓存）。</div>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="range" v-model.number="globalState.baseFontSize" min="5" max="20" step="1" style="width: 200px;">
-                        <span style="font-family: monospace; font-size: var(--base-font-size, 13px); background: #111; padding: 3px 6px; border-radius: 3px; min-width: 40px; text-align: center;">{{ globalState.baseFontSize }}px</span>
-                        <button class="icon-btn" style="padding: 2px 8px; width: auto;" @click="globalState.baseFontSize = 13" title="重置">重置</button>
+                        <input type="range" v-model.number="globalState.uiScale" min="0.5" max="1.5" step="0.05"
+                            style="width: 200px;">
+                        <span
+                            style="font-family: monospace; font-size: var(--base-font-size, 13px); background: #111; padding: 3px 6px; border-radius: 3px; min-width: 40px; text-align: center;">{{
+                            (globalState.uiScale * 100).toFixed(0) }}%</span>
+                        <button class="icon-btn" style="padding: 2px 8px; width: auto;"
+                            @click="globalState.uiScale = 1.0" title="重置">重置</button>
                     </div>
                 </div>
 
-                <div style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
-                    <div style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 8px;">检查器排布方向 (Inspector Layout)</div>
-                    <div style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #aaa; margin-bottom: 10px;">控制左侧节点树和右侧属性面板的排列方式。</div>
+                <div
+                    style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
+                    <div style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 8px;">基础字号
+                    </div>
+                    <div style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #aaa; margin-bottom: 10px;">
+                        作为全局排版基准值 (修改后将立即在本地缓存)。</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="range" v-model.number="globalState.baseFontSize" min="5" max="20" step="1"
+                            style="width: 200px;">
+                        <span
+                            style="font-family: monospace; font-size: var(--base-font-size, 13px); background: #111; padding: 3px 6px; border-radius: 3px; min-width: 40px; text-align: center;">{{
+                            globalState.baseFontSize }}px</span>
+                        <button class="icon-btn" style="padding: 2px 8px; width: auto;"
+                            @click="globalState.baseFontSize = 13" title="重置">重置</button>
+                    </div>
+                </div>
+
+                <div
+                    style="margin-bottom: 20px; background: #252525; padding: 12px; border-radius: 4px; border: 1px solid #333;">
+                    <div style="font-size: var(--base-font-size, 13px); font-weight: bold; margin-bottom: 8px;">检查器排布方向
+                    </div>
+                    <div style="font-size: calc(var(--base-font-size, 13px) - 1px); color: #aaa; margin-bottom: 10px;">
+                        控制左侧节点树和右侧属性面板的排列方式。</div>
                     <div style="display: flex; gap: 15px; align-items: center; font-size: var(--base-font-size, 13px);">
                         <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
                             <input type="radio" v-model="globalState.inspectorLayout" value="horizontal"> 横向并排 (左右)

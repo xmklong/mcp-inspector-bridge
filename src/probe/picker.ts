@@ -185,6 +185,7 @@ export function initPicker() {
                 try {
                     if (node.activeInHierarchy === false || node.active === false) return null;
                     if (node.opacity === 0 || (node.color && node.color.a === 0)) return null;
+                    if (node.scale === 0 || node.scaleX === 0 || node.scaleY === 0) return null;
                 } catch (e) { return null; }
 
                 if (node.name === '__mcp_hover_overlay__' || node.name === '__mcp_select_overlay__') return null;

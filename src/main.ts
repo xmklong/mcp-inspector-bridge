@@ -42,6 +42,48 @@ module.exports = {
                                     }
                                 }));
                             }, 2000);
+                        } else if (data.method === 'tools/call' && data.params && data.params.name === 'capture_runtime_screenshot') {
+                            const reqId = data.id || Date.now().toString();
+                            const { webContents } = require('electron');
+                            const allWc = webContents.getAllWebContents();
+                            const targetWc = allWc.find((wc: any) => {
+                                const url = wc.getURL();
+                                return url && url.includes('localhost:') && !url.includes('inspector');
+                            });
+
+                            if (!targetWc) {
+                                ws.send(JSON.stringify({
+                                    jsonrpc: "2.0", id: reqId,
+                                    result: { isError: true, content: [{ type: "text", text: "未能找到活跃的预览画面，请确认预览面板已打开。" }] }
+                                }));
+                            } else {
+                                const handleImage = (img: any) => {
+                                    if (!img || img.isEmpty()) {
+                                        ws.send(JSON.stringify({ jsonrpc: "2.0", id: reqId, result: { isError: true, content: [{ type: "text", text: "获取画面为空，可能处于后台" }] }}));
+                                        return;
+                                    }
+                                    const dataUrl = img.toDataURL();
+                                    const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+                                    ws.send(JSON.stringify({
+                                        jsonrpc: "2.0", id: reqId,
+                                        result: {
+                                            content: [
+                                                { type: "image", data: base64Data, mimeType: "image/png" },
+                                                { type: "text", text: "已截取当前 runtime 游戏视图。" }
+                                            ]
+                                        }
+                                    }));
+                                };
+
+                                const result = targetWc.capturePage();
+                                if (result && typeof result.then === 'function') {
+                                    result.then(handleImage).catch((e: any) => {
+                                        ws.send(JSON.stringify({ jsonrpc: "2.0", id: reqId, result: { isError: true, content: [{ type: "text", text: "截图异常: " + e.message }] }}));
+                                    });
+                                } else if (result) {
+                                    handleImage(result);
+                                }
+                            }
                         }
                     } catch(e) {}
                 });
@@ -174,6 +216,33 @@ module.exports = {
 
             if (event.reply) {
                 event.reply(null, port);
+            }
+        },
+        'mcp-scan-clients'(event: any) {
+            try {
+                const { scanMcpClients } = require('./mcp-client/configurator');
+                const list = scanMcpClients();
+                if (event.reply) event.reply(null, list);
+            } catch(e: any) {
+                if (event.reply) event.reply(new Error("scan 出错: " + e.message));
+            }
+        },
+        'mcp-get-payload'(event: any) {
+            try {
+                const { getPayload } = require('./mcp-client/configurator');
+                const pl = getPayload();
+                if (event.reply) event.reply(null, pl);
+            } catch(e: any) {
+                if (event.reply) event.reply(new Error("payload 出错: " + e.message));
+            }
+        },
+        'mcp-inject-client'(event: any, clientId: number) {
+            try {
+                const { injectMcpConfig } = require('./mcp-client/configurator');
+                const log = injectMcpConfig(clientId === -1 ? undefined : clientId);
+                if (event.reply) event.reply(null, log);
+            } catch (e: any) {
+                if (event.reply) event.reply(null, "配置写入报错: " + e.message);
             }
         }
     },

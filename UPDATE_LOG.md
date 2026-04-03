@@ -8,13 +8,23 @@
 
 ### ✨ 新特性
 
-- **MCP 接入第一阶段 (MCP Integration Stage 1)**
-  - 架构更新：增加了依赖建立于 `4456` 端口连接的 MCP-Inspector WebSocket 通信桥。
-  - 新增 `mcp-client` 作为纯 Node 探针客户端，负责和中控建立 `ping/pong` 验证闭环。
+- **MCP 接入第三阶段 (MCP Integration Stage 3)**
+  - **AI 视觉检查支持**：在主进程级横向拓展 MCP 截图能力的支持，让 AI 能够获得游戏界面的视觉截图供排版核对与布局验证。
+  - 主进程静默寻址 WebContents 进行网络通信并处理图像 Base64 编码，无需任何面板层的 UI 大动干戈。
 
 - **MCP 接入第二阶段 (MCP Integration Stage 2)**
-  - **JSON-RPC 只读探针**：增加基于 JSON-RPC 规范的 `get_selected_node` 操作，为 AI 开启只读探针视镜并防幻觉泛化。
-  - 优化底层探针序列化管线，部署专为大语言模型打造的 `getSimplifiedNode` 精简接口。
+  - **JSON-RPC 只读探针**：增加基于 JSON-RPC 规范的节点读取操作，为 AI 开启只读探针视镜并防幻觉泛化。
+  - 优化底层探针序列化管线，部署专为大语言模型打造的精简字典提炼接口。
+
+- **MCP 接入第一阶段 (MCP Integration Stage 1)**
+  - 架构更新：增加了依赖建立于 `4456` 端口连接的 MCP-Inspector WebSocket 通信桥。
+  - 新增 `mcp-client` 作为纯 Node 探针客户端，负责和中控建立双向验证闭环。
+
+- **MCP 接入标准升级与自动化挂载 (MCP Protocol & Auto Config)**
+  - 引进原生 `@modelcontextprotocol/sdk`，对 `mcp-client` 进行标准 Stdio Server 化重构。
+  - 在偏好设置界面新增【AI 伴侣集成】栏目，实现了高级的可视化客户端管理配置系统，摒弃了一键盲注黑盒。
+  - 支持了自动扫描检测多宿主 AI 环境（如 Cline / Claude Desktop），采用状态指示灯并在可折叠的【Manual Configuration】中向所有级别人群直白展示欲挂载的 JSON 结构并支持一键 Copy。
+  - **交互体验 (UI Fixes):** 全量替换了配置界面的硬编码英文至中文本土化显示，并加入高级 `Toast` 防重点击延时器（消隐挂载日志）。
 
 
 - **支持全局 UI 缩放与设置面板 (Global UI Scaling and Settings Panel)**
@@ -40,6 +50,10 @@
   - 全面精简渲染面板的说明：剔除括号内冗余的英文释义，将“前进一步”收缩为纯极简的图示控制。
 
 ### 🐛 缺陷修复
+
+- **修复拾取器无法过滤零缩放节点问题 (Picker Scale=0 Filtration Fix)**
+  - **问题**：在原射线命中算法中仅检测了 `active` 和 `opacity`，未跳过物理外显尺寸被压成 0 甚至由于 `scaleX/scaleY=0` 退化为伪影的节点，导致鼠标悬停经常死锁捕获隐身子代而脱靶。
+  - **方案**：增加在深搜遍历前置期使用容错运算直接剪枝 `scale === 0` 或 `scaleX/scaleY === 0` 的判断树，免于注入后置的几何矩阵 `NaN` 越界逆推运算。
 
 - **修复 UI 缩放与面板宽边界变动时开发者工具视图未同步裁切对齐问题 (BrowserView Out-of-Sync Fix)**
   - **问题**：原生脱离 DOM 的 BrowserView 没有主动响应 CSS `zoom` 和窗体宽窄拖拉的机制；且在 Chromium 59 旧内核下，带有 `zoom` 属性的容器调用 `getBoundingClientRect()` 会返回被虚假拉伸放大的不标准坐标，导致包围盒投影不仅没有收缩对齐，反而向外越界漂移穿模。

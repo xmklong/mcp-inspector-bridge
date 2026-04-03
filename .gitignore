@@ -30,3 +30,5 @@ tools/
 # IDE and Editor
 .vscode/
 .idea/
+
+package-lock.json
