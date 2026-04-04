@@ -1,5 +1,6 @@
 'use strict';
 import * as WebSocket from 'ws';
+import { startMcpRouter } from './ipc-router';
 declare const Editor: any;
 
 let _isSceneActive = false;
@@ -16,81 +17,16 @@ module.exports = {
         _isSceneActive = false;
         
         try {
-            _wss = new WebSocket.Server({ port: 4456 });
-            _wss.on('connection', (ws) => {
-                ws.on('message', (message) => {
-                    try {
-                        const data = JSON.parse(message.toString());
-                        if (data.type === 'ping') {
-                            ws.send(JSON.stringify({ type: 'pong' }));
-                        } else if (data.method === 'tools/call' && data.params && data.params.name === 'get_selected_node') {
-                            const reqId = data.id || Date.now().toString();
-                            Editor.Ipc.sendToPanel('mcp-inspector-bridge', 'mcp-query-selected-node', reqId, (err: any, res: any) => {
-                                let contentText = '';
-                                if (err || !res || res.error) {
-                                    contentText = JSON.stringify({ error: err || (res && res.error) || 'Unknown IPC error' });
-                                } else if (!res.result) {
-                                    contentText = "未选中任何节点。";
-                                } else {
-                                    contentText = JSON.stringify(res.result, null, 2) + "\n\n*注意：修改此节点请使用 execute_cocos_script 工具，并调用 cc.find('...') 获取引用。*";
-                                }
-                                ws.send(JSON.stringify({
-                                    jsonrpc: "2.0",
-                                    id: reqId,
-                                    result: {
-                                        content: [{ type: "text", text: contentText }]
-                                    }
-                                }));
-                            }, 2000);
-                        } else if (data.method === 'tools/call' && data.params && data.params.name === 'capture_runtime_screenshot') {
-                            const reqId = data.id || Date.now().toString();
-                            const { webContents } = require('electron');
-                            const allWc = webContents.getAllWebContents();
-                            const targetWc = allWc.find((wc: any) => {
-                                const url = wc.getURL();
-                                return url && url.includes('localhost:') && !url.includes('inspector');
-                            });
-
-                            if (!targetWc) {
-                                ws.send(JSON.stringify({
-                                    jsonrpc: "2.0", id: reqId,
-                                    result: { isError: true, content: [{ type: "text", text: "未能找到活跃的预览画面，请确认预览面板已打开。" }] }
-                                }));
-                            } else {
-                                const handleImage = (img: any) => {
-                                    if (!img || img.isEmpty()) {
-                                        ws.send(JSON.stringify({ jsonrpc: "2.0", id: reqId, result: { isError: true, content: [{ type: "text", text: "获取画面为空，可能处于后台" }] }}));
-                                        return;
-                                    }
-                                    const dataUrl = img.toDataURL();
-                                    const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
-                                    ws.send(JSON.stringify({
-                                        jsonrpc: "2.0", id: reqId,
-                                        result: {
-                                            content: [
-                                                { type: "image", data: base64Data, mimeType: "image/png" },
-                                                { type: "text", text: "已截取当前 runtime 游戏视图。" }
-                                            ]
-                                        }
-                                    }));
-                                };
-
-                                const result = targetWc.capturePage();
-                                if (result && typeof result.then === 'function') {
-                                    result.then(handleImage).catch((e: any) => {
-                                        ws.send(JSON.stringify({ jsonrpc: "2.0", id: reqId, result: { isError: true, content: [{ type: "text", text: "截图异常: " + e.message }] }}));
-                                    });
-                                } else if (result) {
-                                    handleImage(result);
-                                }
-                            }
-                        }
-                    } catch(e) {}
-                });
-            });
-            _mcpStatus = { active: true, port: 4456, error: '' };
+            const router = startMcpRouter(4456);
+            _wss = router.wss;
+            _mcpStatus = router.status;
+            
             Editor.Ipc.sendToPanel('mcp-inspector-bridge', 'mcp-status-changed', _mcpStatus);
-            Editor.log('[MCP] Bridge started on ws://localhost:4456');
+            if (_mcpStatus.active) {
+                Editor.log('[MCP] Bridge started on ws://localhost:4456');
+            } else {
+                Editor.error('[MCP] Failed to start WebSocket server:', _mcpStatus.error);
+            }
         } catch(err: any) {
             _mcpStatus = { active: false, port: 4456, error: err.message || 'Unknown error' };
             Editor.Ipc.sendToPanel('mcp-inspector-bridge', 'mcp-status-changed', _mcpStatus);

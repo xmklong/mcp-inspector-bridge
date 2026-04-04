@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { Logger } from './logger';
+import { initConsoleHijacker } from './console-hijacker';
 import { initCrawler, syncNodeTree } from './crawler';
 import { initHighlighter, startHighlighterHook } from './highlighter';
 import { initProfiler } from './profiler';
@@ -14,6 +15,7 @@ import { initPicker } from './picker';
     }
 
     // 初始化全局模块暴露区
+    initConsoleHijacker();
     initCrawler();
     initHighlighter();
     initProfiler();

@@ -8,6 +8,21 @@
 
 ### ✨ 新特性
 
+- **暴露节点树遍历能力 (Expose Node Tree API)**
+- **原生屏幕坐标系交互劫持 (simulate_input 强化)**：废弃了之前强绑定具体组件发号施令的落后行为（盲人摸象），完全重构了 `simulateInput` 模块，通过 Web 相机的逆向投影捕获，以真正的全局 DOM 级 `MouseEvent` 对 GameCanvas 发起多态交互（兼容任意 X/Y 点击、长时间按压、滑动擦除等复杂用户实体行为），使 AI 模型获得更接近常人的游戏游玩体感。
+- **获取游戏运行时日志 (get_runtime_logs)**：为 AI 大模型增加探测游戏运行期间所抛出的错误日志和业务日志的功能 (`capture engine cc.error and window.console`)。为预防内存溢出及上下文长度爆炸，探针拦截底层采用 RingBuffer 限流（最高缓存 500 条），且 IPC 透传层强控制单次提取上限不得超过 100 条。
+- **获取节点树 (get_node_tree)**：新增 MCP 工具，允许 AI Agent 主动下发获取全局节点树命令，通过 `depth` 入参实行服务端剪裁，安全暴露宏观场景结构而不撑爆大语言模型上下文。
+
+- **MCP 架构化与巨无霸模块重构 (MCP Architectural Refactoring)**
+  - 弃用臃肿的 `main.ts` 与 `if-else` 分支，拆解并引入 `TOOL_IPC_MAP` 字典路由系统 (`ipc-router.ts`)。
+  - 为底层向插件面板的分发引入了原子化的延时熔断机制（Promise 带 3s 超时抛出），一举根治 WebView 无响应导致的 AI 客户端死锁宕机。
+  - 将 460余行的 `crawler.ts` 前端探针文件重构解耦，抽离探针与序列化模块。
+
+- **AI 节点全周期操控闭环 (AI Advanced Control Capabilities)**
+  - **原子预检沙盒**：在 WebView JavaScript 执行层面包裹由 `findNodeByUuid` 构建的有效性安全预检，阻拦悬空指针。
+  - 新增深度观测功能：探测节点包围盒坐标 (`worldPolygon`) 及交互性 (`interactable`)。
+  - 暴露节点操控工具：`get_node_detail`, `update_node_property`, `get_memory_ranking`, `simulate_input`，实现了从读取、诊断、修改到交互模拟的全图景能力。
+
 - **MCP 接入第三阶段 (MCP Integration Stage 3)**
   - **AI 视觉检查支持**：在主进程级横向拓展 MCP 截图能力的支持，让 AI 能够获得游戏界面的视觉截图供排版核对与布局验证。
   - 主进程静默寻址 WebContents 进行网络通信并处理图像 Base64 编码，无需任何面板层的 UI 大动干戈。

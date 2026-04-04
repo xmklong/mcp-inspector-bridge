@@ -272,14 +272,125 @@ module.exports = Editor.Panel.extend({
                     promise.then((res: any) => {
                         if (event.reply) event.reply(null, { reqId, result: res ? JSON.parse(res) : null });
                     }).catch((e: any) => {
-                        if (event.reply) event.reply(null, { reqId, error: "Execution failed in promise: " + e.message });
+                        if (event.reply) event.reply(null, { reqId, error: "Execution failed: " + e.message });
                     });
-                } else {
-                    if (event.reply) event.reply(null, { reqId, error: "executeJavaScript did not return a promise" });
                 }
-            } catch (e: any) {
-                if (event.reply) event.reply(null, { reqId, error: "executeJavaScript sync throw: " + e.message });
+            } catch (e: any) {}
+        },
+        'mcp-query-node-detail'(this: any, event: any, args: any) {
+            const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
+            if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            const code = `
+                (function(){
+                    try {
+                        if(!window.__mcpCrawler) return JSON.stringify({ error: 'Crawler not injected' });
+                        var n = window.__mcpCrawler.findNodeByUuid('${args.uuid}');
+                        if(!n) return JSON.stringify({ error: 'NODE_NOT_FOUND', msg: 'Node destroyed or not found' });
+                        return JSON.stringify(window.__mcpCrawler.getNodeDetail('${args.uuid}'));
+                    } catch(e) { return JSON.stringify({ error: 'EXECUTION_FAILED', msg: e.message }); }
+                })();
+            `;
+            wv.executeJavaScript(code).then((r:any) => { if(event.reply) event.reply(null, typeof r === 'string' ? JSON.parse(r) : r); }).catch((e:any) => { if(event.reply) event.reply(null, { error: e.message }); });
+        },
+        'mcp-update-property'(this: any, event: any, args: any) {
+            const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
+            if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            const code = `
+                (function(){
+                    try {
+                        if(!window.__mcpCrawler) return JSON.stringify({ error: 'Crawler not injected' });
+                        var n = window.__mcpCrawler.findNodeByUuid('${args.uuid}');
+                        if(!n) return JSON.stringify({ error: 'NODE_NOT_FOUND', msg: 'Node destroyed or not found' });
+                        var ok = window.__mcpCrawler.updateNodeProperty('${args.uuid}', '${args.compName || "null"}', '${args.propKey}', ${JSON.stringify(args.value)}, ${args.compIndex ?? -1});
+                        return JSON.stringify({ success: ok });
+                    } catch(e) { return JSON.stringify({ error: 'EXECUTION_FAILED', msg: e.message }); }
+                })();
+            `;
+            wv.executeJavaScript(code).then((r:any) => { if(event.reply) event.reply(null, typeof r === 'string' ? JSON.parse(r) : r); }).catch((e:any) => { if(event.reply) event.reply(null, { error: e.message }); });
+        },
+        'mcp-simulate-input'(this: any, event: any, args: any) {
+            const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
+            if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            const code = `
+                (function(){
+                    try {
+                        if(!window.__mcpCrawler) return JSON.stringify({ error: 'Crawler not injected' });
+                        if(typeof window.__mcpCrawler.simulateInput !== 'function') return JSON.stringify({ error: 'simulateInput not implemented in probe' });
+                        return JSON.stringify(window.__mcpCrawler.simulateInput(${JSON.stringify(args)}));
+                    } catch(e) { return JSON.stringify({ error: 'EXECUTION_FAILED', msg: e.message }); }
+                })();
+            `;
+            wv.executeJavaScript(code).then((r:any) => { if(event.reply) event.reply(null, typeof r === 'string' ? JSON.parse(r) : r); }).catch((e:any) => { if(event.reply) event.reply(null, { error: e.message }); });
+        },
+        'mcp-query-memory'(this: any, event: any, args: any) {
+             const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
+             if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+             const code = `
+                 (function(){
+                     try {
+                         if(typeof window.__mcpGetMemoryRanking !== 'function') return JSON.stringify({ error: 'Memory agent not injected' });
+                         return JSON.stringify(window.__mcpGetMemoryRanking());
+                     } catch(e) { return JSON.stringify({ error: 'EXECUTION_FAILED', msg: e.message }); }
+                 })();
+             `;
+             wv.executeJavaScript(code).then((r:any) => { if(event.reply) event.reply(null, typeof r === 'string' ? JSON.parse(r) : r); }).catch((e:any) => { if(event.reply) event.reply(null, { error: e.message }); });
+        },
+        'mcp-query-tree'(this: any, event: any, args: any) {
+            if (!event.reply) return;
+            if (typeof Editor !== 'undefined') Editor.log("[mcp-query-tree] Received request, tree exists:", !!globalState.nodeTree);
+            if (!globalState.nodeTree) {
+                event.reply(null, { error: 'Node tree data is empty or not yet initialized.' });
+                return;
             }
+            const maxDepth = (args && typeof args.depth === 'number') ? args.depth : 3;
+            
+            let rawTree: any = null;
+            try {
+                rawTree = JSON.parse(JSON.stringify(globalState.nodeTree));
+            } catch(e: any) {
+                event.reply(null, { error: 'Tree parse error: ' + e.message });
+                return;
+            }
+
+            const trimTree = (node: any, currentDepth: number): any => {
+                if (!node) return node;
+                const cloned = { ...node };
+                if (currentDepth >= maxDepth) {
+                    if (cloned.children && cloned.children.length > 0) {
+                        cloned.children = [`__TRUNCATED__ (hidden ${cloned.children.length} items, use depth > ${maxDepth} to view)`];
+                    }
+                } else if (cloned.children && Array.isArray(cloned.children)) {
+                    cloned.children = cloned.children.map((c: any) => trimTree(c, currentDepth + 1));
+                }
+                return cloned;
+            };
+            
+            const trimmedTree = trimTree(rawTree, 1);
+            if (typeof Editor !== 'undefined') Editor.log("[mcp-query-tree] Trimmed tree, replying...");
+            event.reply(null, trimmedTree);
+        },
+        'mcp-query-logs'(this: any, event: any, args: any) {
+            const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
+            if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            
+            const tailCount = Math.min(args?.tail || 50, 100);
+            const filterLevel = args?.level || 'all';
+
+            const code = `
+                (function(){
+                    try {
+                        if(!window.__mcpRuntimeLogs) return JSON.stringify({ error: 'Logs not intercepted' });
+                        var list = window.__mcpRuntimeLogs;
+                        if ('${filterLevel}' !== 'all') {
+                            list = list.filter(l => l.type === '${filterLevel}');
+                        }
+                        return JSON.stringify(list.slice(-${tailCount}));
+                    } catch(e) { return JSON.stringify({ error: e.message }); }
+                })();
+            `;
+            wv.executeJavaScript(code)
+              .then((r:any) => { if(event.reply) event.reply(null, typeof r === 'string' ? JSON.parse(r) : r); })
+              .catch((e:any) => { if(event.reply) event.reply(null, { error: e.message }); });
         },
         'scene-status-changed'(event: any, payload: any) {
             window.dispatchEvent(new CustomEvent('scene-status-changed', { detail: payload }));

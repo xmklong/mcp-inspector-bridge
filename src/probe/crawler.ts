@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { Logger } from './logger';
+import { syncNodeTree } from './crawler-serialize';
+
 export function initCrawler() {
     window.__mcpCrawler = {
         findNodeByUuid: function (uuid, root) {
@@ -55,6 +57,8 @@ export function initCrawler() {
                 active: isActive,
                 x: node.x !== undefined ? node.x : 0,
                 y: node.y !== undefined ? node.y : 0,
+                worldPolygon: this.getNodeWorldPolygon(node),
+                interactable: (window.cc && window.cc.Button && node.getComponent(window.cc.Button)) ? node.getComponent(window.cc.Button).interactable : null,
                 rotation: ('angle' in node) ? -node.angle : (node.rotation !== undefined ? node.rotation : 0),
                 scaleX: sx,
                 scaleY: sy,
@@ -376,87 +380,75 @@ export function initCrawler() {
                 size: { width: node.width || 0, height: node.height || 0 },
                 components: compNames
             };
+        },
+        simulateInput: function (args) {
+            const eng = window.cc;
+            if (!eng || !eng.director) return { error: 'ENGINE_NOT_READY' };
+
+            let worldPos = eng.v2(0, 0);
+            if (args && args.uuid) {
+                const node = this.findNodeByUuid(args.uuid);
+                if (!node || !node.isValid) return { error: 'NODE_NOT_FOUND', msg: 'Node not found or destroyed.' };
+                if (typeof node.convertToWorldSpaceAR === 'function') {
+                    worldPos = node.convertToWorldSpaceAR(eng.v2(0, 0));
+                }
+            } else if (args && (args.x !== undefined || args.y !== undefined)) {
+                worldPos.x = args.x || 0;
+                worldPos.y = args.y || 0;
+            }
+
+            let camera = null;
+            if (eng.Camera && eng.Camera.cameras) {
+                camera = eng.Camera.cameras.sort(function(a, b){ return b.depth - a.depth; })[0];
+            }
+            let screenPt = (camera && typeof camera.getWorldToScreenPoint === 'function') 
+                           ? camera.getWorldToScreenPoint(worldPos) : worldPos;
+
+            const canvas = document.getElementById('GameCanvas') || document.querySelector('canvas');
+            if (!canvas) return { error: 'CANVAS_NOT_FOUND' };
+            const rect = canvas.getBoundingClientRect();
+            const frameSize = eng.view.getFrameSize();
+
+            const clientX = rect.left + screenPt.x * (rect.width / frameSize.width);
+            const clientY = rect.bottom - screenPt.y * (rect.height / frameSize.height);
+
+            function dispatchNativeEvent(type, cx, cy) {
+                const evt = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: cx, clientY: cy, button: 0 });
+                canvas.dispatchEvent(evt);
+            }
+
+            const mode = (args && args.inputType) ? args.inputType : 'click';
+            const duration = Math.min((args && args.duration) ? args.duration : 100, 3000);
+
+            dispatchNativeEvent('mousedown', clientX, clientY);
+
+            if (mode === 'click') {
+                setTimeout(function() { dispatchNativeEvent('mouseup', clientX, clientY); }, 50);
+            } else if (mode === 'long_press') {
+                setTimeout(function() { dispatchNativeEvent('mouseup', clientX, clientY); }, duration);
+            } else if (mode === 'swipe') {
+                const endX = clientX + ((args && args.swipeDeltaX) ? args.swipeDeltaX : 0);
+                const endY = clientY - ((args && args.swipeDeltaY) ? args.swipeDeltaY : 0);
+                
+                let startTime = Date.now();
+                function step() {
+                    let progress = (Date.now() - startTime) / duration;
+                    if (progress >= 1) {
+                        dispatchNativeEvent('mousemove', endX, endY);
+                        dispatchNativeEvent('mouseup', endX, endY);
+                    } else {
+                        let curX = clientX + (endX - clientX) * progress;
+                        let curY = clientY + (endY - clientY) * progress;
+                        dispatchNativeEvent('mousemove', curX, curY);
+                        requestAnimationFrame(step);
+                    }
+                }
+                requestAnimationFrame(step);
+            }
+
+            return { success: true, msg: 'Simulated ' + mode + ' at (' + worldPos.x.toFixed(1) + ', ' + worldPos.y.toFixed(1) + ')' };
         }
     };
 }
 
-export function syncNodeTree() {
-    const scene = window.cc ? window.cc.director.getScene() : null;
-    if (!scene) return;
-
-    const treeData = serializeNode(scene, 0);
-    const pauseStatus = (typeof window.cc.game !== 'undefined' && window.cc.game.isPaused) ? window.cc.game.isPaused() : false;
-    
-    if (window.__mcpInspector && window.__mcpInspector.updateTree) {
-        window.__mcpInspector.updateTree(JSON.stringify({ tree: treeData, isPaused: pauseStatus }));
-    }
-}
-
-function serializeNode(node, currentPrefabDepth = 0) {
-    if (!node) return null;
-    if (node.name === '__mcp_hover_overlay__' || node.name === '__mcp_select_overlay__' || node.name === 'McpInspectorRoot' || node.name === 'InspectorCamera') return null; // 排除内部创建的高亮渲染层
-    
-    let isActive = true;
-    let isActiveInHierarchy = true;
-    let isScene = false;
-
-    // 彻底规避 cc.Scene 会在 getter 内部直接用 cc.error 打印日志的问题
-    if (typeof window.cc !== 'undefined' && node instanceof window.cc.Scene) {
-        isActive = true;
-        isActiveInHierarchy = true;
-        isScene = true;
-    } else {
-        try {
-            isActive = node.active !== false;
-            isActiveInHierarchy = node.activeInHierarchy !== false;
-        } catch (e) { }
-    }
-
-    let isPrefab = !!node._prefab;
-    let prefabRoot = isPrefab && node._prefab.root === node;
-    let nextPrefabDepth = currentPrefabDepth;
-    if (prefabRoot) {
-        nextPrefabDepth++;
-    }
-
-    const componentNames = [];
-    if (node._components) {
-        for (let k = 0; k < node._components.length; k++) {
-            const comp = node._components[k];
-            let cClass = comp.name || (comp.constructor ? comp.constructor.name : '');
-            if (typeof window.cc !== 'undefined' && window.cc.js && typeof window.cc.js.getClassName === 'function') {
-                const cName = window.cc.js.getClassName(comp);
-                if (cName) cClass = cName;
-            }
-            if (cClass) {
-                const m = cClass.match(/<(.+)>/);
-                componentNames.push(m ? m[1] : cClass);
-            }
-        }
-    }
-
-    const data = {
-        id: node.uuid || node.id,
-        name: node.name,
-        active: isActive,
-        activeInHierarchy: isActiveInHierarchy,
-        childrenCount: node.childrenCount || 0,
-        components: node._components ? node._components.length : 0,
-        componentNames: componentNames,
-        children: [],
-        isScene: isScene,
-        isPrefab: isPrefab,
-        prefabRoot: prefabRoot,
-        prefabDepth: nextPrefabDepth
-    };
-
-    if (node.children) {
-        for (let i = 0; i < node.children.length; i++) {
-            const childData = serializeNode(node.children[i], nextPrefabDepth);
-            if (childData) {
-                data.children.push(childData);
-            }
-        }
-    }
-    return data;
-}
+export { syncNodeTree };
