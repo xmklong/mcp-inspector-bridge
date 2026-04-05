@@ -1,9 +1,20 @@
 const { nextTick, onUnmounted } = require('vue');
-const { remote } = require('electron');
+let remote: any = null;
+try {
+    const electron = require('electron');
+    // 如果环境自带或者被注入了 electron.remote 则使用，否则回退尝试获取独立垫片包
+    remote = electron.remote || require('@electron/remote');
+} catch (e) {
+    if (typeof Editor !== 'undefined') {
+        Editor.warn('[Bridge] electron remote module 获取失败，DevTools 特性受限', e);
+    } else {
+        console.warn('Failed to load electron remote module', e);
+    }
+}
 declare const Editor: any;
 
 export function useDevTools(globalState: any, gameView: any, devtoolsView: any, activeTab: any, rightPanelWidth: any) {
-    const { BrowserView } = remote;
+    const BrowserView = remote ? remote.BrowserView : null;
     let devToolsBV: any = null;
     let isDevToolsSetup = false;
     let wasExternalDevToolsOpened = false;

@@ -13,6 +13,12 @@
   - 引入 `prompts` 支持，定义了 `cocos-api-24x` 防幻觉提示词。
   - 新增工具 `get_runtime_stats` 以配合性能面板监测当前游戏的帧率、渲染耗时和并发的 DrawCall。
 
+### 🐛 缺陷修复
+
+- **修复部分魔改高版本 Electron 下 `remote` 未定义导致的白屏崩溃 (Electron 14+ remote polyfill/fallback)**
+  - **问题**：在部分已经将引擎内置 Electron 升级到 v14 以上（如 16.5.0 原生去除了 remote 模块）的环境下，对 `electron.remote` 的解构直接导致 DevTools 初始化异常阻塞甚至面板渲染致命白屏崩溃。
+  - **方案**：采用 `try-catch` 包裹下沉的安全获取逻辑，自动判断并回落至 `@electron/remote`，同时增加内部深层级方法如提取 `BrowserView` 阶段的安全非空拦截。
+
 ---
 
 ## [0.0.9] - 2026-04-02
