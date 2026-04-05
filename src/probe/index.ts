@@ -50,7 +50,6 @@ import { initPicker } from './picker';
                         info.dynamicAtlas = {
                             enabled: cc.dynamicAtlasManager.enabled,
                             maxFrameSize: cc.dynamicAtlasManager.maxFrameSize,
-                            minFrameSize: cc.dynamicAtlasManager.minFrameSize,
                             textureSize: cc.dynamicAtlasManager.textureSize,
                             maxAtlasCount: cc.dynamicAtlasManager.maxAtlasCount,
                             atlasCount: cc.dynamicAtlasManager.atlasCount,

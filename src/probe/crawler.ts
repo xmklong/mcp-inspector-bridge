@@ -59,6 +59,7 @@ export function initCrawler() {
                 y: node.y !== undefined ? node.y : 0,
                 worldPolygon: this.getNodeWorldPolygon(node),
                 interactable: (window.cc && window.cc.Button && node.getComponent(window.cc.Button)) ? node.getComponent(window.cc.Button).interactable : null,
+                hasAngle: ('angle' in node),
                 rotation: ('angle' in node) ? -node.angle : (node.rotation !== undefined ? node.rotation : 0),
                 scaleX: sx,
                 scaleY: sy,

@@ -113,7 +113,8 @@ npm run build
 - 全局静音
 
 ### 🔭 全景环境探针
-- **动态图集监测**：实时查阅框架层 Dynamic Atlas 的详细开关设置与贴图出血 (Bleeding) 策略。
+- **动态图集监测 (Dynamic Atlas)**：实时查阅框架层 Dynamic Atlas 的详细开关设置与贴图出血 (Bleeding) 策略。
+- **动态图集高性能查看器 (High Performance Atlas Viewer)**：突破闭包壁垒实现 WebGL 显存级纹理直出。内置受控二维抛拽视口结构 (2D Transform Viewport)，支持超大缓冲纹理 (如 2048x2048) 的平移、无极中心滚轮缩放与首屏自适应显示，根除浏览器的 `zoom` 滚动条塌缩崩溃。
 - **2D 物理与碰撞洞察**：可随时监测物理系统 (PhysicsManager) 的宏观步进设置与复杂的调试遮罩 (DrawFlags)，以及基础碰撞组件 (CollisionManager) 的轮廓标记渲染开关。
 - **加载器快照追踪**：直接暴露底层环境下的 Downloader 核心池指标及并发状态。
 

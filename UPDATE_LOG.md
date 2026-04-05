@@ -4,16 +4,22 @@
 
 ---
 
-## [Unreleased]
-### Added
+## [0.1.1] - 2026-04-05
+
+### ✨ 新特性
+
 - **现代化组件属性面板设计重构 (Modern Component Inspector UI)**: 将组件渲染的内嵌临时样式全面替换为遵循 `.inspector-card` 设计范式的 CSS Variable 体态体系，包含悬浮发光交互、渐变深色背景的 `asset-link`、以及更为紧凑整洁的层级表现，视觉更加统一和舒适。
 - **现代化数组专属排版渲染 (Modern Array Layout UI)**: 设计分岔 DOM 约束，针对 `array` 类型的字段启用分离的换层下潜弹性布局结构（附带斜体表头及元素计数信息），彻底解决原生单一横轴排列对于多数组成员产生的局促推挤和换行截断乱象。
 - **节点基础属性区风格统一 (Node Basics UI Modernization)**: 彻底消除了顶部节点基础数据区（Position, Scale, Color）与组件属性区之间的风格割裂，将基础区完全接入 `.inspector-card` 和 `.component-header`，并使用全局通用 CSS 变量格式化输入框。
 - **属性编辑器支持拉取核心组件原生枚举级联下拉 (Enum Dropdown Support in Inspector)**: 完全重构并兼容渲染继承自 `cc.Component` 的枚举类型，将编辑器原有的单纯数字化表单升级为基于 Web `<select>` 标签构建的可读性选项。并成功向下植入了超 40 种如 `Sprite.type`, `Label.horizontalAlign` 的下拉元数据。
+- **节点属性名称实际字段关联一致化 (Align Node Properties)**: 彻底标准化了 Node Basics 面板属性显示的视觉元素名称，将历史以大写首字母简写的占位符如 Pos/Rot/Size 等全面替换为符合真实载体的 position/contentSize/width/height 小写原生属性命名规范；并且针对旋转轴属性特别植入了针对探针底层的特性嗅探逻辑，能够在 `rotation` 与 `angle` 名称间自适应切换，向使用者传达最精准的环境绑定感知。
 - **Global Info Categorization**: Enhanced the 'Cocos Environment' tab to support dynamically categorized global metrics with `<details>` accordions. Captures exhaustive context including Downloader settings, Dynamic Atlas parameters, 2D Physics metrics, and Collision system configurations.
 - **Preview Resolution Options**: Added 32+ new comprehensive device resolution presets encompassing iOS/iPadOS flagships, standard Android phones, multi-form foldables, and tablets to support thorough UI boundary tests.
 
-### Fixed
+### 🐛 缺陷修复
+
+- **动态图集高性能查看器升维重构 (High Performance Dynamic Atlas Viewer)**: 攻关由于巨幅缓冲纹理在 Electron 缩放时引发的重排（Reflow）性能瓶颈与原生 `zoom` 导致容器 Flex Box 越界卷轴塌陷问题。将传统 DOM 自适应流改造为受控的二维中心抛拽视口结构 (2D Viewport) — 以 CSS transform 为轴驱动无限画布的矩阵平移与无极滚轮缩放，并剥除外网格幽灵拖拽打断，从而支持像平底锅一样顺滑地拖着成千上万像素的显存级原始图集查看。
+- **废弃图集属性报错清除及视图增强 (Dynamic Atlas Fix & Debug UI)**: 彻底移除了因为 `minFrameSize` 在引擎升级后引起的日志刷屏异常；在面板中对该废弃字段同步进行了降级补偿提示。同时补全拓展了图集相关的全局统计指标，并在工具栏新增一键注入开启/关闭动态图集网格可视化的调试选项 (`showDebug`)，方便性能排查。
 - **修复组件数据日志导出失效 (Print Component Data Fix)**: 修复了在未开启全局日志调试变量 `__MCP_DEBUG__` 期间，点击属性面板中组件头部的 🖨️（导出/打印）按钮无法向控制台输送信息的问题。已针对用户显式触发的功能指令还原高优先级独立打印逻辑。
 - **模板闭合缺失修复 (Template Tag Fix)**: 修复了重构期间由于替换失误导致的 HTML 标签未闭合产生的 Vue 编译器警告。
 
@@ -77,7 +83,6 @@
   - 在偏好设置界面新增【AI 伴侣集成】栏目，实现了高级的可视化客户端管理配置系统，摒弃了一键盲注黑盒。
   - 支持了自动扫描检测多宿主 AI 环境（如 Cline / Claude Desktop），采用状态指示灯并在可折叠的【Manual Configuration】中向所有级别人群直白展示欲挂载的 JSON 结构并支持一键 Copy。
   - **交互体验 (UI Fixes):** 全量替换了配置界面的硬编码英文至中文本土化显示，并加入高级 `Toast` 防重点击延时器（消隐挂载日志）。
-
 
 - **支持全局 UI 缩放与设置面板 (Global UI Scaling and Settings Panel)**
   - 在右侧标签栏增加了专属的“设置 (⚙️)”入口。

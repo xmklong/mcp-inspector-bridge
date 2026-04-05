@@ -124,7 +124,7 @@ module.exports = Editor.Panel.extend({
                                     window.__mcpSyncNodeTree();
                                 }
                                 if(${newVal} === 2 && window.__mcpProbeInitialized && typeof window.__mcpGetEnvInfo === 'function') {
-                                    if (window.__mcpInspector && window.__mcpInspector.updateEnv) window.__mcpInspector.updateEnv(window.__mcpGetEnvInfo());
+                                    if (window.__mcpInspector && window.__mcpInspector.updateEnv) window.__mcpInspector.updateEnv(JSON.stringify(window.__mcpGetEnvInfo()));
                                 }
                             `).catch((e:any)=>{});
                         }
@@ -243,6 +243,169 @@ module.exports = Editor.Panel.extend({
                     showMcpToast("已复制路径至剪贴板。");
                 }
 
+                const isAtlasModalOpen = ref(false);
+                const isCapturingAtlas = ref(false);
+                const atlasImages = ref([] as string[]);
+                const selectedAtlasIndex = ref(0);
+                const atlasZoom = ref(1);
+                const atlasTranslateX = ref(0);
+                const atlasTranslateY = ref(0);
+                const isDraggingAtlas = ref(false);
+                let lastMouseX = 0;
+                let lastMouseY = 0;
+
+                const toggleAtlasModal = () => {
+                    isAtlasModalOpen.value = !isAtlasModalOpen.value;
+                };
+
+                const captureAtlases = () => {
+                    if (isCapturingAtlas.value) {
+                        return;
+                    }
+                    isCapturingAtlas.value = true;
+                    showMcpToast("开始提取图集缓冲...");
+                    
+
+                    const wv: any = gameView.value;
+                    if (wv && typeof wv.executeJavaScript === 'function') {
+                        // WebGL texture extraction code that runs inside webview context
+                        const extractCode = `
+                            function __mcpExtractAtlases() {
+                                try {
+                                    if(!window.cc || !cc.dynamicAtlasManager) return JSON.stringify({error: "引擎对象不存在"});
+                                    
+                                    // Hack: We cannot access the closure variables directly.
+                                    // But the engine's showDebug(true) will create a node DYNAMIC_ATLAS_DEBUG_NODE
+                                    // in the scene root, which iterates the closures and creates sprites for each.
+                                    cc.dynamicAtlasManager.showDebug(true);
+                                    
+                                    var scene = cc.director.getScene();
+                                    var dbgNode = scene && scene.getChildByName("DYNAMIC_ATLAS_DEBUG_NODE");
+                                    if (!dbgNode) {
+                                        if (cc.dynamicAtlasManager.showDebug) cc.dynamicAtlasManager.showDebug(false);
+                                        return JSON.stringify({error: "目前还没有动态图集产生"});
+                                    }
+                                    
+                                    // find CONTENT node
+                                    var content = dbgNode.getChildByName("CONTENT");
+                                    if (!content && dbgNode.children.length > 0) content = dbgNode.children[0];
+
+                                    if (!content || !content.children || content.children.length === 0) {
+                                        cc.dynamicAtlasManager.showDebug(false);
+                                        return JSON.stringify({error: "目前还没有动态图集产生"});
+                                    }
+                                    
+                                    function readTexture(texture) {
+                                        var gl = cc.game._renderContext;
+                                        var textureImpl = texture._texture || texture.getHtmlElementObj && texture.getHtmlElementObj();
+                                        if (!textureImpl) return null;
+                                        
+                                        var glID = textureImpl._glID || texture._glID;
+                                        if (!glID) return null;
+
+                                        var fbo = gl.createFramebuffer();
+                                        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+                                        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, glID, 0);
+                                        
+                                        var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+                                        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+                                            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                                            gl.deleteFramebuffer(fbo);
+                                            return null;
+                                        }
+
+                                        var w = texture.width;
+                                        var h = texture.height;
+                                        var pixels = new Uint8Array(w * h * 4);
+                                        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+                                        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                                        gl.deleteFramebuffer(fbo);
+                                        
+                                        var canvas = document.createElement('canvas');
+                                        canvas.width = w;
+                                        canvas.height = h;
+                                        var ctx = canvas.getContext('2d');
+                                        if (!ctx) return null;
+                                        var imgData = ctx.createImageData(w, h);
+                                        imgData.data.set(pixels);
+                                        ctx.putImageData(imgData, 0, 0);
+                                        return canvas.toDataURL('image/jpeg', 0.85); // Compress for IPC
+                                    }
+
+                                    var results = [];
+                                    for(var i = 0; i < content.children.length; i++) {
+                                        var atlasNode = content.children[i];
+                                        if (atlasNode && atlasNode.name === "ATLAS") {
+                                            var sprite = atlasNode.getComponent(cc.Sprite);
+                                            if (sprite && sprite.spriteFrame) {
+                                                var tex = sprite.spriteFrame.getTexture();
+                                                if (tex) {
+                                                    var dataUrl = readTexture(tex);
+                                                    if (dataUrl) results.push(dataUrl);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // 提取完毕，立即销毁调试节点以保持侵入零污染
+                                    cc.dynamicAtlasManager.showDebug(false);
+                                    
+                                    if(results.length === 0) return JSON.stringify({error: "已拦截引擎DOM但底层的 WebGL 解析不可用"});
+                                    return JSON.stringify(results);
+                                } catch(e) {
+                                    return JSON.stringify({error: "引擎内执行报错: " + e.stack});
+                                }
+                            }
+                            __mcpExtractAtlases();
+                        `;
+
+                        let timeoutId = setTimeout(() => {
+                            isCapturingAtlas.value = false;
+                            if (typeof Editor !== 'undefined') Editor.log("[Bridge] 提取耗时过长，内存通讯阻塞");
+                            showMcpToast("提取由于超时被中止");
+                        }, 4000);
+
+                        try {
+                            const capturePromise = wv.executeJavaScript(extractCode);
+                            Promise.race([capturePromise, new Promise((_, r) => setTimeout(() => r('TIMEOUT'), 3900))])
+                                .then((resStr: any) => {
+                                    clearTimeout(timeoutId);
+                                    if (resStr === 'TIMEOUT') return; // Handled by timeoutId above
+                                    
+                                    isCapturingAtlas.value = false;
+                                    try {
+                                        const res = (typeof resStr === 'string') ? JSON.parse(resStr) : resStr;
+                                        if(res && res.error) {
+                                            if (typeof Editor !== 'undefined') Editor.log("[Bridge] 提取图集失败: " + res.error);
+                                            showMcpToast("提取图集失败: " + res.error);
+                                            return;
+                                        }
+                                        if(Array.isArray(res)) {
+                                            if (typeof Editor !== 'undefined') Editor.log("[Bridge] 成功提取图集数量: " + res.length);
+                                            atlasImages.value = res.filter(Boolean);
+                                            selectedAtlasIndex.value = 0;
+                                            isAtlasModalOpen.value = true;
+                                        } else {
+                                            if (typeof Editor !== 'undefined') Editor.log("[Bridge] 未能识别的图集数据格式: " + typeof res);
+                                        }
+                                    } catch (e: any) {
+                                        if (typeof Editor !== 'undefined') Editor.log("[Bridge] 解析失败: " + e.message);
+                                    }
+                                }).catch((err: any) => {
+                                    clearTimeout(timeoutId);
+                                    isCapturingAtlas.value = false;
+                                    if (typeof Editor !== 'undefined') Editor.log("[Bridge] Webview 注入发生底层错误: " + err);
+                                });
+                        } catch(syncErr: any) {
+                            clearTimeout(timeoutId);
+                            isCapturingAtlas.value = false;
+                            if (typeof Editor !== 'undefined') Editor.log("[Bridge] executeJavaScript 同步调用崩溃: " + syncErr);
+                        }
+                    } else {
+                        isCapturingAtlas.value = false;
+                    }
+                };
+
                 return {
                     activeTab,
                     globalState,
@@ -250,6 +413,61 @@ module.exports = Editor.Panel.extend({
                     devtoolsView,
                     wrapMount,
                     nodeTreeRef,
+                    isAtlasModalOpen,
+                    atlasImages,
+                    selectedAtlasIndex,
+                    isCapturingAtlas,
+                    atlasZoom,
+                    atlasTranslateX,
+                    atlasTranslateY,
+                    isDraggingAtlas,
+                    toggleAtlasModal,
+                    captureAtlases,
+                    handleAtlasWheel: (e: WheelEvent) => {
+                        const zoomSpeed = 0.1;
+                        const delta = e.deltaY > 0 ? -zoomSpeed : zoomSpeed;
+                        atlasZoom.value = Math.max(0.1, Math.min(atlasZoom.value + delta * atlasZoom.value, 10));
+                    },
+                    startDragAtlas: (e: MouseEvent) => {
+                        if (e.button === 0 || e.button === 1) { // 左键或中键拖拽
+                            isDraggingAtlas.value = true;
+                            lastMouseX = e.clientX;
+                            lastMouseY = e.clientY;
+                        }
+                    },
+                    onDragAtlas: (e: MouseEvent) => {
+                        if (!isDraggingAtlas.value) return;
+                        atlasTranslateX.value += (e.clientX - lastMouseX);
+                        atlasTranslateY.value += (e.clientY - lastMouseY);
+                        lastMouseX = e.clientX;
+                        lastMouseY = e.clientY;
+                    },
+                    endDragAtlas: () => {
+                        isDraggingAtlas.value = false;
+                    },
+                    resetAtlasView: () => {
+                        atlasZoom.value = 1;
+                        atlasTranslateX.value = 0;
+                        atlasTranslateY.value = 0;
+                    },
+                    selectAtlas: (idx: number) => {
+                        selectedAtlasIndex.value = idx;
+                        atlasZoom.value = 1;
+                        atlasTranslateX.value = 0;
+                        atlasTranslateY.value = 0;
+                    },
+                    onAtlasImageLoad: (e: Event) => {
+                        const img = e.target as HTMLImageElement;
+                        const container = img.parentElement?.parentElement;
+                        if (container && img.naturalWidth && img.naturalHeight) {
+                            const padding = 40; // 20px edge padding
+                            const scaleX = (container.clientWidth - padding) / img.naturalWidth;
+                            const scaleY = (container.clientHeight - padding) / img.naturalHeight;
+                            const fitScale = Math.min(scaleX, scaleY, 1);
+                            
+                            atlasZoom.value = fitScale;
+                        }
+                    },
 
                     refreshMcpClients,
                     configureMcpClient,

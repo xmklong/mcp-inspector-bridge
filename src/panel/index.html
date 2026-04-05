@@ -658,7 +658,13 @@
                         <summary style="cursor: pointer; color: #2196f3; font-size: calc(var(--base-font-size, 13px) + 2px); font-weight: bold; outline: none; margin-bottom: 15px;">静态子系统状态</summary>
                         
                         <div v-if="globalState.cocosInfo.dynamicAtlas" style="margin-left: 10px; margin-bottom: 20px;">
-                            <div style="color: #e0e0e0; font-size: var(--base-font-size, 13px); margin-bottom: 10px;">[图集] 配置参数</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="color: #e0e0e0; font-size: var(--base-font-size, 13px);">[图集] 配置参数</div>
+                                <button class="icon-btn" style="padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: calc(var(--base-font-size, 13px) - 2px); width: auto;" @click="captureAtlases" title="从显存中提取当前场景使用的所有动态图集" :disabled="isCapturingAtlas">
+                                    <span v-if="isCapturingAtlas">📸 正在抓取...</span>
+                                    <span v-else>📸 提取图集</span>
+                                </button>
+                            </div>
                             <div style="display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1fr 1fr; gap: 15px;">
                                 <div>
                                     <div style="color: #888; font-size: calc(var(--base-font-size, 13px) - 2px); margin-bottom: 6px;">动态图集引擎</div>
@@ -674,8 +680,11 @@
                                         </div>
                                     </div>
                                     <div>
-                                        <div style="color: #888; font-size: calc(var(--base-font-size, 13px) - 2px); margin-bottom: 6px;">碎图装箱限制</div>
-                                        <div style="color: #eee; font-size: var(--base-font-size, 13px);">{{ globalState.cocosInfo.dynamicAtlas.minFrameSize }}px ~ {{ globalState.cocosInfo.dynamicAtlas.maxFrameSize }}px</div>
+                                        <div style="color: #888; font-size: calc(var(--base-font-size, 13px) - 2px); margin-bottom: 6px;">碎图最大限制 (Max)</div>
+                                        <div style="color: #eee; font-size: var(--base-font-size, 13px);">
+                                            {{ globalState.cocosInfo.dynamicAtlas.maxFrameSize }}px 
+                                            <span style="color:#666; font-size:calc(var(--base-font-size, 13px) - 2px)">(min 已弃用)</span>
+                                        </div>
                                     </div>
                                     <div>
                                         <div style="color: #888; font-size: calc(var(--base-font-size, 13px) - 2px); margin-bottom: 6px;">生成网格大小</div>
@@ -692,7 +701,7 @@
                                         <div style="color: #555; font-size: var(--base-font-size, 13px);">未配置</div>
                                     </div>
                                     <div>
-                                        <div style="color: #888; font-size: calc(var(--base-font-size, 13px) - 2px); margin-bottom: 6px;">碎图装箱限制</div>
+                                        <div style="color: #888; font-size: calc(var(--base-font-size, 13px) - 2px); margin-bottom: 6px;">碎图最大限制 (Max)</div>
                                         <div style="color: #555; font-size: var(--base-font-size, 13px);">未配置</div>
                                     </div>
                                     <div>
@@ -1126,6 +1135,61 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- Atlas Viewer Modal -->
+    <div v-if="isAtlasModalOpen" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; flex-direction: column; overflow: hidden; font-family: sans-serif;">
+        <!-- Header -->
+        <div style="height: 40px; background: #222; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; box-sizing: border-box; flex-shrink: 0;">
+            <div style="color: #e0e0e0; font-size: 14px; font-weight: bold;">📸 动态图集快照 - 共 {{ atlasImages.length }} 张图集</div>
+            <button @click="isAtlasModalOpen = false" style="background: transparent; border: none; color: #aaa; cursor: pointer; font-size: 20px; outline: none; padding: 0;">&times;</button>
+        </div>
+        
+        <!-- Viewer Layout -->
+        <div style="flex: 1; display: flex; overflow: hidden; min-height: 0;">
+            <!-- Thumbnails Sidebar -->
+            <div style="width: 250px; background: #1a1a1a; overflow-y: auto; overflow-x: hidden; border-right: 1px solid #333; padding: 10px; box-sizing: border-box;">
+                <div v-for="(img, idx) in atlasImages" :key="idx" 
+                     @click="selectedAtlasIndex = idx"
+                     :style="{
+                        marginBottom: '10px', 
+                        cursor: 'pointer', 
+                        border: '2px solid ' + (selectedAtlasIndex === idx ? '#4caf50' : 'transparent'),
+                        borderRadius: '4px',
+                        background: '#000',
+                        padding: '4px',
+                        boxSizing: 'border-box'
+                     }">
+                    <div style="color: #888; font-size: 11px; margin-bottom: 4px; text-align: center;">图集快照 [{{ idx }}]</div>
+                    <img :src="img" style="width: 100%; height: auto; display: block; object-fit: contain; background: repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 20px 20px;" />
+                </div>
+                <div v-if="!atlasImages.length" style="color: #666; font-size: 12px; text-align: center; margin-top: 20px;">
+                    未提取到可用图集
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div style="flex: 1; position: relative; overflow: hidden; background: #151515; display: flex; justify-content: center; align-items: center; padding: 0; box-sizing: border-box; background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;"
+                @wheel.prevent="handleAtlasWheel"
+                @mousedown="startDragAtlas"
+                @mousemove="onDragAtlas"
+                @mouseup="endDragAtlas"
+                @mouseleave="endDragAtlas"
+                @dblclick.prevent="resetAtlasView"
+                :style="{ cursor: isDraggingAtlas ? 'grabbing' : 'grab' }">
+                
+                <div id="viewport" v-if="atlasImages[selectedAtlasIndex]" :style="{ transform: 'translate(' + atlasTranslateX + 'px, ' + atlasTranslateY + 'px) scale(' + atlasZoom + ')', transformOrigin: 'center center', willChange: 'transform', display: 'flex', alignItems: 'center', justifyContent: 'center' }">
+                    <img :src="atlasImages[selectedAtlasIndex]" @load="onAtlasImageLoad" style="display: block; border: 1px solid #4caf50; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; max-width: none; user-select: none; pointer-events: none;" />
+                </div>
+
+                <!-- 缩放比例悬浮窗 -->
+                <div v-if="atlasImages[selectedAtlasIndex]" style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: #aaa; pointer-events: none;">
+                    Zoom: {{ Math.round(atlasZoom * 100) }}%
+                </div>
+                
+                <div v-if="!atlasImages[selectedAtlasIndex]" style="color: #666; width: 100%; text-align: center; font-size: 14px;">请从左侧点击一张缩略图以查看原图</div>
+            </div>
         </div>
     </div>
 </div>
