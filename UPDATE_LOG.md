@@ -97,6 +97,10 @@
   - **问题**：原先用于安全回退的 `scaleX || 1` 在遇到合法的 `0` 值时引发 JS 短路错误，导致缩小到 0 的节点在面板错误展示为 1。同时未适配部分引擎版本的 `Vec3` 类型 `scale` 属性导致直接写入 `scaleX` 无效。
   - **方案**：改用精确的 `!== undefined` 取代 `||` 判断，修复了包括坐标、宽高、旋转及缩放等全面数值的 Falsy 截断漏洞。并在探针写入侧拦截 `scaleX/scaleY` 的单轴事件，当检测到纯对象形式的 `scale` 存在时代理重组为整体赋值触发 Setter，无缝向下兼容引擎缩放内核逻辑。
 
+- **修复 NodeInspector 模板闭合标签缺失 (Fix Missing End Tag in NodeInspector Template)**
+  - **问题**：`NodeInspector` 组件的 `v-for` 循环容器 `<div class="comp-section">` 缺少 `</div>` 闭合标签，导致 Vue 模板编译器报出 `Element is missing end tag` 警告
+  - **方案**：在 comp-body 闭合标签后补充遗漏的 `</div>` 闭合标签
+
 ---
 
 ## [0.0.8] - 2026-04-02

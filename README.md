@@ -31,7 +31,7 @@ your-project/packages/mcp-inspector-bridge/
 # 安装依赖（包含 esbuild）
 npm install
 
-# 编译 TypeScript + 打包探针模块
+# 编译 TypeScript + 打包探针模块与 MCP 客户端
 npm run build
 ```
 
@@ -153,9 +153,10 @@ mcp-inspector-bridge/
 ├── main.js                    # Cocos 插件主进程入口
 ├── dist/                      # 编译产物目录
 ├── src/
-│   ├── main.ts                # 主进程逻辑 (IPC 注册、BrowserView 管理)
+│   ├── main.ts                # 主进程逻辑 (IPC 注册、 BrowserView 管理)
 │   ├── preload.ts             # Webview 预加载脚本 (IPC 桥接 + 探针注入)
 │   ├── scene-script.ts        # 编辑器 Scene 进程脚本 (仅用于少量原生操作)
+│   ├── ipc-router.ts          # 分发 IPC 与 WebContents 异步交互路由
 │   ├── panel/
 │   │   ├── index.ts           # 面板入口，Vue 3 应用挂载
 │   │   ├── index.html         # 面板 HTML 模板与样式
@@ -172,6 +173,12 @@ mcp-inspector-bridge/
 │   │       ├── NodeInspector.ts # 属性检查器
 │   │       ├── RenderDebugger.ts # 渲染调试器
 │   │       └── WidgetVisualizer.ts # Widget 可视化
+│   ├── mcp-client/            # MCP 原生客户端与服务层 (esbuild → dist/mcp-client/index.js)
+│   │   ├── index.ts           # MCP Stdio 服务器入口
+│   │   ├── tools.ts           # MCP 工具定义与请求处理
+│   │   ├── resources.ts       # MCP 资源订阅定义
+│   │   ├── prompts.ts         # MCP 提示词策略下发
+│   │   └── configurator.ts    # MCP 自动构建挂载选项管理
 │   └── probe/                 # 探针模块 (esbuild → dist/probe.js)
 │       ├── index.ts           # 探针主入口与生命周期
 │       ├── crawler.ts         # 节点树爬虫

@@ -204,6 +204,7 @@ export const NodeInspector = {
                             </div>
                         </div>
                     </div>
+                </div>
                 </template>
 
             </div>
