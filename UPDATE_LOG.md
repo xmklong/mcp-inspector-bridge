@@ -8,6 +8,7 @@
 
 ### ✨ 新特性
 
+- **实现属性编辑器自动同步及防输入冲突保护 (Inspector Auto-Refresh with Hover Guard)**: 为节点属性面板引入 0.5 秒频率的静默增量同步重载策略。当节点在场景中随游戏主循环变化（如动画、位移或刚体模拟）时，面板数值会精准追平实时状态；且通过鼠标悬空 `Hover` 检测在用户处于编辑交互意图时挂起刷新动作，彻底杜绝了数据刷新对光标及未落库录入值的暴力覆盖或打断。
 - **现代化组件属性面板设计重构 (Modern Component Inspector UI)**: 将组件渲染的内嵌临时样式全面替换为遵循 `.inspector-card` 设计范式的 CSS Variable 体态体系，包含悬浮发光交互、渐变深色背景的 `asset-link`、以及更为紧凑整洁的层级表现，视觉更加统一和舒适。
 - **现代化数组专属排版渲染 (Modern Array Layout UI)**: 设计分岔 DOM 约束，针对 `array` 类型的字段启用分离的换层下潜弹性布局结构（附带斜体表头及元素计数信息），彻底解决原生单一横轴排列对于多数组成员产生的局促推挤和换行截断乱象。
 - **节点基础属性区风格统一 (Node Basics UI Modernization)**: 彻底消除了顶部节点基础数据区（Position, Scale, Color）与组件属性区之间的风格割裂，将基础区完全接入 `.inspector-card` 和 `.component-header`，并使用全局通用 CSS 变量格式化输入框。

@@ -1,4 +1,4 @@
-const { nextTick } = require('vue');
+const { nextTick, onUnmounted } = require('vue');
 declare const Editor: any;
 
 export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any, activeTab: any) {
@@ -269,6 +269,29 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
             if (__p && __p.catch) __p.catch(() => {});
         }
     };
+
+    // 自动刷新逻辑
+    let autoRefreshTimer: any = null;
+    const startAutoRefresh = () => {
+        if (autoRefreshTimer) return;
+        autoRefreshTimer = setInterval(() => {
+            // 前置拦截：如果在悬停 inspector 面板、未选中节点或者当前选项卡并非游戏视图场景，放弃请求
+            if (globalState.isInspectorHovered) return;
+            if (!globalState.nodeDetail || !globalState.nodeDetail.id) return;
+            if (activeTab && activeTab.value !== 0) return; 
+
+            onNodeSelect({ id: globalState.nodeDetail.id }, true);
+        }, 500);
+    };
+
+    startAutoRefresh();
+
+    onUnmounted(() => {
+        if (autoRefreshTimer) {
+            clearInterval(autoRefreshTimer);
+            autoRefreshTimer = null;
+        }
+    });
 
     return {
         onNodeSelect,
