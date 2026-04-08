@@ -7,6 +7,7 @@ let _isSceneActive = false;
 
 let _wss: WebSocket.Server | null = null;
 let _mcpStatus = { active: false, port: 4456, error: 'Initializing...' };
+let _logHeartbeatTimer: any = null;
 
 /**
  * mcp-inspector-bridge: 主进程入口
@@ -32,12 +33,27 @@ module.exports = {
             Editor.Ipc.sendToPanel('mcp-inspector-bridge', 'mcp-status-changed', _mcpStatus);
             Editor.error('[MCP] Failed to start WebSocket server:', err);
         }
+
+        // 立即进入激进的全天候日志监听器自动注入探测（用于彻底捕获极早期的报错）
+        _logHeartbeatTimer = setInterval(async () => {
+            try {
+                const { initCdpLogListener, getCdpStatus } = require('./cdp-log-listener');
+                const status = getCdpStatus();
+                if (!status.attached) {
+                    await initCdpLogListener(true);
+                }
+            } catch (e) {}
+        }, 1000);
     },
 
     unload() {
         if (_wss) {
             _wss.close();
             _wss = null;
+        }
+        if (_logHeartbeatTimer) {
+            clearInterval(_logHeartbeatTimer);
+            _logHeartbeatTimer = null;
         }
     },
 
@@ -180,6 +196,36 @@ module.exports = {
             } catch (e: any) {
                 if (event.reply) event.reply(null, "配置写入报错: " + e.message);
             }
+        },
+        'query-cdp-logs'(event: any, args: any) {
+            // 懒启动 CDP 监听器（首次查询时自动 attach）
+            async function handle() {
+                try {
+                    const { initCdpLogListener, getCdpLogs, getCdpStatus } = require('./cdp-log-listener');
+
+                    const status = getCdpStatus();
+                    if (!status.attached) {
+                        const ok = await initCdpLogListener();
+                        if (!ok) {
+                            Editor.log('[CDP Log] 懒启动未找到预览页面 WebContents');
+                        }
+                    }
+
+                    if (event.reply) {
+                        const logs = await getCdpLogs(args?.tail || 50, args?.level || 'all');
+                        // ★ 返回诊断信息：CDP 连接状态 + 日志数据
+                        event.reply(null, {
+                            _debug: { ...getCdpStatus(), ts: Date.now() },
+                            result: logs,
+                        });
+                    }
+                } catch (e: any) {
+                    if (event.reply) {
+                        event.reply(null, { error: e.message, _debug: { attached: false, size: 0 } });
+                    }
+                }
+            }
+            handle();
         }
     },
 };

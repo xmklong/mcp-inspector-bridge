@@ -4,6 +4,32 @@
 
 ---
 
+## [0.1.4] - 2026-04-08
+
+### ✨ 新特性
+
+- **优化 (Optimization)**: 重构了 WebView 环境下的运行时日志底层拦截架构，使用 `Proxy` 特性降低直接重写 `console` API 带来的栈指针偏移问题。辅助 DevTools 黑盒 (Ignore List) 配置，实现完美的原生日志溯源体验。
+- **日志采集架构重构 — 迁移至 CDP 被动监听与主动注入防御 (Active CDP Log Listener)**: 彻底废弃 console-hijacker 的 Monkey-Patching 方案，采用双轨制混合模式零侵入式捕获引擎全量日志。
+  - 新增 `cdp-log-listener.ts` 主进程模块，针对原生预览器开启 CDP Native 监听；对于特殊渲染构建的基于 Webview 架构，运用隐式 `Proxy` 和自底向上异步策略捕获对象通道。
+  - **全天候主动注入 (Eager Injection)**: 主进程守护常驻 1000ms 心跳扫描，不依赖 AI 交互被动唤醒，一旦检测到游戏窗口初始化，首帧启动前即刻植入钩子，彻底终结早期的生命周期丢失错误。
+  - 提升了队列缓冲容灾上限至 `1000` 条记录，拓印超长错误边界放宽到 `2000` 字符软截断保护。
+  - 游戏代码的 console.log/warn/error 和 cc.log/warn/error 不再被任何中间层破坏堆栈，DevTools 显示真实文件名和行号（不再显示 VM497）。
+  - `console-hijacker.ts` 保留为空壳 @deprecated 占位函数。
+
+---
+
+## [0.1.3] - 2026-04-08
+
+### ✨ 新特性
+
+- **运行时日志来源追踪增强 (Runtime Log Source Tracking)**: 解决了预览环境开发者工具控制台日志均显示为 VMxxx:N 虚拟路径而无法定位原始调用位置的问题。通过在 console-hijacker 劫持层引入 Error.stack 堆栈捕获与帧解析机制，自动提取调用者的真实文件名与行号，并注入到日志消息前缀及内部 RingBuffer 存储的 source/rawStack 扩展字段中。
+  - 新增 `parseCallerSource()` 工具函数，支持 V8 引擎两种标准堆栈帧格式解析
+  - 日志消息自动注入 `[file:line]` 来源前缀，DevTools 中可直接辨识
+  - MCP `get_runtime_logs` 工具返回值扩展 `source`（结构化位置）和 `rawStack`（截断堆栈）可选字段
+  - 向后兼容，旧 schema 消费方不受影响
+
+---
+
 ## [0.1.2] - 2026-04-08
 
 ### ✨ 新特性

@@ -71,7 +71,7 @@ npm run build
 - **可控剪裁的节点字典树**：支持根据 `depth` 参数安全获取特定层级的宏观骨架，全景掌握 UI 场景关系树而不用担心触发 Context 上下文爆炸。
 - **超保真渲染验证实况图**：直接为大语言模型一键注入人类视角的运行时截图 (Stage 3)，打破次元壁实现深层次的布局验证与交互推演。
 - **IPC 异步防洪**：主进程代理所有的底层 RPC 网络与 WebContents 拦截指令，脱离 Shadow DOM 局限并构筑防御性编程墙。
-- **环境安全异常日志截获**：采用 RingBuffer 捕获底层的 `window.console` 与 `cc.error` 等日志，使 AI 能跨次元感知环境黑盒崩溃。
+- **环境安全异常零漏截获 (Eager Log Capture)**：基于 CDP 底层协议加上每秒后台激进式对象探测双轨防御。在游戏初始化第一帧甚至核心渲染开启前强制接管 `console` 和 `cc.error`。使用 RingBuffer 防止内存侧漏爆炸（1000条容量，2000字截断防崩），让 AI 时刻感知环境黑盒崩溃且不惧长栈阻塞。
 - **全息物理原域交互代理**：推演全局 DOM 映射靶点并倾泻 `MouseEvent` 以精准触发死角节点与长按拖拽。
 - **全局基础配置注入 (Prompts)**：挂载 `cocos-api-24x` Prompt 指示词保障 AI 编码不会越界。
 - **运行时性能分析闭环 (Resource & Tools)**：开放 `scene://hierarchy` 的宏观全景树资源订阅与 `get_runtime_stats` 工具的运行时帧率/端渲染数据嗅探。
