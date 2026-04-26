@@ -4,6 +4,18 @@ declare const Editor: any;
 export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
     const selectedResolution = ref('FIT');
     const isLandscape = ref(false);
+
+    try {
+        if (window.localStorage.getItem('mcp-inspector-landscape') === '1') {
+            isLandscape.value = true;
+        }
+    } catch(e) {}
+
+    watch(isLandscape, (newVal: boolean) => {
+        try {
+            window.localStorage.setItem('mcp-inspector-landscape', newVal ? '1' : '0');
+        } catch(e) {}
+    });
     
     // Split pane logic
     const rightPanelWidth = ref(400);
