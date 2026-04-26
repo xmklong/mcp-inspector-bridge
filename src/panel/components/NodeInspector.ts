@@ -136,6 +136,7 @@ export const NodeInspector = {
                     <div class="component-header">
                         <input type="checkbox" class="enable-toggle" :checked="comp.enabled" @change="onUpdateProp(comp.name, 'enabled', $event.target.checked, comp.realIndex)" title="启用/禁用当前组件">
                         <span class="component-name" @click="toggleComp(index)" style="cursor: pointer; flex: 1;">{{ comp.name }}</span>
+                        <span v-if="comp.scriptUuid" @click.stop="$emit('locate-asset', comp.scriptUuid)" title="在资源管理器中定位组件脚本" style="cursor: pointer; margin-right: 6px; color: var(--accent-blue); filter: drop-shadow(0 0 4px var(--accent-blue));">🎯</span>
                         <span class="print-btn" @click.stop="onPrintComponent(nodeDetail.id, comp.realIndex)" title="将当前组件数据打印/导出为JSON">🖨️</span>
                         <div class="header-right" @click="toggleComp(index)" style="cursor: pointer;">
                             <span class="size-tag">属性: {{ comp.properties ? comp.properties.length : 0 }}</span>

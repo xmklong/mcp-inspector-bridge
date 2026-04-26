@@ -250,7 +250,36 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
         if (locateAssetTimeout) clearTimeout(locateAssetTimeout);
         locateAssetTimeout = setTimeout(() => {
             try {
-                if (typeof Editor !== 'undefined' && Editor.Ipc) Editor.Ipc.sendToAll('assets:hint', uuid);
+                let targetUuid = uuid;
+                if (uuid.length === 22 || uuid.length === 23) {
+                    if (typeof Editor !== 'undefined' && Editor.Utils && Editor.Utils.UuidUtils && Editor.Utils.UuidUtils.decompressUuid) {
+                        try {
+                            targetUuid = Editor.Utils.UuidUtils.decompressUuid(uuid);
+                        } catch (err) {}
+                    } else {
+                        // Fallback pure JS decompression if Editor.Utils is unavailable in this context
+                        try {
+                            const BASE64_KEYS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+                            const values = new Array(123);
+                            for (let i = 0; i < 123; ++i) values[i] = 0;
+                            for (let i = 0; i < 64; ++i) values[BASE64_KEYS.charCodeAt(i)] = i;
+                            const HexChars = '0123456789abcdef'.split('');
+                            let str = uuid;
+                            let hexChars = [];
+                            let start = str.length === 23 ? 5 : 2;
+                            for (let i = start; i < str.length; i += 2) {
+                                let lhs = values[str.charCodeAt(i)];
+                                let rhs = values[str.charCodeAt(i + 1)];
+                                hexChars.push(HexChars[lhs >> 2]);
+                                hexChars.push(HexChars[((lhs & 3) << 2) | Math.floor(rhs / 16)]);
+                                hexChars.push(HexChars[rhs & 0xF]);
+                            }
+                            str = str.slice(0, start) + hexChars.join('');
+                            targetUuid = str.slice(0, 8) + '-' + str.slice(8, 12) + '-' + str.slice(12, 16) + '-' + str.slice(16, 20) + '-' + str.slice(20);
+                        } catch (err) {}
+                    }
+                }
+                if (typeof Editor !== 'undefined' && Editor.Ipc) Editor.Ipc.sendToAll('assets:hint', targetUuid);
             } catch (e: any) {
                 console.warn(`[Bridge] IPC 发送失败: ${e.message}`);
             }

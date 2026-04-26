@@ -271,10 +271,21 @@ export function initCrawler() {
                             }
                         } catch (e) { }
                     }
+                    let scriptUuid = null;
+                    if (comp.__scriptAsset) {
+                        scriptUuid = comp.__scriptAsset._uuid || comp.__scriptAsset.uuid || comp.__scriptAsset.id;
+                    }
+                    if (!scriptUuid && window.cc && window.cc.js) {
+                        const classId = window.cc.js._getClassId(comp.constructor);
+                        if (classId && typeof classId === 'string' && classId.indexOf('cc.') !== 0 && classId.indexOf('sp.') !== 0 && classId !== 'Widget' && classId !== 'dragonBones.ArmatureDisplay') {
+                            scriptUuid = classId;
+                        }
+                    }
                     detail.components.push({
                         name: cname,
                         realIndex: i,
                         enabled: comp.enabled !== false,
+                        scriptUuid: scriptUuid,
                         properties: props,
                     });
                 }
