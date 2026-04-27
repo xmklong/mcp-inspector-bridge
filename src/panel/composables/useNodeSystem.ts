@@ -137,16 +137,19 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
     const onUpdateNodeProp = (payload: any) => {
         const wv: any = gameView.value;
         if (wv) {
-            const { uuid, compName, propKey, value, compIndex } = payload;
+            const { uuid, compName, propKey, value, compIndex, arrayIndex } = payload;
             let valStr = value;
             if (typeof value === 'string') {
                 valStr = '"' + value.replace(/"/g, '\\"') + '"';
+            } else if (typeof value === 'object' && value !== null) {
+                valStr = JSON.stringify(value);
             }
             const compStr = compName ? '"' + compName + '"' : 'null';
+            const arrIdxStr = arrayIndex !== undefined ? arrayIndex : -1;
             
             const code = `
                 if (window.__mcpCrawler && typeof window.__mcpCrawler.updateNodeProperty === 'function') {
-                    window.__mcpCrawler.updateNodeProperty('${uuid}', ${compStr}, '${propKey}', ${valStr}, ${compIndex !== undefined ? compIndex : -1});
+                    window.__mcpCrawler.updateNodeProperty('${uuid}', ${compStr}, '${propKey}', ${valStr}, ${compIndex !== undefined ? compIndex : -1}, ${arrIdxStr});
                 } else {
                     console.error("[MCP Bridge] 致命错误: window.__mcpCrawler.updateNodeProperty 未就绪或丢失。");
                 }

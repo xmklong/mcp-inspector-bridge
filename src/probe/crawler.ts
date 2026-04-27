@@ -200,6 +200,21 @@ export function initCrawler() {
                                     const eng = window.cc;
                                     if (eng && eng.Node && item instanceof eng.Node) {
                                         return { type: "node_ref", value: { uuid: item.uuid || item.id, name: item.name } };
+                                    } else if (eng && eng.Component && item instanceof eng.Component) {
+                                        let cname = item.name || item.__classname__ || "Component";
+                                        const m = cname.match(/<([^>]+)>/);
+                                        if (m) cname = m[1];
+                                        return { type: "comp_ref", value: { uuid: item.node.uuid || item.node.id, name: item.node.name, className: cname } };
+                                    } else if (eng && eng.Vec2 && item instanceof eng.Vec2) {
+                                        return { type: "vec2", value: { x: item.x, y: item.y } };
+                                    } else if (eng && eng.Vec3 && item instanceof eng.Vec3) {
+                                        return { type: "vec3", value: { x: item.x, y: item.y, z: item.z } };
+                                    } else if (eng && eng.Size && item instanceof eng.Size) {
+                                        return { type: "size", value: { width: item.width, height: item.height } };
+                                    } else if (eng && eng.Rect && item instanceof eng.Rect) {
+                                        return { type: "rect", value: { x: item.x, y: item.y, width: item.width, height: item.height } };
+                                    } else if (eng && eng.Color && item instanceof eng.Color) {
+                                        return { type: "color", value: { r: item.r, g: item.g, b: item.b, a: item.a, hex: item.toHEX() } };
                                     } else if (eng && eng.Asset && item instanceof eng.Asset) {
                                         let clsName = "cc.Asset";
                                         if (item.__classname__) clsName = item.__classname__;
@@ -216,6 +231,27 @@ export function initCrawler() {
                                 if (eng && eng.Node && val instanceof eng.Node) {
                                     type = "node_ref";
                                     exportValue = { uuid: val.uuid || val.id, name: val.name };
+                                } else if (eng && eng.Component && val instanceof eng.Component) {
+                                    type = "comp_ref";
+                                    let cname = val.name || val.__classname__ || "Component";
+                                    const m = cname.match(/<([^>]+)>/);
+                                    if (m) cname = m[1];
+                                    exportValue = { uuid: val.node.uuid || val.node.id, name: val.node.name, className: cname };
+                                } else if (eng && eng.Vec2 && val instanceof eng.Vec2) {
+                                    type = "vec2";
+                                    exportValue = { x: val.x, y: val.y };
+                                } else if (eng && eng.Vec3 && val instanceof eng.Vec3) {
+                                    type = "vec3";
+                                    exportValue = { x: val.x, y: val.y, z: val.z };
+                                } else if (eng && eng.Size && val instanceof eng.Size) {
+                                    type = "size";
+                                    exportValue = { width: val.width, height: val.height };
+                                } else if (eng && eng.Rect && val instanceof eng.Rect) {
+                                    type = "rect";
+                                    exportValue = { x: val.x, y: val.y, width: val.width, height: val.height };
+                                } else if (eng && eng.Color && val instanceof eng.Color) {
+                                    type = "color";
+                                    exportValue = { r: val.r, g: val.g, b: val.b, a: val.a, hex: val.toHEX() };
                                 } else if (eng && eng.Asset && val instanceof eng.Asset) {
                                     type = "asset_ref";
                                     let clsName = "cc.Asset";
@@ -292,7 +328,7 @@ export function initCrawler() {
             }
             return detail;
         },
-        updateNodeProperty: function (uuid, compName, propKey, value, compIndex) {
+        updateNodeProperty: function (uuid, compName, propKey, value, compIndex, arrayIndex) {
             const node = this.findNodeByUuid(uuid);
             if (!node || !node.isValid) {
                 Logger.warn("[MCP Crawler] Node " + uuid + " is invalid or already destroyed.");
@@ -348,7 +384,22 @@ export function initCrawler() {
                         }
 
                         if (targetComp) {
-                            targetComp[propKey] = value;
+                            if (arrayIndex !== undefined && arrayIndex !== null && arrayIndex !== -1) {
+                                const arr = targetComp[propKey];
+                                if (Array.isArray(arr) && arr[arrayIndex] !== undefined) {
+                                    if (typeof value === 'object' && value !== null) {
+                                        Object.assign(arr[arrayIndex], value);
+                                    } else {
+                                        arr[arrayIndex] = value;
+                                    }
+                                }
+                            } else {
+                                if (typeof value === 'object' && value !== null && targetComp[propKey] && typeof targetComp[propKey] === 'object') {
+                                    Object.assign(targetComp[propKey], value);
+                                } else {
+                                    targetComp[propKey] = value;
+                                }
+                            }
                             if (typeof targetComp.updateAlignment === 'function') {
                                 targetComp.updateAlignment();
                             }

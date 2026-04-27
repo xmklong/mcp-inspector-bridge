@@ -1,15 +1,22 @@
-const { ref, watch, computed } = require('vue');
-const { WidgetVisualizer } = require('./WidgetVisualizer');
+const { ref, watch, computed } = require("vue");
+const { WidgetVisualizer } = require("./WidgetVisualizer");
 
 export const NodeInspector = {
-    props: {
-        nodeDetail: {
-            type: Object,
-            default: null
-        }
+  props: {
+    nodeDetail: {
+      type: Object,
+      default: null,
     },
-    emits: ['update-prop', 'hover-change', 'locate-node', 'locate-asset', 'print-comp', 'print-node'],
-    template: `
+  },
+  emits: [
+    "update-prop",
+    "hover-change",
+    "locate-node",
+    "locate-asset",
+    "print-comp",
+    "print-node",
+  ],
+  template: `
         <div class="node-inspector-wrap" style="padding: 10px; overflow-y: auto; height: 100%; color: #d0d0d0;"
              @mouseenter="onHover(true)" @mouseleave="onHover(false)">
 
@@ -188,6 +195,27 @@ export const NodeInspector = {
                                             <span class="asset-name" :title="prop.value.uuid">{{ prop.value.name }} <span style="color:#777;font-size:9px;">[{{ prop.value.className }}]</span></span>
                                             <span v-if="prop.value.uuid && prop.value.uuid !== ''" class="target-mark">🎯</span>
                                         </div>
+
+                                        <!-- Comp Ref -->
+                                        <div v-else-if="prop.type === 'comp_ref'" class="asset-link" @click.stop="onLocateNodeRef(prop.value.uuid)">
+                                            <span style="font-size: 11px; padding: 0 2px;">🧩</span>
+                                            <span class="asset-name" :title="prop.value.uuid">{{ prop.value.name }} <span style="color:#777;font-size:9px;">[{{ prop.value.className }}]</span></span>
+                                            <span v-if="prop.value.uuid && prop.value.uuid !== ''" class="target-mark">🎯</span>
+                                        </div>
+
+                                        <!-- Vec2 / Size -->
+                                        <div v-else-if="prop.type === 'vec2' || prop.type === 'size'" class="prop-input-wrap" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                            <span :style="{color: prop.type==='size' ? 'var(--text-muted)' : '#ff6b6b', fontSize: '11px'}">{{ prop.type==='size' ? 'w' : 'x' }}</span>
+                                            <input type="number" step="1" :value="formatNumber(prop.type==='size' ? prop.value.width : prop.value.x)" @change="onUpdateProp(comp.name, prop.key, prop.type==='size' ? {width: parseFloat($event.target.value) || 0, height: prop.value.height} : {x: parseFloat($event.target.value) || 0, y: prop.value.y}, comp.realIndex)" style="width: 50px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius); box-sizing: border-box; min-width: 0;" />
+                                            <span :style="{color: prop.type==='size' ? 'var(--text-muted)' : '#69b02a', fontSize: '11px'}">{{ prop.type==='size' ? 'h' : 'y' }}</span>
+                                            <input type="number" step="1" :value="formatNumber(prop.type==='size' ? prop.value.height : prop.value.y)" @change="onUpdateProp(comp.name, prop.key, prop.type==='size' ? {width: prop.value.width, height: parseFloat($event.target.value) || 0} : {x: prop.value.x, y: parseFloat($event.target.value) || 0}, comp.realIndex)" style="width: 50px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius); box-sizing: border-box; min-width: 0;" />
+                                        </div>
+
+                                        <!-- Color -->
+                                        <div v-else-if="prop.type === 'color'" class="prop-input-wrap" style="display: flex; align-items: center; gap: 4px; width: 100%;">
+                                            <input type="color" :value="'#' + prop.value.hex.substring(0, 6)" @change="onUpdateProp(comp.name, prop.key, $event.target.value, comp.realIndex)" style="width: 24px; height: 24px; padding: 0; border: none; background: transparent; cursor: pointer;" />
+                                            <input type="number" step="1" title="Alpha (0-255)" :value="prop.value.a" @change="onUpdateProp(comp.name, prop.key, {r: prop.value.r, g: prop.value.g, b: prop.value.b, a: parseInt($event.target.value)||0}, comp.realIndex)" min="0" max="255" style="width: 40px; background: var(--bg-input); color: #ff9800; border: 1px solid var(--border-color); border-radius: var(--radius); box-sizing: border-box; font-weight: bold; font-size: 11px;" />
+                                        </div>
                                         
                                         <!-- Unsupported -->
                                         <div v-else style="color: #888; font-style: italic; background: #2a2a2a; padding: 2px 4px; font-size: 11px;">
@@ -221,6 +249,42 @@ export const NodeInspector = {
                                                     <span v-if="item.value.uuid && item.value.uuid !== ''" class="target-mark">🎯</span>
                                                 </div>
                                             </template>
+                                            
+                                            <template v-else-if="item && typeof item === 'object' && item.type === 'comp_ref'">
+                                                <div class="asset-link" style="flex:1; min-width: 0;" @click.stop="onLocateNodeRef(item.value.uuid)">
+                                                    <span style="font-size: 11px; padding: 0 2px;">🧩</span>
+                                                    <span class="asset-name" :title="item.value.uuid">{{ item.value.name }} <span style="color:#777;font-size:9px;">[{{ item.value.className }}]</span></span>
+                                                    <span v-if="item.value.uuid && item.value.uuid !== ''" class="target-mark">🎯</span>
+                                                </div>
+                                            </template>
+                                            
+                                            <template v-else-if="item && typeof item === 'object' && (item.type === 'vec2' || item.type === 'size')">
+                                                <div style="display: flex; gap: 2px; align-items: center; min-width: 0;">
+                                                    <span :style="{color: item.type==='size' ? 'var(--text-muted)' : '#ff6b6b', fontSize: '11px', marginRight: '2px'}">{{ item.type==='size' ? 'w' : 'x' }}</span>
+                                                    <input type="number" step="1" :value="formatNumber(item.type==='size' ? item.value.width : item.value.x)" @change="onUpdateProp(comp.name, prop.key, item.type==='size' ? {width: parseFloat($event.target.value) || 0, height: item.value.height} : {x: parseFloat($event.target.value) || 0, y: item.value.y}, comp.realIndex, idx)" style="width: 40px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius); box-sizing: border-box; min-width: 0;" />
+                                                    <span :style="{color: item.type==='size' ? 'var(--text-muted)' : '#69b02a', fontSize: '11px', marginRight: '2px', marginLeft: '4px'}">{{ item.type==='size' ? 'h' : 'y' }}</span>
+                                                    <input type="number" step="1" :value="formatNumber(item.type==='size' ? item.value.height : item.value.y)" @change="onUpdateProp(comp.name, prop.key, item.type==='size' ? {width: item.value.width, height: parseFloat($event.target.value) || 0} : {x: item.value.x, y: parseFloat($event.target.value) || 0}, comp.realIndex, idx)" style="width: 40px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius); box-sizing: border-box; min-width: 0;" />
+                                                </div>
+                                            </template>
+                                            
+                                            <template v-else-if="item && typeof item === 'object' && item.type === 'color'">
+                                                <div style="display: flex; align-items: center; gap: 4px; min-width: 0;">
+                                                    <input type="color" :value="'#' + item.value.hex.substring(0, 6)" @change="onUpdateProp(comp.name, prop.key, $event.target.value, comp.realIndex, idx)" style="width: 20px; height: 20px; padding: 0; border: none; background: transparent; cursor: pointer;" />
+                                                    <input type="number" step="1" title="Alpha (0-255)" :value="item.value.a" @change="onUpdateProp(comp.name, prop.key, {r: item.value.r, g: item.value.g, b: item.value.b, a: parseInt($event.target.value)||0}, comp.realIndex, idx)" min="0" max="255" style="width: 36px; background: var(--bg-input); color: #ff9800; border: 1px solid var(--border-color); border-radius: var(--radius); box-sizing: border-box; font-weight: bold; font-size: 11px;" />
+                                                </div>
+                                            </template>
+
+                                            <template v-else-if="typeof item === 'number'">
+                                                <input type="number" step="0.1" :value="formatNumber(item)" @change="onUpdateProp(comp.name, prop.key, parseFloat($event.target.value) || 0, comp.realIndex, idx)" style="flex: 1; min-width: 0; background: var(--bg-input); color: #69b02a; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 11px; padding: 2px 6px;" />
+                                            </template>
+
+                                            <template v-else-if="typeof item === 'boolean'">
+                                                <input type="checkbox" :checked="item" @change="onUpdateProp(comp.name, prop.key, $event.target.checked, comp.realIndex, idx)" style="accent-color: var(--accent-blue);" />
+                                            </template>
+
+                                            <template v-else-if="typeof item === 'string'">
+                                                <input type="text" :value="item" @change="onUpdateProp(comp.name, prop.key, $event.target.value, comp.realIndex, idx)" style="flex: 1; min-width: 0; background: var(--bg-input); color: #ff9800; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 11px; padding: 2px 6px;" :title="item"/>
+                                            </template>
 
                                             <template v-else>
                                                 <input type="text" disabled :value="item" style="flex: 1; min-width: 0; background: var(--bg-input); color: #999; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 11px; padding: 2px 6px;" :title="item"/>
@@ -237,92 +301,145 @@ export const NodeInspector = {
             </div>
         </div>
     `,
-    components: {
-        'widget-visualizer': WidgetVisualizer
-    },
-    setup(props: any, { emit }: any) {
-        const expandedComps = ref({} as Record<number, boolean>);
+  components: {
+    "widget-visualizer": WidgetVisualizer,
+  },
+  setup(props: any, { emit }: any) {
+    const expandedComps = ref({} as Record<number, boolean>);
 
-        // 默认展开所有组件
-        watch(() => props.nodeDetail, (newVal: any) => {
-            if (newVal && newVal.components) {
-                newVal.components.forEach((_: any, idx: number) => {
-                    if (expandedComps.value[idx] === undefined) {
-                        expandedComps.value[idx] = true;
-                    }
-                });
+    // 默认展开所有组件
+    watch(
+      () => props.nodeDetail,
+      (newVal: any) => {
+        if (newVal && newVal.components) {
+          newVal.components.forEach((_: any, idx: number) => {
+            if (expandedComps.value[idx] === undefined) {
+              expandedComps.value[idx] = true;
             }
-        }, { immediate: true });
+          });
+        }
+      },
+      { immediate: true },
+    );
 
-        const toggleComp = (index: number) => {
-            expandedComps.value[index] = !expandedComps.value[index];
-        };
+    const toggleComp = (index: number) => {
+      expandedComps.value[index] = !expandedComps.value[index];
+    };
 
-        const onUpdateProp = (compName: string | null, propKey: string, value: any, compIndex?: number) => {
-            if (!props.nodeDetail) return;
+    const onUpdateProp = (
+      compName: string | null,
+      propKey: string,
+      value: any,
+      compIndex?: number,
+      arrayIndex?: number,
+    ) => {
+      if (!props.nodeDetail) return;
 
-            // 乐观更新 (Optimistic UI Update)
-            if (compName) {
-                const comp = props.nodeDetail.components.find((c: any) => c.name === compName);
-                if (comp) {
-                    if (propKey === 'enabled') {
-                        comp.enabled = value;
-                    } else {
-                        const prop = comp.properties.find((p: any) => p.key === propKey);
-                        if (prop) prop.value = value;
-                    }
+      let finalValue = value;
+
+      // 乐观更新 (Optimistic UI Update)
+      if (compName) {
+        const comp = props.nodeDetail.components.find(
+          (c: any) => c.name === compName,
+        );
+        if (comp) {
+          if (propKey === "enabled") {
+            comp.enabled = finalValue;
+          } else {
+            const prop = comp.properties.find((p: any) => p.key === propKey);
+            if (prop) {
+              if (arrayIndex !== undefined && arrayIndex !== null) {
+                if (
+                  prop.value[arrayIndex] &&
+                  typeof prop.value[arrayIndex] === "object" &&
+                  prop.value[arrayIndex].value
+                ) {
+                  if (
+                    prop.value[arrayIndex].type === "color" &&
+                    typeof finalValue === "string" &&
+                    finalValue.startsWith("#")
+                  ) {
+                    const r = parseInt(finalValue.slice(1, 3), 16) || 0;
+                    const g = parseInt(finalValue.slice(3, 5), 16) || 0;
+                    const b = parseInt(finalValue.slice(5, 7), 16) || 0;
+                    finalValue = { r, g, b, a: prop.value[arrayIndex].value.a };
+                  }
+                  if (typeof finalValue === "object" && finalValue !== null) {
+                    Object.assign(prop.value[arrayIndex].value, finalValue);
+                  } else {
+                    prop.value[arrayIndex].value = finalValue;
+                  }
+                } else {
+                  prop.value[arrayIndex] = finalValue;
                 }
-            } else {
-                props.nodeDetail[propKey] = value;
+              } else {
+                if (
+                  prop.type === "color" &&
+                  typeof finalValue === "string" &&
+                  finalValue.startsWith("#")
+                ) {
+                  const r = parseInt(finalValue.slice(1, 3), 16) || 0;
+                  const g = parseInt(finalValue.slice(3, 5), 16) || 0;
+                  const b = parseInt(finalValue.slice(5, 7), 16) || 0;
+                  finalValue = { r, g, b, a: prop.value.a };
+                }
+                prop.value = finalValue;
+              }
             }
+          }
+        }
+      } else {
+        props.nodeDetail[propKey] = finalValue;
+      }
 
-            emit('update-prop', {
-                uuid: props.nodeDetail.id,
-                compName: compName,
-                propKey: propKey,
-                value: value,
-                compIndex: compIndex
-            });
-        };
+      emit("update-prop", {
+        uuid: props.nodeDetail.id,
+        compName: compName,
+        propKey: propKey,
+        value: finalValue,
+        compIndex: compIndex,
+        arrayIndex: arrayIndex,
+      });
+    };
 
-        const onHover = (hovering: boolean) => {
-            emit('hover-change', hovering);
-        };
+    const onHover = (hovering: boolean) => {
+      emit("hover-change", hovering);
+    };
 
-        const formatNumber = (val: number | string | undefined) => {
-            if (val === undefined || val === null) return 0;
-            const res = parseFloat(val as string);
-            return isNaN(res) ? 0 : Number(res.toFixed(3)); // 保留 3 位小数避免失真过长
-        };
+    const formatNumber = (val: number | string | undefined) => {
+      if (val === undefined || val === null) return 0;
+      const res = parseFloat(val as string);
+      return isNaN(res) ? 0 : Number(res.toFixed(3)); // 保留 3 位小数避免失真过长
+    };
 
-        const onLocateNodeRef = (uuid: string) => {
-            emit('locate-node', uuid);
-        };
+    const onLocateNodeRef = (uuid: string) => {
+      emit("locate-node", uuid);
+    };
 
-        const onLocateAssetRef = (uuid: string) => {
-            emit('locate-asset', uuid);
-        };
+    const onLocateAssetRef = (uuid: string) => {
+      emit("locate-asset", uuid);
+    };
 
-        const onPrintComponent = (uuid: string, compIndex: number) => {
-            emit('print-comp', uuid, compIndex);
-        };
+    const onPrintComponent = (uuid: string, compIndex: number) => {
+      emit("print-comp", uuid, compIndex);
+    };
 
-        const onPrintNode = () => {
-            if (props.nodeDetail && props.nodeDetail.id) {
-                emit('print-node', props.nodeDetail.id);
-            }
-        };
+    const onPrintNode = () => {
+      if (props.nodeDetail && props.nodeDetail.id) {
+        emit("print-node", props.nodeDetail.id);
+      }
+    };
 
-        return {
-            expandedComps,
-            toggleComp,
-            onUpdateProp,
-            onHover,
-            formatNumber,
-            onLocateNodeRef,
-            onLocateAssetRef,
-            onPrintComponent,
-            onPrintNode
-        };
-    }
+    return {
+      expandedComps,
+      toggleComp,
+      onUpdateProp,
+      onHover,
+      formatNumber,
+      onLocateNodeRef,
+      onLocateAssetRef,
+      onPrintComponent,
+      onPrintNode,
+    };
+  },
 };

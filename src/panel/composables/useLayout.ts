@@ -5,15 +5,23 @@ export function useLayout(globalState: any, wrapMount: any, wrapperSize: any) {
     const selectedResolution = ref('FIT');
     const isLandscape = ref(false);
 
+    let projectKey = 'default';
     try {
-        if (window.localStorage.getItem('mcp-inspector-landscape') === '1') {
+        if (typeof Editor !== 'undefined' && Editor.Project && Editor.Project.path) {
+            projectKey = Editor.Project.path.replace(/[^a-zA-Z0-9]/g, '_');
+        }
+    } catch(e) {}
+    const storageKey = `mcp-inspector-landscape-${projectKey}`;
+
+    try {
+        if (window.localStorage.getItem(storageKey) === '1') {
             isLandscape.value = true;
         }
     } catch(e) {}
 
     watch(isLandscape, (newVal: boolean) => {
         try {
-            window.localStorage.setItem('mcp-inspector-landscape', newVal ? '1' : '0');
+            window.localStorage.setItem(storageKey, newVal ? '1' : '0');
         } catch(e) {}
     });
     
