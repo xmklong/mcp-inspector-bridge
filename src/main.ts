@@ -228,6 +228,23 @@ module.exports = {
 
             if (event.reply) event.reply(null, { success: true });
         },
+        'script-set-enabled'(event: any, args: { fileName: string; enabled: boolean }) {
+            const profile = Editor.Profile.load('profile://project/mcp-scripts.json', 'mcp-inspector-bridge');
+            const scripts = profile.get('scripts') || {};
+            const key = args.fileName.replace(/\.user\.js$/i, '');
+            if (scripts[key]) {
+                scripts[key].enabled = args.enabled;
+            } else {
+                scripts[key] = { enabled: args.enabled, installedAt: Date.now() };
+            }
+            try {
+                profile.set('scripts', scripts);
+                profile.save();
+            } catch (e: any) {
+                Editor.warn(`[Script] profile 写入失败: ${e.message}`);
+            }
+            if (event.reply) event.reply(null, { success: true });
+        },
         'script-delete-file'(event: any, args: { fileName: string }) {
             const fs = require('fs');
             const path = require('path');

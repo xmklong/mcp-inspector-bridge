@@ -444,7 +444,7 @@
 <div id="app" v-cloak>
     <!-- 场景未激活时的全屏拦截遮罩 -->
     <div v-if="!globalState.isEditorSceneActive"
-        style="position: absolute; inset: 0; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(30, 30, 30, 0.95); color: #aaa; backdrop-filter: blur(4px);">
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(30, 30, 30, 0.95); color: #aaa; backdrop-filter: blur(4px);">
         <div style="font-size: 60px; margin-bottom: 20px;">💤</div>
         <div style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 15px;">场景编辑器未激活</div>
         <div
@@ -537,7 +537,7 @@
                     style="width: 100%; height: 100%; border: none; display: flex; flex: 1; background:#000; overflow: hidden;">
                 </webview>
                 <!-- 拖动时的屏蔽罩，防止 webview 吞噬鼠标事件 -->
-                <div v-show="isDragging" style="position: absolute; inset: 0; background: transparent; z-index: 999;">
+                <div v-show="isDragging" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 999;">
                 </div>
             </div>
         </div>
@@ -570,7 +570,7 @@
         <div style="flex: 1; position: relative;">
 
             <!-- Tab 0: Node Tree & Props -->
-            <div v-show="activeTab === 0" style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+            <div v-show="activeTab === 0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column;">
                 <div v-if="globalState.showFallbackWarning"
                     style="padding: 10px; background: #fff3e0; color: #ef6c00; font-size: 11px; border-bottom: 1px solid #ffe0b2;">
                     ⚠️ [降级容错模式] 原生 IPC 数据链路受阻，当前面板正通过主动 DOM 轮询模式拉取。
@@ -595,7 +595,7 @@
                             @hover-change="globalState.isInspectorHovered = $event" @locate-node="onLocateNode"
                             @locate-asset="onLocateAsset" @print-comp="onPrintComp"
                             @print-node="onPrintNode"></node-inspector>
-                        <div v-show="isNodeTreeDragging" style="position: absolute; inset: 0; z-index: 99;"></div>
+                        <div v-show="isNodeTreeDragging" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 99;"></div>
                     </div>
                 </div>
             </div>
@@ -633,7 +633,7 @@
             </div>
 
             <!-- Tab 2/3: 辅助页 -->
-            <div v-show="activeTab === 2" style="position: absolute; inset: 0; padding: 25px; overflow-y: auto; background: #1a1a1a;">
+            <div v-show="activeTab === 2" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 25px; overflow-y: auto; background: #1a1a1a;">
                 <h2 style="margin: 0 0 8px 0; color: #fff; font-size: calc(var(--base-font-size, 13px) + 9px);">Cocos 引擎运行环境调试面板</h2>
                 <div style="color: #aaa; margin-bottom: 25px; font-size: calc(var(--base-font-size, 13px) - 1px);">实时展示引擎核心系统运行参数与状态</div>
                 
@@ -840,14 +840,14 @@
                 </div>
             </div>
             <!-- Tab 3: 用户脚本 -->
-            <div v-show="activeTab === 3" style="position: absolute; inset: 0; padding: 15px; overflow-y: auto; background: #1a1a1a;">
+            <div v-show="activeTab === 3" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; overflow-y: auto; background: #1a1a1a;">
                 <script-manager
                     :script-list="globalState.scriptList"
                     @new-script="openScriptEditor()"
                     @import-script="handleScriptImport"
-                    @enable-script="(fileName) => { if (typeof Editor !== 'undefined') Editor.Ipc.sendToMain('mcp-inspector-bridge:script-read-file', {fileName}, (err, data) => { if(data && data.content) scriptSystem.enableScript(fileName, data.content); }); }"
-                    @disable-script="scriptSystem.disableScript"
-                    @edit-script="(fileName) => { if (typeof Editor !== 'undefined') Editor.Ipc.sendToMain('mcp-inspector-bridge:script-read-file', {fileName}, (err, data) => { if(data && data.content) openScriptEditor(fileName, data.content); }); }"
+                    @enable-script="handleScriptEnable"
+                    @disable-script="(fileName) => { scriptSystem.disableScript(fileName); if (typeof Editor !== 'undefined') Editor.Ipc.sendToMain('mcp-inspector-bridge:script-set-enabled', {fileName, enabled: false}); }"
+                    @edit-script="handleScriptEdit"
                     @export-script="handleScriptExport"
                     @delete-script="handleScriptDelete">
                 </script-manager>
@@ -858,21 +858,25 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #333; border-bottom: 1px solid #555;">
                             <div style="color: #e0e0e0; font-weight: bold;">编辑脚本</div>
                             <div style="display: flex; gap: 10px;">
-                                <input v-model="globalState.scriptEditorFileName" placeholder="文件名.user.js"
+                                <input v-model="globalState.scriptEditorFileName" placeholder="输入名称（自动追加 .user.js）"
                                     style="background: #111; color: #eee; border: 1px solid #555; padding: 4px 8px; border-radius: 3px; width: 200px;">
                                 <button class="icon-btn" style="width: auto; padding: 4px 15px; color: #4caf50;" @click="saveScriptEditor">保存</button>
                                 <button class="icon-btn" style="width: auto; padding: 4px 15px;" @click="globalState.scriptEditorVisible = false">取消</button>
                             </div>
                         </div>
-                        <textarea v-model="globalState.scriptEditorContent"
-                            style="flex: 1; background: #111; color: #4caf50; border: none; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; resize: none; outline: none; tab-size: 4;"></textarea>
+                        <div style="flex: 1; position: relative; overflow: hidden;">
+                            <pre v-html="highlightedScriptContent"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; border: none; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 22px; letter-spacing: normal; word-spacing: normal; white-space: pre; overflow: auto; background: #1e1e1e; color: #d4d4d4; pointer-events: none; z-index: 1; tab-size: 4; -moz-tab-size: 4; -webkit-font-smoothing: antialiased; font-variant-ligatures: none;"></pre>
+                            <textarea v-model="globalState.scriptEditorContent" @scroll="(e) => { const pre = e.target.previousElementSibling; if (pre) { pre.scrollTop = e.target.scrollTop; pre.scrollLeft = e.target.scrollLeft; } }"
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; border: none; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 22px; letter-spacing: normal; word-spacing: normal; white-space: pre; overflow: auto; background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; tab-size: 4; -moz-tab-size: 4; z-index: 2; -webkit-text-fill-color: transparent; -webkit-font-smoothing: antialiased; font-variant-ligatures: none; text-rendering: auto;"></textarea>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Tab 4: 性能分析 (Phase 1 Barebones) -->
             <div v-show="activeTab === 4"
-                style="position: absolute; inset: 0; padding: 15px; background: #1a1a1a; display: flex; flex-direction: column; gap: 8px;">
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; background: #1a1a1a; display: flex; flex-direction: column; gap: 8px;">
                 <div style="flex-shrink: 0; padding-bottom: 10px; border-bottom: 1px solid #333;">
                     <h4 style="margin: 0 0 10px 0; color: #88c;">性能探测数据</h4>
                     <div style="display: flex; gap: 15px;">
@@ -1011,14 +1015,14 @@
             </div>
 
             <!-- Tab 5: 渲染调试器 MVP -->
-            <div v-show="activeTab === 5" style="position: absolute; inset: 0; background: #1a1a1a;">
+            <div v-show="activeTab === 5" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a;">
                 <render-debugger @toggle="onRenderDebuggerToggle"
                     @locate-node="onRenderDebuggerLocate"></render-debugger>
             </div>
 
             <!-- Tab 6: 偏好设置 -->
             <div v-show="activeTab === 6"
-                style="position: absolute; inset: 0; padding: 15px; background: #1e1e1e; color: #ddd; overflow-y: auto;">
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px; background: #1e1e1e; color: #ddd; overflow-y: auto;">
                 <h4 style="margin: 0 0 15px 0; color: #88c; border-bottom: 1px solid #333; padding-bottom: 5px;">偏好设置
                 </h4>
 
