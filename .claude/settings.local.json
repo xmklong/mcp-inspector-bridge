@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "mcp__cocos-inspector-bridge__get_active_instances",
+      "mcp__cocos-inspector-bridge__get_runtime_logs",
+      "mcp__cocos-inspector-bridge__get_runtime_stats",
+      "mcp__cocos-inspector-bridge__set_active_instance",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "WebSearch",
+      "Bash(mv .claude/skills/spec/_shared.md .claude/skills/_spec_shared.md)",
+      "Bash(mv .claude/skills/spec/define.md .claude/skills/spec-define.md)",
+      "Bash(mv .claude/skills/spec/architect.md .claude/skills/spec-architect.md)",
+      "Bash(mv .claude/skills/spec/execute.md .claude/skills/spec-execute.md)",
+      "Bash(mv .claude/skills/spec/refactor.md .claude/skills/spec-refactor.md)"
+    ]
+  }
+}

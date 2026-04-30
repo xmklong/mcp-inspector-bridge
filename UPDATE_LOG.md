@@ -15,6 +15,10 @@
   - **零破坏性**: 仅修改 `src/cdp-log-listener.ts` 一个文件，外部接口 `getCdpLogs()` / `getCdpStatus()` / `detachCdpListener()` 签名与行为完全不变。
   - MCP `get_runtime_logs` 工具返回的 `url`/`line`/`column` 字段现指向真实游戏源文件，日志溯源能力显著提升。
 
+- **修复用户脚本系统编辑/启用按钮无反应 (UserScript Edit/Enable Button Unresponsive Fix)**: 解决新建脚本后点击"编辑"无反应、停用后无法再次启用的问题。
+  - **问题**: `@edit-script` 和 `@enable-script` 使用模板内联 `Editor.Ipc.sendToMain` 回调，Vue 模板编译后箭头函数边界检测失败导致回调未注册；`disableScript`/`enableScript` 仅修改内存状态，未同步 `mcp-scripts.json` profile，面板重载后状态回退。
+  - **方案**: 将 IPC 回调逻辑提升为 `setup()` 内命名方法 `handleScriptEdit` / `handleScriptEnable`；新增 `script-set-enabled` IPC handler 同步 profile 持久化状态；修复 `saveScriptEditor` 中 `.js` 后缀双重追加问题；`@name` 缺失时阻止保存并提示用户。
+
 ---
 
 ## [Unreleased] - 2026-04-20

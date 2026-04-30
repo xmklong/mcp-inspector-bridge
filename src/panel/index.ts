@@ -2,7 +2,7 @@ declare const Editor: any;
 import * as fs from 'fs';
 import * as path from 'path';
 
-const { createApp, ref, onMounted, watch } = require('vue');
+const { createApp, ref, onMounted, watch, computed } = require('vue');
 const { NodeTree } = require('./components/NodeTree');
 const { NodeInspector } = require('./components/NodeInspector');
 const { RenderDebugger } = require('./components/RenderDebugger');
@@ -108,9 +108,20 @@ mcp.log('脚本已加载');
                         if (typeof Editor !== 'undefined') Editor.log('[Script] 请先输入文件名');
                         return;
                     }
-                    const fn = globalState.scriptEditorFileName.endsWith('.user.js')
-                        ? globalState.scriptEditorFileName
-                        : globalState.scriptEditorFileName + '.user.js';
+                    let fn = globalState.scriptEditorFileName;
+                    if (!fn.endsWith('.user.js')) {
+                        if (fn.endsWith('.js')) {
+                            fn = fn.slice(0, -3) + '.user.js';
+                        } else {
+                            fn = fn + '.user.js';
+                        }
+                    }
+
+                    const nameMatch = globalState.scriptEditorContent.match(/\/\/\s*@name\s+(.+)/);
+                    if (!nameMatch || !nameMatch[1].trim()) {
+                        if (typeof Editor !== 'undefined') Editor.warn('[Script] @name 为必填字段，请在脚本中填写后保存');
+                        return;
+                    }
 
                     if (typeof Editor !== 'undefined') {
                         Editor.Ipc.sendToMain('mcp-inspector-bridge:script-save-file',
@@ -146,6 +157,165 @@ mcp.log('脚本已加载');
                         Editor.Ipc.sendToMain('mcp-inspector-bridge:script-delete-file', { fileName });
                     }
                 };
+
+                const handleScriptEnable = (fileName: string) => {
+                    if (typeof Editor !== 'undefined') {
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:script-read-file',
+                            { fileName },
+                            (err: any, data: any) => {
+                                if (data && data.content) {
+                                    scriptSystem.enableScript(fileName, data.content);
+                                    Editor.Ipc.sendToMain('mcp-inspector-bridge:script-set-enabled',
+                                        { fileName, enabled: true });
+                                }
+                            });
+                    }
+                };
+
+                const handleScriptEdit = (fileName: string) => {
+                    if (typeof Editor !== 'undefined') {
+                        Editor.Ipc.sendToMain('mcp-inspector-bridge:script-read-file',
+                            { fileName },
+                            (err: any, data: any) => {
+                                if (data && data.content) {
+                                    openScriptEditor(fileName, data.content);
+                                } else if (data && data.error) {
+                                    if (typeof Editor !== 'undefined') {
+                                        Editor.warn(`[Script] 读取脚本文件失败: ${data.error}`);
+                                    }
+                                }
+                            });
+                    }
+                };
+
+                const JS_KEYWORDS = new Set([
+                    'function', 'const', 'let', 'var', 'if', 'else', 'return', 'try', 'catch',
+                    'throw', 'new', 'for', 'while', 'switch', 'case', 'break', 'continue',
+                    'class', 'extends', 'import', 'export', 'default', 'this', 'super',
+                    'async', 'await', 'typeof', 'instanceof', 'void', 'delete', 'in', 'of',
+                    'yield', 'true', 'false', 'null', 'undefined', 'debugger', 'do', 'static',
+                    'get', 'set', 'from', 'as', 'finally', 'with', 'enum', 'implements',
+                    'interface', 'package', 'private', 'protected', 'public', 'type',
+                ]);
+
+                const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                const highlightJs = (code: string): string => {
+                    let out = '';
+                    let i = 0;
+                    const len = code.length;
+
+                    while (i < len) {
+                        const ch = code[i];
+                        const rest = code.slice(i);
+
+                        // McpScript 标记行 (// ==McpScript== 或 // ==/McpScript==)
+                        if (ch === '/' && code[i + 1] === '/' && /\s*==\/?McpScript==/.test(code.slice(i + 2, i + 20))) {
+                            const eol = code.indexOf('\n', i);
+                            const end = eol === -1 ? len : eol;
+                            out += `<span style="color:#d7ba7d">${escapeHtml(code.slice(i, end))}</span>`;
+                            i = end;
+                            continue;
+                        }
+
+                        // @annotation 行 (// @name, // @grant, etc.)
+                        if (ch === '/' && code[i + 1] === '/' && /\s*@\w+/.test(code.slice(i + 2, i + 30))) {
+                            const eol = code.indexOf('\n', i);
+                            const end = eol === -1 ? len : eol;
+                            out += `<span style="color:#c586c0">${escapeHtml(code.slice(i, end))}</span>`;
+                            i = end;
+                            continue;
+                        }
+
+                        // 单行注释 //
+                        if (ch === '/' && code[i + 1] === '/') {
+                            const eol = code.indexOf('\n', i);
+                            const end = eol === -1 ? len : eol;
+                            out += `<span style="color:#6a9955">${escapeHtml(code.slice(i, end))}</span>`;
+                            i = end;
+                            continue;
+                        }
+
+                        // 多行注释 /* */
+                        if (ch === '/' && code[i + 1] === '*') {
+                            const closeIdx = code.indexOf('*/', i + 2);
+                            const end = closeIdx === -1 ? len : closeIdx + 2;
+                            out += `<span style="color:#6a9955">${escapeHtml(code.slice(i, end))}</span>`;
+                            i = end;
+                            continue;
+                        }
+
+                        // 模板字面量 `` (支持 ${} 内嵌)
+                        if (ch === '`') {
+                            let j = i + 1;
+                            while (j < len) {
+                                if (code[j] === '\\') { j += 2; continue; }
+                                if (code[j] === '`') { j++; break; }
+                                if (code[j] === '$' && code[j + 1] === '{') {
+                                    // 找到 } 闭合
+                                    let depth = 1;
+                                    j += 2;
+                                    while (j < len && depth > 0) {
+                                        if (code[j] === '{') depth++;
+                                        else if (code[j] === '}') depth--;
+                                        j++;
+                                    }
+                                    continue;
+                                }
+                                j++;
+                            }
+                            out += `<span style="color:#ce9178">${escapeHtml(code.slice(i, j))}</span>`;
+                            i = j;
+                            continue;
+                        }
+
+                        // 字符串 '' 或 ""
+                        if (ch === "'" || ch === '"') {
+                            let j = i + 1;
+                            while (j < len) {
+                                if (code[j] === '\\') { j += 2; continue; }
+                                if (code[j] === ch) { j++; break; }
+                                j++;
+                            }
+                            out += `<span style="color:#ce9178">${escapeHtml(code.slice(i, j))}</span>`;
+                            i = j;
+                            continue;
+                        }
+
+                        // 数字
+                        if (/\d/.test(ch) && (i === 0 || /[\s,;=({[+\-*/%!&|^~<>?:]/.test(code[i - 1]))) {
+                            const m = rest.match(/^(\d+\.?\d*(?:[eE][+-]?\d+)?)/);
+                            if (m) {
+                                out += `<span style="color:#b5cea8">${m[1]}</span>`;
+                                i += m[1].length;
+                                continue;
+                            }
+                        }
+
+                        // 标识符 / 关键词
+                        if (/[a-zA-Z_$]/.test(ch)) {
+                            const m = rest.match(/^([a-zA-Z_$][\w$]*)/);
+                            if (m) {
+                                const word = m[1];
+                                if (JS_KEYWORDS.has(word)) {
+                                    out += `<span style="color:#569cd6">${word}</span>`;
+                                } else {
+                                    out += escapeHtml(word);
+                                }
+                                i += word.length;
+                                continue;
+                            }
+                        }
+
+                        // 默认
+                        out += escapeHtml(ch);
+                        i++;
+                    }
+
+                    return out;
+                };
+
+                const highlightedScriptContent = computed(() => highlightJs(globalState.scriptEditorContent));
                 // --- 用户脚本系统结束 ---
 
                 const electron = require('electron');
@@ -604,6 +774,9 @@ mcp.log('脚本已加载');
                     handleScriptImport,
                     handleScriptExport,
                     handleScriptDelete,
+                    handleScriptEnable,
+                    handleScriptEdit,
+                    highlightedScriptContent,
                     registeredScriptTools,
 
                     ...layoutSystem,
