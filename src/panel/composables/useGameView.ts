@@ -7,7 +7,9 @@ export function useGameView(
     nodeTreeRef: any,
     rightPanelWidth: any,
     selectedResolution: any,
-    onNodeSelectFallback: any
+    onNodeSelectFallback: any,
+    onStartPolling?: () => void,
+    onStopPolling?: () => void
 ) {
     const isShowFPS = ref(false);
     const isAudioMuted = ref(false);
@@ -32,10 +34,6 @@ export function useGameView(
                         } else if ('${command}' === 'step') {
                             if (!eng.game.isPaused()) eng.game.pause();
                             eng.game.step();
-                        } else if ('${command}' === 'fps:true') {
-                            eng.debug.setDisplayStats(true);
-                        } else if ('${command}' === 'fps:false') {
-                            eng.debug.setDisplayStats(false);
                         }
                     }
                     if (eng && eng.audioEngine) {
@@ -96,7 +94,11 @@ export function useGameView(
     };
 
     watch(isShowFPS, (newVal: boolean) => {
-        executeMacro(newVal ? 'fps:true' : 'fps:false');
+        if (newVal) {
+            onStartPolling?.();
+        } else {
+            onStopPolling?.();
+        }
         try {
             Editor.Ipc.sendToMain('mcp-inspector-bridge:save-fps', newVal);
         } catch (e) { }
@@ -176,8 +178,10 @@ export function useGameView(
         setInterval(() => {
             if (globalState.lastTreeUpdate > 0 && (Date.now() - globalState.lastTreeUpdate < 3000)) return;
             const wv: any = gameView.value;
-            if (wv) {
-                try {
+            if (!wv) return;
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) return;
+            try { wv.getWebContentsId(); } catch(e) { return; }
+            try {
                     const code = `
                         (function(){
                             function serializeNode(node, currentPrefabDepth) {
@@ -289,8 +293,7 @@ export function useGameView(
                             } catch (e) { }
                         }
                     }).catch(() => { });
-                } catch (err) { }
-            }
+            } catch (err) { }
         }, 2000);
     };
 
@@ -356,7 +359,23 @@ export function useGameView(
                         globalState.cocosInfo = event.args[0];
                     }
                     setTimeout(() => {
-                        executeMacro(isShowFPS.value ? 'fps:true' : 'fps:false');
+                        // 强制关闭引擎内置 stats（改用插件叠加框展示）
+                        try {
+                            const __wv: any = gameView.value;
+                            if (__wv) {
+                                __wv.executeJavaScript(`
+                                    try {
+                                        if (window.cc && window.cc.debug && typeof window.cc.debug.setDisplayStats === 'function') {
+                                            window.cc.debug.setDisplayStats(false);
+                                        }
+                                    } catch (e) { /* 引擎未完全初始化，静默跳过 */ }
+                                `).catch(() => {});
+                            }
+                        } catch (e) {}
+                        // 若叠加框已开启但轮询因 webview 未就绪而失败，此时重试
+                        if (isShowFPS.value) {
+                            onStartPolling?.();
+                        }
                         executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
                     }, 500);
                 } else if (event.channel === 'update-tree') {
@@ -458,6 +477,22 @@ export function useGameView(
                     try { gameViewDynamic.setAudioMuted(isAudioMuted.value); } catch (e) { }
                 }
                 executeMacro(isAudioMuted.value ? 'mute:true' : 'mute:false');
+
+                // 强制关闭引擎内置 stats
+                try {
+                    gameViewDynamic.executeJavaScript(`
+                        try {
+                            if (window.cc && window.cc.debug && typeof window.cc.debug.setDisplayStats === 'function') {
+                                window.cc.debug.setDisplayStats(false);
+                            }
+                        } catch (e) { /* 引擎未完全初始化，静默跳过 */ }
+                    `).catch(() => {});
+                } catch (e) {}
+
+                // 若叠加框在 webview 就绪前已开启，补启动轮询
+                if (isShowFPS.value) {
+                    onStartPolling?.();
+                }
 
                 try {
                     const __pIns = gameViewDynamic.insertCSS(`

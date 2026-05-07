@@ -56,16 +56,43 @@ module.exports = Editor.Panel.extend({
                 const layoutSystem = useLayout(globalState, wrapMount, wrapperSize);
                 const tabSystem = useTabs();
                 const profilerSystem = useProfiler(globalState, gameView, activeTab);
-                
+
+                const statsFpsColor = computed(() => {
+                    const fps = globalState.profiler.tick.fps;
+                    if (fps >= 55) return '#4caf50';
+                    if (fps >= 30) return '#ff9800';
+                    return '#f44336';
+                });
+                const statsAvgFpsColor = computed(() => {
+                    const fps = globalState.profiler.tick.avgFps;
+                    if (fps >= 55) return '#4caf50';
+                    if (fps >= 30) return '#ff9800';
+                    return '#f44336';
+                });
+                const stats1pLowColor = computed(() => {
+                    const fps = globalState.profiler.tick.fps1pLow;
+                    if (fps >= 30) return '#4caf50';
+                    if (fps >= 15) return '#ff9800';
+                    return '#f44336';
+                });
+                const stats01pLowColor = computed(() => {
+                    const fps = globalState.profiler.tick.fps01pLow;
+                    if (fps >= 20) return '#4caf50';
+                    if (fps >= 10) return '#ff9800';
+                    return '#f44336';
+                });
+
                 const nodeSystem = useNodeSystem(globalState, gameView, nodeTreeRef, activeTab);
 
                 const gameViewSystem = useGameView(
-                    globalState, 
-                    gameView, 
-                    nodeTreeRef, 
-                    layoutSystem.rightPanelWidth, 
+                    globalState,
+                    gameView,
+                    nodeTreeRef,
+                    layoutSystem.rightPanelWidth,
                     layoutSystem.selectedResolution,
-                    (payload: any, auto: boolean) => nodeSystem.onNodeSelect(payload, auto)
+                    (payload: any, auto: boolean) => nodeSystem.onNodeSelect(payload, auto),
+                    () => profilerSystem.startTickPolling(),
+                    () => profilerSystem.stopTickPolling()
                 );
 
                 const devToolsSystem = useDevTools(globalState, gameView, devtoolsView, activeTab, layoutSystem.rightPanelWidth);
@@ -706,6 +733,10 @@ mcp.log('脚本已加载');
                     devtoolsView,
                     wrapMount,
                     nodeTreeRef,
+                    statsFpsColor,
+                    statsAvgFpsColor,
+                    stats1pLowColor,
+                    stats01pLowColor,
                     isAtlasModalOpen,
                     atlasImages,
                     selectedAtlasIndex,
@@ -799,6 +830,14 @@ mcp.log('脚本已加载');
                 if (event.reply) event.reply(null, { reqId, error: "Game view not found" });
                 return;
             }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) {
+                if (event.reply) event.reply(null, { reqId, error: "WebView detached from DOM" });
+                return;
+            }
+            try { wv.getWebContentsId(); } catch(e) {
+                if (event.reply) event.reply(null, { reqId, error: "WebView not ready" });
+                return;
+            }
             const code = `
                 (function(){
                     if(!window.__mcpHighlightData || !window.__mcpHighlightData.selectId) return null;
@@ -820,6 +859,8 @@ mcp.log('脚本已加载');
         'mcp-query-node-detail'(this: any, event: any, args: any) {
             const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
             if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) { if (event.reply) event.reply(null, { error: 'WebView detached from DOM' }); return; }
+            try { wv.getWebContentsId(); } catch(e) { if (event.reply) event.reply(null, { error: 'WebView not ready' }); return; }
             const code = `
                 (function(){
                     try {
@@ -835,6 +876,8 @@ mcp.log('脚本已加载');
         'mcp-update-property'(this: any, event: any, args: any) {
             const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
             if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) { if (event.reply) event.reply(null, { error: 'WebView detached from DOM' }); return; }
+            try { wv.getWebContentsId(); } catch(e) { if (event.reply) event.reply(null, { error: 'WebView not ready' }); return; }
             const code = `
                 (function(){
                     try {
@@ -851,6 +894,8 @@ mcp.log('脚本已加载');
         'mcp-simulate-input'(this: any, event: any, args: any) {
             const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
             if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) { if (event.reply) event.reply(null, { error: 'WebView detached from DOM' }); return; }
+            try { wv.getWebContentsId(); } catch(e) { if (event.reply) event.reply(null, { error: 'WebView not ready' }); return; }
             const code = `
                 (function(){
                     try {
@@ -865,6 +910,8 @@ mcp.log('脚本已加载');
         'mcp-query-memory'(this: any, event: any, args: any) {
              const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
              if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) { if (event.reply) event.reply(null, { error: 'WebView detached from DOM' }); return; }
+            try { wv.getWebContentsId(); } catch(e) { if (event.reply) event.reply(null, { error: 'WebView not ready' }); return; }
              const code = `
                  (function(){
                      try {
@@ -912,6 +959,8 @@ mcp.log('脚本已加载');
         'mcp-query-logs'(this: any, event: any, args: any) {
             const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
             if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) { if (event.reply) event.reply(null, { error: 'WebView detached from DOM' }); return; }
+            try { wv.getWebContentsId(); } catch(e) { if (event.reply) event.reply(null, { error: 'WebView not ready' }); return; }
             
             const tailCount = Math.min(args?.tail || 50, 100);
             const filterLevel = args?.level || 'all';
@@ -935,6 +984,8 @@ mcp.log('脚本已加载');
         'mcp-query-stats'(this: any, event: any, args: any) {
             const wv: any = this.shadowRoot ? this.shadowRoot.querySelector('#game-view') : null;
             if(!wv) { if (event.reply) event.reply(null, { error: 'No WebView' }); return; }
+            if (typeof wv.isConnected === 'boolean' && !wv.isConnected) { if (event.reply) event.reply(null, { error: 'WebView detached from DOM' }); return; }
+            try { wv.getWebContentsId(); } catch(e) { if (event.reply) event.reply(null, { error: 'WebView not ready' }); return; }
             
             const code = `
                 (function(){

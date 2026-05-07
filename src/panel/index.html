@@ -540,6 +540,58 @@
                 <div v-show="isDragging" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 999;">
                 </div>
             </div>
+
+            <!-- 性能数据叠加框：插件渲染，跟随面板缩放，高分辨率下清晰可读 -->
+            <div v-if="isShowFPS"
+                style="position: absolute; top: 6px; left: 6px; z-index: 100;
+                       background: rgba(30, 30, 30, 0.8);
+                       border: 1px solid rgba(255,255,255,0.1);
+                       border-radius: 4px; padding: 6px 10px;
+                       font-family: 'Consolas', monospace; font-size: calc(12px * var(--base-font-size, 13px) / 13);
+                       line-height: 1.6; color: #e0e0e0;
+                       pointer-events: none; user-select: none;">
+                <!-- 帧率组 -->
+                <div>
+                    <span style="color:#888;">FPS</span>
+                    <span :style="{color: statsFpsColor, fontWeight: 'bold', marginLeft: '6px'}">{{ globalState.profiler.tick.fps }}</span>
+                </div>
+                <div>
+                    <span style="color:#888;">Avg</span>
+                    <span :style="{color: statsAvgFpsColor, marginLeft: '6px'}">{{ globalState.profiler.tick.avgFps }}</span>
+                </div>
+                <div>
+                    <span style="color:#888;">1%Low</span>
+                    <span :style="{color: stats1pLowColor, marginLeft: '6px'}">{{ globalState.profiler.tick.fps1pLow }}</span>
+                </div>
+                <div>
+                    <span style="color:#888;">0.1%Low</span>
+                    <span :style="{color: stats01pLowColor, marginLeft: '6px'}">{{ globalState.profiler.tick.fps01pLow }}</span>
+                </div>
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); margin: 2px 0;"></div>
+                <!-- 渲染组 -->
+                <div>
+                    <span style="color:#888;">DrawCall</span>
+                    <span style="color:#e0e0e0; margin-left: 6px;">{{ globalState.profiler.tick.drawCall }}</span>
+                </div>
+                <div>
+                    <span style="color:#888;">Logic</span>
+                    <span style="color:#e0e0e0; margin-left: 6px;">{{ globalState.profiler.tick.logicTime }} ms</span>
+                </div>
+                <div>
+                    <span style="color:#888;">Render</span>
+                    <span style="color:#e0e0e0; margin-left: 6px;">{{ globalState.profiler.tick.renderTime }} ms</span>
+                </div>
+                <div style="border-top: 1px solid rgba(255,255,255,0.08); margin: 2px 0;"></div>
+                <!-- 资源组 -->
+                <div>
+                    <span style="color:#888;">Mem</span>
+                    <span style="color:#e0e0e0; margin-left: 6px;">{{ formatBytes(globalState.profiler.tick.totalMemory) }}</span>
+                </div>
+                <div>
+                    <span style="color:#888;">Nodes</span>
+                    <span style="color:#e0e0e0; margin-left: 6px;">{{ globalState.profiler.tick.nodeCount.toLocaleString() }}</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -616,14 +668,7 @@
                         style="margin-top: 8px; padding: 4px 12px; background: #1976d2; color: #fff; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">🔧
                         在独立窗口中打开 DevTools</button>
                 </div>
-                
-                <!-- 提示：控制台日志原始位置恢复指引 -->
-                <div v-if="!globalState.devToolsError"
-                    style="padding: 6px 15px; background: #2a2a2a; border-bottom: 1px solid #111; display: flex; justify-content: space-between; align-items: center;">
-                    <div class="mcp-log-hint" style="opacity: 0.8; font-size: 11px; color: #aaa;">
-                        💡 日志来源若显示为 mcp-log-capture.js，请在下方 DevTools -> ⚙️ Settings -> Ignore List 添加该名称排除。
-                    </div>
-                </div>
+
 
                 <!-- Phase 7: BrowserView 占位 div，BrowserView 将覆盖此区域 -->
                 <div ref="devtoolsView"

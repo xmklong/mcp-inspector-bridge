@@ -32,11 +32,23 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
         return oldObj;
     };
 
+    const isWebViewReady = (wv: any): boolean => {
+        if (!wv) return false;
+        if (typeof wv.isConnected === 'boolean' && !wv.isConnected) return false;
+        try {
+            const id = wv.getWebContentsId();
+            if (!id || id <= 0) return false;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
     const onNodeSelect = (node: any, isAutoRefresh: boolean = false) => {
         console.log(`[Vue Store Update] onNodeSelect triggered: id=${node ? node.id : 'null'}, autoRefresh=${isAutoRefresh}`);
         console.log(`[Selection-Debug] Trigger: Panel-onNodeSelect | NodeID: ${node ? node.id : 'null'} | AutoRefresh: ${isAutoRefresh} -> Sending setSelectionTarget to WebView`);
         const wv: any = gameView.value;
-        if (wv) {
+        if (isWebViewReady(wv)) {
             try {
                 const selCode = `if(window.__mcpCrawler && window.__mcpCrawler.setSelectionTarget){ window.__mcpCrawler.setSelectionTarget(${node ? "'" + node.id + "'" : "null"}); }`;
                 wv.executeJavaScript(selCode).catch(() => {});
@@ -125,7 +137,7 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
 
     const onNodeHover = (node: any) => {
         const wv: any = gameView.value;
-        if (wv) {
+        if (isWebViewReady(wv)) {
             try {
                 const hoverId = node ? node.id : '';
                 const code = `if(window.__mcpCrawler && window.__mcpCrawler.setHoverTarget){ window.__mcpCrawler.setHoverTarget('${hoverId}'); }`;
@@ -136,7 +148,7 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
 
     const onUpdateNodeProp = (payload: any) => {
         const wv: any = gameView.value;
-        if (wv) {
+        if (isWebViewReady(wv)) {
             const { uuid, compName, propKey, value, compIndex, arrayIndex } = payload;
             let valStr = value;
             if (typeof value === 'string') {
@@ -183,7 +195,7 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
     const toggleNodePicker = () => {
         globalState.isNodePickerActive = !globalState.isNodePickerActive;
         const wv: any = gameView.value;
-        if (wv) {
+        if (isWebViewReady(wv)) {
             const method = globalState.isNodePickerActive ? 'enable' : 'disable';
             const code = `if(window.__mcpNodePicker) window.__mcpNodePicker.${method}();`;
             const p = wv.executeJavaScript(code);
@@ -193,9 +205,8 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
 
     const onRenderDebuggerToggle = (newVal: boolean) => {
         const wv: any = gameView.value;
-        if (!wv) return;
-        if (typeof wv.executeJavaScript === 'function') {
-            wv.executeJavaScript(`
+        if (!isWebViewReady(wv)) return;
+        wv.executeJavaScript(`
                 var targetWin = window;
                 var frm = document.getElementById('GameDiv');
                 if (frm && frm.contentWindow && frm.contentWindow.__mcpRenderDebuggerHook) {
@@ -209,7 +220,6 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
                     }
                 }
             `).catch((err: any) => console.error("[RenderDebugger] executeJavaScript 抛出异常:", err));
-        }
     };
 
     const onRenderDebuggerLocate = (id: string) => {
@@ -291,7 +301,7 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
 
     const onPrintComp = (uuid: string, compIndex: number) => {
         const wv: any = gameView.value;
-        if (wv) {
+        if (isWebViewReady(wv)) {
             const code = `
                 if (window.__mcpCrawler && typeof window.__mcpCrawler.printComponentData === 'function') {
                     window.__mcpCrawler.printComponentData('${uuid}', ${compIndex});
@@ -304,7 +314,7 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
 
     const onPrintNode = (uuid: string) => {
         const wv: any = gameView.value;
-        if (wv) {
+        if (isWebViewReady(wv)) {
             const code = `
                 if (window.__mcpCrawler && typeof window.__mcpCrawler.printNodeData === 'function') {
                     window.__mcpCrawler.printNodeData('${uuid}');
@@ -317,25 +327,39 @@ export function useNodeSystem(globalState: any, gameView: any, nodeTreeRef: any,
 
     // 自动刷新逻辑
     let autoRefreshTimer: any = null;
+    let autoRefreshPaused = false;
+
     const startAutoRefresh = () => {
         if (autoRefreshTimer) return;
         autoRefreshTimer = setInterval(() => {
+            if (autoRefreshPaused) return;
             // 前置拦截：如果在悬停 inspector 面板、未选中节点或者当前选项卡并非游戏视图场景，放弃请求
             if (globalState.isInspectorHovered) return;
             if (!globalState.nodeDetail || !globalState.nodeDetail.id) return;
-            if (activeTab && activeTab.value !== 0) return; 
+            if (activeTab && activeTab.value !== 0) return;
 
             onNodeSelect({ id: globalState.nodeDetail.id }, true);
         }, 500);
     };
 
-    startAutoRefresh();
-
-    onUnmounted(() => {
+    const stopAutoRefresh = () => {
         if (autoRefreshTimer) {
             clearInterval(autoRefreshTimer);
             autoRefreshTimer = null;
         }
+    };
+
+    startAutoRefresh();
+
+    const _onPanelHide = () => { autoRefreshPaused = true; };
+    const _onPanelShow = () => { autoRefreshPaused = false; };
+    window.addEventListener('panel-hide', _onPanelHide);
+    window.addEventListener('panel-show', _onPanelShow);
+
+    onUnmounted(() => {
+        stopAutoRefresh();
+        window.removeEventListener('panel-hide', _onPanelHide);
+        window.removeEventListener('panel-show', _onPanelShow);
     });
 
     return {

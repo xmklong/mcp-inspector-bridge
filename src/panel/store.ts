@@ -12,7 +12,7 @@ export const globalState = reactive({
     isNarrow: false as boolean,
     webviewSrc: '' as string,
     profiler: {
-        tick: { fps: 0, drawCall: 0, logicTime: 0, renderTime: 0 },
+        tick: { fps: 0, avgFps: 0, fps1pLow: 0, fps01pLow: 0, drawCall: 0, logicTime: 0, renderTime: 0, totalMemory: 0, nodeCount: 0 },
         memoryStats: null as any,
         expandedBundles: {} as any
     },

@@ -13,9 +13,21 @@ export function initProfiler() {
     let logicStart = 0;
     let renderStart = 0;
 
+    // 帧时间环形缓冲区（≈10 秒窗口 @60fps），用于百分位计算
+    const FRAME_TIME_WINDOW = 600;
+    const frameDeltas: number[] = [];
+    let lastFrameTime = 0;
+
     // 实时逻辑消耗窃听器
     window.cc.director.on(window.cc.Director.EVENT_BEFORE_UPDATE, () => {
         logicStart = performance.now();
+        // 记录帧间间隔
+        if (lastFrameTime > 0) {
+            const delta = logicStart - lastFrameTime;
+            frameDeltas.push(delta);
+            if (frameDeltas.length > FRAME_TIME_WINDOW) frameDeltas.shift();
+        }
+        lastFrameTime = logicStart;
     });
     window.cc.director.on(window.cc.Director.EVENT_AFTER_UPDATE, () => {
         accumulatedLogicTime += (performance.now() - logicStart);
@@ -69,11 +81,41 @@ export function initProfiler() {
             }
         } catch (e) { }
 
+        // 计算帧率分位统计
+        let avgFps = 0, fps1pLow = 0, fps01pLow = 0;
+        if (frameDeltas.length > 30) {
+            const sorted = [...frameDeltas].sort((a, b) => a - b);
+            const avg = sorted.reduce((s, v) => s + v, 0) / sorted.length;
+            avgFps = Math.round(1000 / avg * 10) / 10;
+            const idx99 = Math.min(Math.ceil(sorted.length * 0.99) - 1, sorted.length - 1);
+            const idx999 = Math.min(Math.ceil(sorted.length * 0.999) - 1, sorted.length - 1);
+            fps1pLow = Math.round(1000 / Math.max(sorted[idx99], 0.1));
+            fps01pLow = Math.round(1000 / Math.max(sorted[idx999], 0.1));
+        }
+
         return {
             fps: currentFps,
+            avgFps: avgFps,
+            fps1pLow: fps1pLow,
+            fps01pLow: fps01pLow,
             drawCall: drawCall,
             logicTime: displayLogicTime,
             renderTime: displayRenderTime
         };
+    };
+
+    window.__mcpCountNodes = function () {
+        const scene = window.cc.director.getScene();
+        if (!scene) return 0;
+        function count(node: any): number {
+            let n = 1;
+            if (node.children) {
+                for (let i = 0; i < node.children.length; i++) {
+                    n += count(node.children[i]);
+                }
+            }
+            return n;
+        }
+        return count(scene);
     };
 }

@@ -4,6 +4,25 @@
 
 ---
 
+## [Unreleased] - 2026-05-07
+
+### ✨ 新特性
+
+- **预览区域性能数据叠加框 (Preview Performance Overlay)**: 在游戏预览区左上角新增半透明 Vue 渲染的性能数据叠加框，彻底取代引擎内置 `cc.debug.setDisplayStats()` 在高分辨率下无法辨认的痛点。
+  - **显示内容**: 瞬时 FPS、平均帧率 (Avg)、1% Low FPS、0.1% Low FPS、DrawCall、Logic/Render 耗时、内存占用 (Mem)、场景节点总数 (Nodes)。
+  - **帧率分位统计**: 基于 600 帧环形缓冲区逐帧记录帧间隔，实时计算 P99/P99.9 百分位帧率，精准反映卡顿体验。
+  - **自适应速率轮询**: 性能数据 200ms、内存 1s、节点计数 2s 三档独立刷新率，节点遍历 O(n) 开销可控。
+  - **FPS 按钮重定向**: 顶部工具栏 FPS 按钮改为控制插件叠加框显隐，引擎内置 stats 在每次 webview 加载时强制禁用。
+  - **颜色自适应**: FPS/Avg/1%Low/0.1%Low 根据预设阈值独立着色（绿/橙/红），低帧阈值逐级放宽。
+
+### 🐛 缺陷修复
+
+- **修复 webview 未就绪时调用 `executeJavaScript` 同步抛异常**: 在 `startTickPolling` 的 interval 回调中加入 `isConnected` + `getWebContentsId()` + `try-catch` 三层防线，杜绝 "WebView must be attached to the DOM" 报错。
+- **修复 `setDisplayStats` 引擎初始化竞态崩溃**: 引擎 `cc.debug` 对象存在但内部 `_infos` 未初始化时调用 `setDisplayStats(false)` 导致 `Cannot set property 'showFPS' of null`，改为 `try-catch` + `typeof === 'function'` 防御性调用。
+- **修复持久化 `isShowFPS` 恢复时 webview 未就绪导致轮询静默失败**: 在 `dom-ready` 和 `handshake` 事件处理中加入补救重试逻辑，若叠加框已开启则补启动轮询。
+
+---
+
 ## [Unreleased] - 2026-04-28
 
 ### 🐛 缺陷修复
@@ -19,7 +38,12 @@
   - **问题**: `@edit-script` 和 `@enable-script` 使用模板内联 `Editor.Ipc.sendToMain` 回调，Vue 模板编译后箭头函数边界检测失败导致回调未注册；`disableScript`/`enableScript` 仅修改内存状态，未同步 `mcp-scripts.json` profile，面板重载后状态回退。
   - **方案**: 将 IPC 回调逻辑提升为 `setup()` 内命名方法 `handleScriptEdit` / `handleScriptEnable`；新增 `script-set-enabled` IPC handler 同步 profile 持久化状态；修复 `saveScriptEditor` 中 `.js` 后缀双重追加问题；`@name` 缺失时阻止保存并提示用户。
 
+### 🧹 代码整理
+
+- **移除 DevTools 顶部 Ignore List 提示横幅 (Remove DevTools Ignore List Tip Banner)**: CDP 协议迁移已彻底解决日志来源归属问题，该横幅指引已失去实际作用，删除以释放纵向空间。
+
 ---
+
 
 ## [Unreleased] - 2026-04-20
 

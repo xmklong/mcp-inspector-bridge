@@ -1,26 +1,81 @@
 const { watch } = require('vue');
 
 export function useProfiler(globalState: any, gameView: any, activeTab: any) {
-    let profilerTickTimer: any = null;
+    let tickTimer: any = null;
     let memoryRankTimer: any = null;
+    let memoryTimer: any = null;
+    let nodeCountTimer: any = null;
+
+    const startTickPolling = () => {
+        if (tickTimer) return;
+        const wv: any = gameView.value;
+        if (!wv) return;
+        tickTimer = setInterval(() => {
+            const wvNow: any = gameView.value;
+            if (!wvNow) return;
+            // 确保 webview 已挂载 DOM 且 dom-ready 已触发
+            if (typeof wvNow.isConnected === 'boolean' && !wvNow.isConnected) return;
+            try { wvNow.getWebContentsId(); } catch (e) { return; }
+            try {
+                wvNow.executeJavaScript(
+                    'window.__mcpProfilerTick ? JSON.stringify(window.__mcpProfilerTick()) : null'
+                ).then((res: string) => {
+                    if (res) {
+                        try { Object.assign(globalState.profiler.tick, JSON.parse(res)); } catch (e) {}
+                    }
+                }).catch(() => {});
+            } catch (e) { /* webview 未就绪，静默跳过 */ }
+        }, 200);
+
+        // 内存轮询：1s 间隔，仅取 totalMemory 供叠加框展示
+        if (!memoryTimer) {
+            memoryTimer = setInterval(() => {
+                const wvNow: any = gameView.value;
+                if (!wvNow || (typeof wvNow.isConnected === 'boolean' && !wvNow.isConnected)) return;
+                try { wvNow.getWebContentsId(); } catch (e) { return; }
+                try {
+                    wvNow.executeJavaScript(
+                        'window.__mcpGetMemoryRanking ? JSON.stringify(window.__mcpGetMemoryRanking()) : null'
+                    ).then((res: string) => {
+                        if (res) {
+                            try {
+                                const data = JSON.parse(res);
+                                globalState.profiler.tick.totalMemory = data.totalMemory || 0;
+                            } catch (e) {}
+                        }
+                    }).catch(() => {});
+                } catch (e) {}
+            }, 1000);
+        }
+
+        // 节点计数轮询：2s 间隔，降低 O(n) 遍历开销
+        if (!nodeCountTimer) {
+            nodeCountTimer = setInterval(() => {
+                const wvNow: any = gameView.value;
+                if (!wvNow || (typeof wvNow.isConnected === 'boolean' && !wvNow.isConnected)) return;
+                try { wvNow.getWebContentsId(); } catch (e) { return; }
+                try {
+                    wvNow.executeJavaScript(
+                        'window.__mcpCountNodes ? window.__mcpCountNodes() : 0'
+                    ).then((res: number) => {
+                        globalState.profiler.tick.nodeCount = typeof res === 'number' ? res : 0;
+                    }).catch(() => {});
+                } catch (e) {}
+            }, 2000);
+        }
+    };
+
+    const stopTickPolling = () => {
+        if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+        if (memoryTimer) { clearInterval(memoryTimer); memoryTimer = null; }
+        if (nodeCountTimer) { clearInterval(nodeCountTimer); nodeCountTimer = null; }
+    };
 
     const setupProfilerWatchers = () => {
         watch(activeTab, (newVal: number) => {
             const wv: any = gameView.value;
             if (newVal === 4 && wv) {
-                if (!profilerTickTimer) {
-                    profilerTickTimer = setInterval(() => {
-                        const expr = `window.__mcpProfilerTick ? JSON.stringify(window.__mcpProfilerTick()) : null`;
-                        wv.executeJavaScript(expr).then((res: string) => {
-                            if (res) {
-                                try {
-                                    const data = JSON.parse(res);
-                                    Object.assign(globalState.profiler.tick, data);
-                                } catch (e) { }
-                            }
-                        }).catch(() => { });
-                    }, 150);
-                }
+                startTickPolling();
 
                 if (!memoryRankTimer) {
                     let uuidNameCache: Record<string, string> = {};
@@ -85,10 +140,8 @@ export function useProfiler(globalState: any, gameView: any, activeTab: any) {
                     }, 1000);
                 }
             } else {
-                if (profilerTickTimer) {
-                    clearInterval(profilerTickTimer);
-                    profilerTickTimer = null;
-                }
+                // 离开 Tab 4：仅当叠加框也不需要时才停止 tick 轮询
+                // stopTickPolling 由 useGameView 通过 isShowFPS 控制，此处不强制停止
                 if (memoryRankTimer) {
                     clearInterval(memoryRankTimer);
                     memoryRankTimer = null;
@@ -107,6 +160,8 @@ export function useProfiler(globalState: any, gameView: any, activeTab: any) {
 
     return {
         setupProfilerWatchers,
-        formatBytes
+        formatBytes,
+        startTickPolling,
+        stopTickPolling
     };
 }
